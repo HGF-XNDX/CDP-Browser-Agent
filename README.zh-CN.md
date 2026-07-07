@@ -10,14 +10,29 @@ Chromium，也可以通过 CDP 连接到已经打开的 Chrome/Edge 浏览器会
 
 ## 安装
 
+直接从 GitHub 安装：
+
+```powershell
+pip install git+https://github.com/HGF-XNDX/CDP-Browser-Agent.git
+python -m playwright install chromium
+```
+
+安装指定分支或 commit：
+
+```powershell
+pip install git+https://github.com/HGF-XNDX/CDP-Browser-Agent.git@main
+```
+
 本地开发安装：
 
 ```powershell
+git clone https://github.com/HGF-XNDX/CDP-Browser-Agent.git
+cd CDP-Browser-Agent
 pip install -e .
 python -m playwright install chromium
 ```
 
-发布到包索引后的安装方式：
+发布到 PyPI 之后，也可以使用：
 
 ```powershell
 pip install cdp-browser-agent

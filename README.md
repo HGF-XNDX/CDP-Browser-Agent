@@ -10,12 +10,29 @@ to an existing Chrome/Edge session through CDP.
 
 ## Install
 
+Install directly from GitHub:
+
 ```powershell
+pip install git+https://github.com/HGF-XNDX/CDP-Browser-Agent.git
+python -m playwright install chromium
+```
+
+Install a specific branch or commit:
+
+```powershell
+pip install git+https://github.com/HGF-XNDX/CDP-Browser-Agent.git@main
+```
+
+For local development:
+
+```powershell
+git clone https://github.com/HGF-XNDX/CDP-Browser-Agent.git
+cd CDP-Browser-Agent
 pip install -e .
 python -m playwright install chromium
 ```
 
-For a published package:
+After the package is published to PyPI, this will also work:
 
 ```powershell
 pip install cdp-browser-agent
