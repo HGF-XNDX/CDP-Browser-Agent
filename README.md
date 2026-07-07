@@ -1,5 +1,7 @@
 # CDP Browser Agent
 
+[English](README.md) | [中文](README.zh-CN.md)
+
 Standalone AI browser agent extracted from the UnifiedAgent project.
 
 It uses Playwright for browser control and any OpenAI-compatible chat-completions
