@@ -89,6 +89,69 @@ async def main():
 asyncio.run(main())
 ```
 
+## MCP Server
+
+This package can also run as an MCP server. MCP clients can call the
+`browser_task` tool to let the agent operate a browser.
+
+Start the MCP server over stdio:
+
+```powershell
+cdp-browser-agent-mcp
+```
+
+Equivalent module form:
+
+```powershell
+python -m cdp_browser_agent.mcp_server
+```
+
+Example MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "cdp-browser-agent": {
+      "command": "cdp-browser-agent-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+If your MCP client cannot find console scripts, use Python directly:
+
+```json
+{
+  "mcpServers": {
+    "cdp-browser-agent": {
+      "command": "python",
+      "args": ["-m", "cdp_browser_agent.mcp_server"]
+    }
+  }
+}
+```
+
+The exposed MCP tool is:
+
+- `browser_task`: run a natural-language browser task.
+
+Common tool arguments:
+
+- `task`: required natural-language browser task.
+- `base_url`: OpenAI-compatible `/v1` endpoint, for example `http://127.0.0.1:8080/v1`.
+- `connection`: `launch` or `cdp`.
+- `cdp_url`: CDP endpoint when using `connection="cdp"`.
+- `headless`: whether to run the browser headless.
+- `max_steps`: maximum browser planning steps.
+- `config_path`: optional JSON config overlay path.
+
+You can also run HTTP transports for clients that support them:
+
+```powershell
+cdp-browser-agent-mcp --transport streamable-http --host 127.0.0.1 --port 8000
+```
+
 ## Configuration
 
 You can pass a JSON overlay with `--config`. The file is deep-merged onto the

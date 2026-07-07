@@ -89,6 +89,69 @@ async def main():
 asyncio.run(main())
 ```
 
+## MCP Server
+
+这个包也可以作为 MCP server 运行。MCP client 可以调用 `browser_task`
+工具，让浏览器智能体执行自然语言浏览器任务。
+
+以 stdio 模式启动 MCP server：
+
+```powershell
+cdp-browser-agent-mcp
+```
+
+等价的模块启动方式：
+
+```powershell
+python -m cdp_browser_agent.mcp_server
+```
+
+MCP client 配置示例：
+
+```json
+{
+  "mcpServers": {
+    "cdp-browser-agent": {
+      "command": "cdp-browser-agent-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+如果 MCP client 找不到 console script，可以直接用 Python 启动：
+
+```json
+{
+  "mcpServers": {
+    "cdp-browser-agent": {
+      "command": "python",
+      "args": ["-m", "cdp_browser_agent.mcp_server"]
+    }
+  }
+}
+```
+
+当前暴露的 MCP 工具：
+
+- `browser_task`：执行一个自然语言浏览器任务。
+
+常用参数：
+
+- `task`：必填，自然语言浏览器任务。
+- `base_url`：OpenAI-compatible `/v1` 接口，例如 `http://127.0.0.1:8080/v1`。
+- `connection`：浏览器连接方式，可选 `launch` 或 `cdp`。
+- `cdp_url`：使用 `connection="cdp"` 时的 CDP 地址。
+- `headless`：是否使用无头浏览器。
+- `max_steps`：最大浏览器规划步数。
+- `config_path`：可选 JSON 配置覆盖文件路径。
+
+如果 MCP client 支持 HTTP transport，也可以这样启动：
+
+```powershell
+cdp-browser-agent-mcp --transport streamable-http --host 127.0.0.1 --port 8000
+```
+
 ## 配置
 
 可以通过 `--config` 传入 JSON 配置覆盖文件。覆盖文件会和默认配置做深度合并。
