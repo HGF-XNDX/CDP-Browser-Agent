@@ -1,0 +1,24 @@
+{
+  "model": {
+    "provider": "llama.cpp",
+    "baseUrl": "http://127.0.0.1:8080/v1",
+    "model": "",
+    "fallbackModel": "local-model",
+    "maxTokens": 4096,
+    "temperature": 0,
+    "apiTimeout": 180,
+    "enableThinking": false
+  },
+  "browser": {
+    "connection": "launch",
+    "start_url": "https://www.bing.com",
+    "downloads_path": "downloads/browser-agent",
+    "headless": true,
+    "viewport": "fullscreen"
+  },
+  "agent": {
+    "max_steps": 30,
+    "strategy_evaluator_enabled": true,
+    "browser_site_memory_enabled": true
+  }
+}

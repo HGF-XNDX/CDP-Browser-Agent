@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cdp-browser-agent"
+version = "0.1.0"
+description = "A standalone AI browser agent powered by Playwright and OpenAI-compatible chat models."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "CDP Browser Agent Maintainers" }
+]
+keywords = ["browser-agent", "playwright", "ai-agent", "browser-automation", "openai-compatible"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Internet :: WWW/HTTP :: Browsers",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+  "httpx>=0.27.0",
+  "playwright>=1.44.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.2.0",
+  "twine>=5.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/HGF-XNDX/CDP-Browser-Agent"
+Repository = "https://github.com/HGF-XNDX/CDP-Browser-Agent"
+Issues = "https://github.com/HGF-XNDX/CDP-Browser-Agent/issues"
+
+[project.scripts]
+browser-agent = "cdp_browser_agent.browser.cli:main"
+cdp-browser-agent = "cdp_browser_agent.browser.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cdp_browser_agent*"]

@@ -1,0 +1,18 @@
+{
+  "model": {
+    "provider": "llama.cpp",
+    "baseUrl": "http://127.0.0.1:8080/v1",
+    "model": "",
+    "fallbackModel": "local-model"
+  },
+  "browser": {
+    "connection": "cdp",
+    "cdp_url": "http://127.0.0.1:9222",
+    "auto_start_cdp": true,
+    "user_data_dir": "D:\\chrome-cdp-profile",
+    "headless": false
+  },
+  "agent": {
+    "max_steps": 30
+  }
+}
