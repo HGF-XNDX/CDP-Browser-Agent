@@ -11,3 +11,5 @@ dist/
 downloads/
 logs/
 memory/
+workflow-runs/
+deliveries/

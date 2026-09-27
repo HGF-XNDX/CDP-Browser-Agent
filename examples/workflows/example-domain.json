@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "name": "example-domain",
+  "version": "1.0.0",
+  "description": "Collect the title and introduction from example.com with source evidence; a minimal fixed-site workflow.",
+  "allowed_origins": ["https://example.com"],
+  "request_delay_ms": 500,
+  "min_records": 1,
+  "steps": [{
+    "id": "page",
+    "type": "crawl",
+    "start_url": "https://example.com/",
+    "wait_for": "h1",
+    "item_selector": "body",
+    "fields": {
+      "title": {"selector": "h1"},
+      "introduction": {"selector": "p"}
+    },
+    "key_fields": ["title"],
+    "max_pages": 1,
+    "max_records": 1
+  }]
+}

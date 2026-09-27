@@ -1,0 +1,17 @@
+{
+  "model": {"baseUrl": "http://127.0.0.1:8080/v1", "model": "local-model", "answerLanguage": "auto"},
+  "browser": {"headless": true, "start_url": "https://example.com"},
+  "agent": {"max_steps": 20},
+  "harness": {
+    "skill_paths": ["skills"],
+    "active_skills": ["page-extraction"],
+    "mcp_servers": {
+      "text": {
+        "transport": "stdio",
+        "command": "../.venv/Scripts/python.exe",
+        "args": ["toolbox.py"],
+        "allow_tools": ["normalize_text"]
+      }
+    }
+  }
+}

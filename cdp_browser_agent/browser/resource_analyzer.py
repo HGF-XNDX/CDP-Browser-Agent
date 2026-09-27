@@ -5,6 +5,7 @@ import csv
 import gzip
 import json
 import os
+import logging
 import re
 import tarfile
 import zipfile
@@ -43,10 +44,6 @@ def configure_for_download(base_config: dict, download_dir: Path) -> dict:
         "total": 2,
         "task_key": "find_download_resource",
     }
-    # Law collection: a saved page must actually contain 法条正文 (多条 第N条) to
-    # count as success — otherwise the agent converges on a metadata/landing page
-    # (e.g. flk.npc.gov.cn detail shell) and merges nothing usable.
-    agent_cfg["require_law_articles"] = True
     return config
 
 
@@ -724,7 +721,7 @@ async def analyze_downloaded_resource(
         targets = [latest] if latest else []
     if not targets:
         message = f"No downloaded resource found in {download_dir}."
-        print(message)
+        logging.getLogger(__name__).info(message)
         return {"ok": False, "message": message}
 
     extracted_files: list[Path] = []
@@ -775,20 +772,20 @@ async def analyze_downloaded_resource(
     json_path.write_text(json.dumps({**report, "model_summary": model_summary}, ensure_ascii=False, indent=2), encoding="utf-8")
     write_markdown(md_path, report, model_summary)
 
-    print(
+    logging.getLogger(__name__).info(
         "Analysis complete: "
         f"type={resource_type} extracted={len(extracted_files)} data_files={len(data_files)} analyzed={len(analyzed_files)}"
     )
     if completeness_warnings:
-        print("  completeness_warnings:")
+        logging.getLogger(__name__).info("  completeness_warnings:")
         for warning in completeness_warnings:
-            print(f"    - {warning}")
-    print(f"  resources={', '.join(str(target) for target in targets)}")
-    print(f"  json={json_path}")
-    print(f"  markdown={md_path}")
-    print("  verified_summary:")
+            logging.getLogger(__name__).info(f"    - {warning}")
+    logging.getLogger(__name__).info(f"  resources={', '.join(str(target) for target in targets)}")
+    logging.getLogger(__name__).info(f"  json={json_path}")
+    logging.getLogger(__name__).info(f"  markdown={md_path}")
+    logging.getLogger(__name__).info("  verified_summary:")
     for line in report["authoritative_summary"].splitlines():
-        print(f"    {line}")
+        logging.getLogger(__name__).info(f"    {line}")
     if model_summary:
-        print(f"  model_summary={model_summary[:300]}")
+        logging.getLogger(__name__).info(f"  model_summary={model_summary[:300]}")
     return {"ok": True, "report": report, "json": str(json_path), "markdown": str(md_path)}

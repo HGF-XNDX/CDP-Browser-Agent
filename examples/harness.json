@@ -1,0 +1,12 @@
+{
+  "model": {"baseUrl": "http://127.0.0.1:8080/v1", "model": "local-model", "answerLanguage": "auto"},
+  "browser": {"headless": true, "start_url": "https://example.com"},
+  "agent": {"max_steps": 20, "strategy_evaluator_enabled": false, "browser_site_memory_enabled": false},
+  "harness": {
+    "skill_paths": ["skills"],
+    "active_skills": ["page-extraction"],
+    "run_timeout_seconds": 600,
+    "tool_timeout_seconds": 30,
+    "mcp_servers": {}
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "model": {
+    "provider": "llama.cpp",
+    "baseUrl": "http://127.0.0.1:30000/v1",
+    "model": "",
+    "maxTokens": 1536,
+    "apiTimeout": 90,
+    "maxRetries": 0,
+    "enableThinking": false,
+    "enableVision": false
+  },
+  "browser": {
+    "connection": "launch",
+    "headless": true,
+    "focus_page": false,
+    "downloads_path": "../downloads/browser-agent"
+  },
+  "agent": {
+    "max_steps": 20,
+    "log_dir": "../logs/browser-agent"
+  },
+  "workflows": {"paths": ["workflows"], "state_dir": "../workflow-runs"},
+  "harness": {
+    "run_timeout_seconds": 180,
+    "skill_paths": ["skills"],
+    "mcp_servers": {}
+  }
+}

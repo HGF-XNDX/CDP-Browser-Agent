@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "name": "demo-catalog",
+  "version": "1.0.0",
+  "description": "Local demo: an agent opens the catalog, then deterministic pagination and detail extraction collect products with checkpoints.",
+  "parameters": {
+    "type": "object",
+    "properties": {"base_url": {"type": "string", "pattern": "^http://127\\.0\\.0\\.1:[0-9]+$"}},
+    "required": ["base_url"],
+    "additionalProperties": false
+  },
+  "allowed_origins": ["${base_url}"],
+  "request_delay_ms": 50,
+  "min_records": 3,
+  "steps": [
+    {"id": "entry", "type": "navigate", "url": "${base_url}/start", "wait_for": "a"},
+    {
+      "id": "open-catalog", "type": "agent",
+      "instructions": "点击页面上的 Open catalog 链接，打开商品目录。确认页面标题是 Product catalog，且已出现商品列表。不要进入商品详情。",
+      "checks": [{"kind": "text", "selector": "h1", "contains": "Product catalog"}, {"kind": "visible", "selector": "#catalog .product"}],
+      "max_steps": 5,
+      "replay_safe": true
+    },
+    {
+      "id": "products", "type": "crawl", "wait_for": "#catalog",
+      "item_selector": ".product",
+      "fields": {
+        "sku": {"attribute": "data-sku"},
+        "title": {"selector": "a"},
+        "price": {"selector": ".price"},
+        "detail_url": {"selector": "a", "attribute": "href", "url": true}
+      },
+      "follow": {"url_field": "detail_url", "wait_for": ".description", "fields": {"description": {"selector": ".description"}}},
+      "key_fields": ["sku"], "next_selector": "a.next", "max_pages": 10, "max_records": 100
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "name": "ipc-judgments-sample",
+  "version": "1.0",
+  "description": "最高人民法院知识产权法庭精品裁判首屏样本，最多5篇；仅提取网页原文，不进行法律判断。",
+  "allowed_origins": [
+    "https://ipc.court.gov.cn"
+  ],
+  "request_delay_ms": 1200,
+  "min_records": 1,
+  "steps": [
+    {
+      "id": "entry",
+      "type": "navigate",
+      "url": "https://ipc.court.gov.cn/zh-cn/index.html"
+    },
+    {
+      "id": "open_collection",
+      "type": "agent",
+      "instructions": "打开网站的“精品裁判”栏目，保持在列表第一页。只需要进入列表，不要打开文书详情。发现登录或验证码则 ask_user。",
+      "checks": [
+        {
+          "kind": "url",
+          "prefix": "https://ipc.court.gov.cn/zh-cn/news/more-5-25.html"
+        },
+        {
+          "kind": "visible",
+          "selector": ".listing li a[href*=\"/news/view-\"]"
+        }
+      ],
+      "max_steps": 5,
+      "replay_safe": true
+    },
+    {
+      "id": "collect",
+      "type": "crawl",
+      "wait_for": ".listing li a[href*=\"/news/view-\"]",
+      "item_selector": ".listing li",
+      "fields": {
+        "title": {
+          "selector": ".left a"
+        },
+        "published_date": {
+          "selector": ".right"
+        },
+        "detail_url": {
+          "selector": ".left a",
+          "attribute": "href",
+          "url": true
+        }
+      },
+      "key_fields": [
+        "detail_url"
+      ],
+      "next_selector": "#yw0 a:has-text(\"下一页\")",
+      "max_pages": 1,
+      "max_records": 5,
+      "on_limit": "complete",
+      "follow": {
+        "url_field": "detail_url",
+        "wait_for": ".detail .txt",
+        "fields": {
+          "document_title": {
+            "selector": ".detail h2"
+          },
+          "publication": {
+            "selector": ".detail .message"
+          },
+          "full_text": {
+            "selector": ".detail .txt"
+          }
+        }
+      }
+    }
+  ]
+}

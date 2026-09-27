@@ -1,191 +1,154 @@
 # CDP Browser Agent
 
-[English](README.md) | [中文](README.zh-CN.md)
+English | [中文](README.zh-CN.md)
 
-Standalone AI browser agent extracted from the UnifiedAgent project.
+A general-purpose browser agent using Playwright and an OpenAI-compatible Chat
+Completions endpoint. Launch Chromium or attach to Chrome/Edge over CDP. Load
+Agent Skills, call external MCP tools, expose the agent as an MCP server, or
+export its bundled Skill for another agent host.
 
-It uses Playwright for browser control and any OpenAI-compatible chat-completions
-endpoint for planning browser actions. It can launch Chromium itself or connect
-to an existing Chrome/Edge session through CDP.
-
-## Install
-
-Install directly from GitHub:
-
-```powershell
-pip install git+https://github.com/HGF-XNDX/CDP-Browser-Agent.git
-python -m playwright install chromium
-```
-
-Install a specific branch or commit:
+Version 0.4 adds reusable website workflows: verified page preparation, deterministic
+list/detail extraction, pagination, durable checkpoints, snapshots, and change detection.
+See [workflow guide](docs/WORKFLOWS.md), [validation](docs/WORKFLOW_VALIDATION.md), and
+[earlier upgrade notes](docs/UPGRADE.md).
 
 ```powershell
-pip install git+https://github.com/HGF-XNDX/CDP-Browser-Agent.git@main
+python -m cdp_browser_agent.browser --config examples/harness-30000.json --list-workflows
+python -m cdp_browser_agent.browser --config examples/harness-30000.json --workflow example-domain
 ```
 
-For local development:
+MCP also exposes `browser_workflows`, `browser_workflow_run`, `browser_workflow_status`,
+and `browser_workflow_pause`. Workflows are operator-registered JSON files. Site-specific
+examples are separately registered through `examples/ip-collection-30000.json`.
+
+## Install and run
+
+Python 3.10+:
 
 ```powershell
-git clone https://github.com/HGF-XNDX/CDP-Browser-Agent.git
-cd CDP-Browser-Agent
-pip install -e .
-python -m playwright install chromium
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m playwright install chromium
+.\.venv\Scripts\python.exe -m cdp_browser_agent.browser --headless `
+  --base-url http://127.0.0.1:8080/v1 --model local-model `
+  "Open https://example.com and summarize the page"
 ```
 
-After the package is published to PyPI, this will also work:
+Configure a real model endpoint before running. This package does not deploy a
+model. Console aliases: `browser-agent`, `cdp-browser-agent`. CLI stdout is JSON;
+progress goes to stderr. The default start page is blank.
+
+## Skills and external capabilities
 
 ```powershell
-pip install cdp-browser-agent
-python -m playwright install chromium
+browser-agent --config examples/harness.json --list-skills
+browser-agent --config examples/harness.json "Extract facts from https://example.com"
+browser-agent --skill-path D:/skills --skill my-skill "The requested task"
 ```
 
-## Quick Start
+`harness.skill_paths` lists skill folders or their parents. Metadata is discovered
+first; `skill_load` activates instructions, `skill_read` retrieves bounded UTF-8
+resources, and `skill_unload` releases context. `harness.active_skills` preloads
+selected skills. Duplicate names and resource path escapes are rejected.
+Scripts may be read, but automatic script execution is not provided. Use an
+explicitly registered Python or MCP tool for execution. Skill metadata cannot
+expand tool permissions.
 
-Run against a local OpenAI-compatible endpoint:
-
-```powershell
-browser-agent `
-  --base-url http://127.0.0.1:8080/v1 `
-  --model local-model `
-  --headless `
-  --max-steps 20 `
-  "Open https://example.com and summarize the visible page"
-```
-
-Connect to an existing CDP browser:
-
-```powershell
-chrome.exe --remote-debugging-port=9222 --user-data-dir=D:\chrome-cdp-profile
-
-browser-agent `
-  --connection cdp `
-  --cdp-url http://127.0.0.1:9222 `
-  --base-url http://127.0.0.1:8080/v1 `
-  "Search the web for Playwright Python documentation and open the official page"
-```
-
-## Python API
-
-```python
-import asyncio
-
-from cdp_browser_agent.browser.default_config import browser_agent_default_config
-from cdp_browser_agent.browser.runner import run_browser_agent
-
-
-async def main():
-    config = browser_agent_default_config()
-    config["model"]["baseUrl"] = "http://127.0.0.1:8080/v1"
-    config["browser"]["headless"] = True
-    config["agent"]["max_steps"] = 20
-
-    result = await run_browser_agent(
-        "Open https://example.com and summarize the visible page",
-        config,
-    )
-    print(result)
-
-
-asyncio.run(main())
-```
-
-## MCP Server
-
-This package can also run as an MCP server. MCP clients can call the
-`browser_task` tool to let the agent operate a browser.
-
-Start the MCP server over stdio:
-
-```powershell
-cdp-browser-agent-mcp
-```
-
-Equivalent module form:
-
-```powershell
-python -m cdp_browser_agent.mcp_server
-```
-
-Example MCP client configuration:
+[harness-with-mcp.json](examples/harness-with-mcp.json) configures a working local
+text processing server. Its executable path assumes the Windows `.venv` above.
+External servers support `stdio` and `streamable-http`; each requires an exact
+`allow_tools` list. An empty list disables the server. Tools are namespaced as
+`mcp.<server>.<tool>` and discovered with `tool_list` / `tool_describe`.
+Arguments are validated against JSON Schema; calls are bounded and never retried
+automatically. Large results are explicitly truncated.
 
 ```json
 {
-  "mcpServers": {
-    "cdp-browser-agent": {
-      "command": "cdp-browser-agent-mcp",
-      "args": []
+  "harness": {
+    "mcp_servers": {
+      "lookup": {
+        "transport": "streamable-http",
+        "url": "http://127.0.0.1:9000/mcp",
+        "allow_tools": ["lookup"],
+        "headers_from_env": {"Authorization": "LOOKUP_AUTHORIZATION"}
+      }
     }
   }
 }
 ```
 
-If your MCP client cannot find console scripts, use Python directly:
+Set the full authorization value in the named environment variable. For stdio,
+use `env_from` to pass selected environment variables. Config paths resolve
+relative to the JSON file, independent of the MCP host's working directory.
+Model credentials can be supplied via `model.apiKeyEnv`.
+
+Python callers can use `run_browser_agent(task, config, tools=[...])` with async
+`Tool(name, description, input_schema, handler)` objects from
+`cdp_browser_agent.harness`. See the Chinese README for a complete example.
+
+## MCP server
+
+```powershell
+cdp-browser-agent-mcp --config examples/harness.json
+cdp-browser-agent-mcp --config examples/harness.json --transport streamable-http --port 8000
+```
+
+The tools are `browser_capabilities()` and `browser_task(task, max_steps?)`.
+The operator owns configuration; callers cannot change file paths, model
+endpoints, subprocess commands or credentials. `max_steps` can only lower the
+operator's limit. Concurrent tasks return `busy` to avoid sharing a CDP page.
+The HTTP launcher only binds to loopback; remote hosting needs authentication.
 
 ```json
 {
   "mcpServers": {
     "cdp-browser-agent": {
-      "command": "python",
-      "args": ["-m", "cdp_browser_agent.mcp_server"]
+      "command": "/absolute/path/to/venv/python",
+      "args": ["-m", "cdp_browser_agent.mcp_server", "--config", "/absolute/path/to/config.json"]
     }
   }
 }
 ```
 
-The exposed MCP tool is:
-
-- `browser_task`: run a natural-language browser task.
-
-Common tool arguments:
-
-- `task`: required natural-language browser task.
-- `base_url`: OpenAI-compatible `/v1` endpoint, for example `http://127.0.0.1:8080/v1`.
-- `connection`: `launch` or `cdp`.
-- `cdp_url`: CDP endpoint when using `connection="cdp"`.
-- `headless`: whether to run the browser headless.
-- `max_steps`: maximum browser planning steps.
-- `config_path`: optional JSON config overlay path.
-
-You can also run HTTP transports for clients that support them:
+## Export as a Skill
 
 ```powershell
-cdp-browser-agent-mcp --transport streamable-http --host 127.0.0.1 --port 8000
+browser-agent --export-skill .agents/skills
 ```
 
-## Configuration
+The [bundled Skill](cdp_browser_agent/skills/cdp-browser-agent/SKILL.md) is included
+in the wheel. Export refuses to overwrite an existing skill. It delegates to
+this package's MCP or CLI and still requires an independently configured model.
 
-You can pass a JSON overlay with `--config`. The file is deep-merged onto the
-default config.
+## Outcomes and verification
 
-```powershell
-browser-agent --config examples/local-llamacpp.json "Open https://example.com"
-```
+Runs return `completed`, `incomplete`, `blocked`, `needs_input`, `max_steps`, `stalled`, `failed`, or
+`timeout`. Completion is explicitly `model_reported`, not independent proof of
+success. Review the observed sources, artifacts and UUID JSONL log. Saving one
+file does not terminate a multi-step task. User intervention returns immediately.
+Timeouts can leave side effects; verify them before repeating an action.
 
-Important fields:
-
-- `model.baseUrl`: OpenAI-compatible `/v1` endpoint.
-- `model.model`: model name. Leave empty to auto-discover from `/props` or `/models`.
-- `model.enableThinking`: enables model thinking for backends that support it.
-- `browser.connection`: `launch` or `cdp`.
-- `browser.downloads_path`: where downloaded files are stored.
-- `agent.max_steps`: maximum browser planning steps.
-- `agent.strategy_evaluator_enabled`: enables a second model pass to review proposed actions.
-- `agent.browser_site_memory_enabled`: stores cross-run site interaction memory.
-
-## Notes
-
-This package currently preserves a few battle-tested behaviors from the source
-project, including guarded download handling, no-progress detection, site memory,
-and deterministic handling for some official download pages. Those rules are
-implemented as browser-agent safety and reliability features; domain-specific
-data processing should live in a separate package or plugin.
-
-## Publish
+Launched Chromium is closed at exit; attached CDP browsers remain open. There is
+no durable session resume, arbitrary script sandbox, or multi-tenant browser
+isolation. Native select/checkbox controls and basic iframe observations/actions are
+supported. Complex nested/cross-origin frames, Canvas and uploads remain unverified.
+In 0.3, custom planners must include `outcome=completed|incomplete|blocked` in `done`.
+Cross-run site memory, second-pass strategy evaluation and model summaries are
+opt-in. Local logs can contain page and task data.
 
 ```powershell
-python -m pip install build twine
-python -m build
+python -m pytest -q
+python -m pip check
+python -m build --no-isolation
 python -m twine check dist/*
 ```
 
-Then publish to your package index when ready.
+Tests cover actual stdio/HTTP MCP and real Chromium with a local model protocol
+stub. They verify the skill/tool/browser pipeline, not real-model intelligence
+or success rates on arbitrary websites.
+
+A separate real-model evaluation against localhost:30000 improved independent
+acceptance from 4/6 to 6/6 on the same small fixture suite, plus one real MCP → CDP
+acceptance run. See [evidence and refactor review](docs/LIVE_TEST_30000.md) and
+[ready-to-use model configuration](examples/harness-30000.json). These are bounded
+engineering checks, not a general browser benchmark.

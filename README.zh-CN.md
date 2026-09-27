@@ -1,186 +1,201 @@
 # CDP Browser Agent
 
-[English](README.md) | [中文](README.zh-CN.md)
+[English](README.md) | 中文
 
-从 UnifiedAgent 项目中拆分出来的独立 AI 浏览器智能体。
+通用浏览器智能体。使用 Playwright 启动 Chromium 或连接 Chrome/Edge CDP，
+使用 OpenAI-compatible Chat Completions 接口规划动作。支持内部加载 Agent Skills、
+调用外部 MCP 工具，也能作为 MCP 服务或一个可分发的 Skill 被其他智能体使用。
 
-它使用 Playwright 控制浏览器，并通过任意 OpenAI-compatible
-`/v1/chat/completions` 接口让模型规划浏览器动作。它既可以自己启动
-Chromium，也可以通过 CDP 连接到已经打开的 Chrome/Edge 浏览器会话。
-
-## 安装
-
-直接从 GitHub 安装：
-
-```powershell
-pip install git+https://github.com/HGF-XNDX/CDP-Browser-Agent.git
-python -m playwright install chromium
-```
-
-安装指定分支或 commit：
+0.4 新增固定网站工作流：页面准备、宿主核验、列表/详情提取、翻页、断点恢复、
+原始快照和增量比较。站点字段保存在工作流配置里，业务知识通过 Skill 和外部工具接入。
+使用见 [工作流指南](docs/WORKFLOWS.md)，实测结果见 [工作流验收](docs/WORKFLOW_VALIDATION.md)。
+此前改动与兼容性说明见 [升级记录](docs/UPGRADE.md)。
 
 ```powershell
-pip install git+https://github.com/HGF-XNDX/CDP-Browser-Agent.git@main
+.\.venv\Scripts\python.exe -m cdp_browser_agent.browser --config examples/harness-30000.json --list-workflows
+.\.venv\Scripts\python.exe -m cdp_browser_agent.browser --config examples/harness-30000.json --workflow example-domain
 ```
 
-本地开发安装：
+工作流通过 `workflows.paths` 注册，支持 CLI、Python 和四个 MCP 工具调用。
+知识产权站点示例单独使用 `examples/ip-collection-30000.json`，不会由通用配置默认加载。
+其 `ipc-judgments-sample` 已真实采集 5 篇正文；`wenshu-search` 只负责检索准备，
+当前未登录测试遇到登录页/空框架，尚未完成文书网正文采集。
+
+## 安装与运行
+
+Python 3.10+。仓库已经下载后，在仓库目录执行：
 
 ```powershell
-git clone https://github.com/HGF-XNDX/CDP-Browser-Agent.git
-cd CDP-Browser-Agent
-pip install -e .
-python -m playwright install chromium
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m playwright install chromium
+.\.venv\Scripts\python.exe -m cdp_browser_agent.browser `
+  --base-url http://127.0.0.1:8080/v1 --model local-model --headless `
+  --max-steps 20 "打开 https://example.com 并概括页面内容"
 ```
 
-发布到 PyPI 之后，也可以使用：
+`base-url` 和 `model` 要换成实际服务。包不会自动部署大模型。
+默认提供空白浏览器页面，不强制前往特定搜索引擎。
+CLI 的 stdout 只输出结果 JSON，诊断信息写入 stderr。
+安装后也可使用 `browser-agent`、`cdp-browser-agent` 两个命令。
+
+## 让智能体加载 Skill
+
+支持包含 YAML frontmatter 的 `SKILL.md`。路径既可以是某个 Skill 目录，也可以是多个 Skill 的父目录。
+启动时提供名称和描述；模型选择 `skill_load` 后正文进入上下文，`skill_read` 按需读取参考资料。
 
 ```powershell
-pip install cdp-browser-agent
-python -m playwright install chromium
+.\.venv\Scripts\python.exe -m cdp_browser_agent.browser --config examples/harness.json --list-skills
+.\.venv\Scripts\python.exe -m cdp_browser_agent.browser `
+  --config examples/harness.json --base-url http://127.0.0.1:8080/v1 `
+  "提取 https://example.com 的页面标题和主要说明，并标注来源"
 ```
 
-## 快速开始
+也可以追加 `--skill-path D:/my-skills --skill my-skill`。
+`harness.active_skills` 指定预加载的 Skill；未预加载的仍可由模型按需选择。
+支持 YAML 标量、多行描述、参考资料分页读取、重复名称检测、资源目录边界检查和正文预算。
+文本资源包括脚本源码，但本版本不会自动执行 Skill 脚本；执行能力应由明确配置的 MCP 工具
+或 Python `Tool` 处理。`allowed-tools` 元数据不会自动授予权限。
 
-连接本地 OpenAI-compatible 模型服务：
+## 接入外部 MCP / Python 能力
 
-```powershell
-browser-agent `
-  --base-url http://127.0.0.1:8080/v1 `
-  --model local-model `
-  --headless `
-  --max-steps 20 `
-  "打开 https://example.com 并总结页面可见内容"
+[完整本地示例](examples/harness-with-mcp.json) 接入一个文本处理 MCP 服务。
+示例的 Python 路径适用于本仓库 Windows `.venv`，其他环境修改 `command`。
+模型可发现并调用 `mcp.text.normalize_text`。
+
+```json
+{
+  "harness": {
+    "mcp_servers": {
+      "text": {
+        "transport": "stdio",
+        "command": "../.venv/Scripts/python.exe",
+        "args": ["toolbox.py"],
+        "allow_tools": ["normalize_text"]
+      },
+      "remote": {
+        "transport": "streamable-http",
+        "url": "http://127.0.0.1:9000/mcp",
+        "allow_tools": ["lookup"],
+        "headers_from_env": {"Authorization": "LOOKUP_AUTHORIZATION"}
+      }
+    }
+  }
+}
 ```
 
-连接已有 CDP 浏览器：
+以上 remote 是配置格式示例，需要有实际服务才启用。
+环境变量 `LOOKUP_AUTHORIZATION` 的值应包含服务要求的完整授权头，例如 `Bearer ...`。
+stdio 可以用 `env_from: ["SERVICE_TOKEN"]` 显式转交必要的环境变量，也支持 `env` 对象。
+不支持通配符授权；`allow_tools: []` 禁用该服务，缺少列表则启动失败。
+工具名称带服务器命名空间，模型先 `tool_list`、`tool_describe`，再用 Schema 合法的参数调用。
+工具超时不会自动重试，以免重复产生副作用。
 
-```powershell
-chrome.exe --remote-debugging-port=9222 --user-data-dir=D:\chrome-cdp-profile
-
-browser-agent `
-  --connection cdp `
-  --cdp-url http://127.0.0.1:9222 `
-  --base-url http://127.0.0.1:8080/v1 `
-  "搜索 Playwright Python 文档并打开官方页面"
-```
-
-## Python API
+Python 扩展可以直接注册异步函数，无需单独服务：
 
 ```python
 import asyncio
-
 from cdp_browser_agent.browser.default_config import browser_agent_default_config
 from cdp_browser_agent.browser.runner import run_browser_agent
+from cdp_browser_agent.harness import Tool
 
+async def uppercase(text: str):
+    return {"text": text.upper()}
 
 async def main():
     config = browser_agent_default_config()
-    config["model"]["baseUrl"] = "http://127.0.0.1:8080/v1"
     config["browser"]["headless"] = True
-    config["agent"]["max_steps"] = 20
-
-    result = await run_browser_agent(
-        "打开 https://example.com 并总结页面可见内容",
-        config,
-    )
-    print(result)
-
+    custom = Tool("uppercase", "Uppercase extracted text", {
+        "type": "object", "properties": {"text": {"type": "string"}},
+        "required": ["text"], "additionalProperties": False
+    }, uppercase)
+    print(await run_browser_agent("打开 https://example.com，提取标题并转为大写", config, tools=[custom]))
 
 asyncio.run(main())
 ```
 
-## MCP Server
-
-这个包也可以作为 MCP server 运行。MCP client 可以调用 `browser_task`
-工具，让浏览器智能体执行自然语言浏览器任务。
-
-以 stdio 模式启动 MCP server：
+## 作为 MCP 服务
 
 ```powershell
-cdp-browser-agent-mcp
+.\.venv\Scripts\python.exe -m cdp_browser_agent.mcp_server --config examples/harness.json
 ```
 
-等价的模块启动方式：
-
-```powershell
-python -m cdp_browser_agent.mcp_server
-```
-
-MCP client 配置示例：
+客户端配置示例，替换为实际绝对路径：
 
 ```json
 {
   "mcpServers": {
     "cdp-browser-agent": {
-      "command": "cdp-browser-agent-mcp",
-      "args": []
+      "command": "D:/浏览器智能体/CDP-Browser-Agent/.venv/Scripts/python.exe",
+      "args": ["-m", "cdp_browser_agent.mcp_server", "--config", "D:/浏览器智能体/CDP-Browser-Agent/examples/harness.json"]
     }
   }
 }
 ```
 
-如果 MCP client 找不到 console script，可以直接用 Python 启动：
+暴露 `browser_capabilities()` 与 `browser_task(task, max_steps?)`。
+前者只检查配置和 Skill 目录，不连接模型或浏览器。
+后者可降低部署配置的步骤上限。模型、密钥、浏览器、目录及外部 MCP 均由启动配置固定，
+工具调用者不能传 `config_path` 或更换服务地址。
+同一 MCP 实例串行处理浏览器任务；忙时返回 `busy`。
 
-```json
-{
-  "mcpServers": {
-    "cdp-browser-agent": {
-      "command": "python",
-      "args": ["-m", "cdp_browser_agent.mcp_server"]
-    }
-  }
-}
-```
-
-当前暴露的 MCP 工具：
-
-- `browser_task`：执行一个自然语言浏览器任务。
-
-常用参数：
-
-- `task`：必填，自然语言浏览器任务。
-- `base_url`：OpenAI-compatible `/v1` 接口，例如 `http://127.0.0.1:8080/v1`。
-- `connection`：浏览器连接方式，可选 `launch` 或 `cdp`。
-- `cdp_url`：使用 `connection="cdp"` 时的 CDP 地址。
-- `headless`：是否使用无头浏览器。
-- `max_steps`：最大浏览器规划步数。
-- `config_path`：可选 JSON 配置覆盖文件路径。
-
-如果 MCP client 支持 HTTP transport，也可以这样启动：
+HTTP 模式：
 
 ```powershell
-cdp-browser-agent-mcp --transport streamable-http --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m cdp_browser_agent.mcp_server `
+  --config examples/harness.json --transport streamable-http --host 127.0.0.1 --port 8000
 ```
 
-## 配置
+连接地址为 `http://127.0.0.1:8000/mcp`。内置启动器仅允许回环绑定；跨机器服务需要自行配置鉴权部署。
 
-可以通过 `--config` 传入 JSON 配置覆盖文件。覆盖文件会和默认配置做深度合并。
+## 作为 Skill 分发
+
+内置 Skill 位于 [cdp_browser_agent/skills/cdp-browser-agent/SKILL.md](cdp_browser_agent/skills/cdp-browser-agent/SKILL.md)，
+wheel 安装包包含该文件。导出到项目的 Skill 目录：
 
 ```powershell
-browser-agent --config examples/local-llamacpp.json "打开 https://example.com"
+.\.venv\Scripts\python.exe -m cdp_browser_agent.browser --export-skill .agents/skills
 ```
 
-常用字段：
+导出拒绝覆盖已有自定义 Skill。复制到支持 Agent Skills 的宿主后可由宿主发现。
+该 Skill 调用 MCP 或 CLI，仍需要本项目的模型配置；不会自动复用外层智能体的模型凭证。
 
-- `model.baseUrl`：OpenAI-compatible `/v1` 接口地址。
-- `model.model`：模型名称。留空时会尝试从 `/props` 或 `/models` 自动发现。
-- `model.enableThinking`：后端支持时启用 thinking。
-- `browser.connection`：浏览器连接方式，可选 `launch` 或 `cdp`。
-- `browser.downloads_path`：下载文件保存目录。
-- `agent.max_steps`：浏览器规划动作的最大步数。
-- `agent.strategy_evaluator_enabled`：启用第二次模型调用来评估候选动作。
-- `agent.browser_site_memory_enabled`：启用跨运行的网站操作记忆。
+## 运行状态与边界
 
-## 说明
+| status | 含义 |
+|---|---|
+| completed | 规划器报告完成；`completion_basis=model_reported`，可用来源/文件/日志复核 |
+| incomplete / blocked | 规划器明确报告未完成或受到能力限制 |
+| needs_input | 需要用户介入，立即返回而非占住服务轮询 |
+| max_steps | 到达步骤上限，未验证任务完成 |
+| stalled | 相同页面/工具结果反复出现而无新进展 |
+| failed | 模型反复失败或浏览器运行失败 |
+| timeout | 到达整轮时限；工具可能已经产生副作用，先核对后重试 |
+| busy | 当前 MCP 实例有其他任务正在运行 |
 
-这个包保留了源项目中经过验证的浏览器可靠性能力，包括下载防护、无进展熔断、站点记忆，以及部分官方下载页面的确定性处理。这些规则属于浏览器智能体的安全和可靠性能力；具体业务领域的数据处理建议放在单独包或插件中。
+日志为独立 UUID 标识的 JSONL，记录观察、动作、结果和终止状态；默认保存到工作目录下的 `logs/browser-agent`。
+下载文件、页面保存和日志使用本地磁盘，可能包含任务内容。相对配置路径以 JSON 配置文件所在目录解析。
+模型密钥可使用 `model.apiKeyEnv` 指定环境变量名。
+默认关闭二次策略评审、模型记忆摘要和跨任务站点记忆，按需开启可控成本的辅助功能。
 
-## 发布
+运行结束会关闭本次启动的 Chromium；连接已有 CDP 时仅断开连接。
+没有跨进程断点恢复或多租户浏览器隔离，也没有自动执行任意 Skill 脚本的主机沙箱。
+支持原生下拉框、复选框及基本 iframe 的观察与操作；复杂嵌套/跨域 frame、Canvas、文件上传尚未完成专项验证。
+0.3 的内部 `done` 动作必须显式填写 `outcome=completed|incomplete|blocked`；旧自定义规划器需要更新。
+
+## 验证
 
 ```powershell
-python -m pip install build twine
-python -m build
-python -m twine check dist/*
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe -m build --no-isolation
+.\.venv\Scripts\python.exe -m twine check dist/*
 ```
 
-检查通过后即可发布到你的包索引。
+测试包括真实 stdio MCP、Streamable HTTP，以及本地网页上的真实 Chromium：Skill 加载/参考读取、
+外部工具调用、输入、真实键盘操作、观察和页面保存。端到端测试使用本地模型协议桩，证明接线和执行路径，
+不表示开放网站任务成功率或性能已完成评测。
+
+另已使用本地 30000 端口真实模型完成六任务前后对比，独立验收由 4/6 到 6/6，
+并通过外部 MCP → CDP → 真实模型的完整调用测试。见 [实测与底层重构审查](docs/LIVE_TEST_30000.md)。
+现成配置为 [harness-30000.json](examples/harness-30000.json)，不覆盖默认服务配置。

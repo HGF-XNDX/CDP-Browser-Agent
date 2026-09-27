@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "name": "wenshu-search",
+  "version": "1.0",
+  "description": "裁判文书网检索准备：人工登录后进入真实结果列表；本流程只验证列表就绪，不宣称已采集正文。",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "default": "侵害发明专利权"
+      }
+    },
+    "additionalProperties": false
+  },
+  "allowed_origins": [
+    "https://wenshu.court.gov.cn"
+  ],
+  "request_delay_ms": 1500,
+  "min_records": 0,
+  "steps": [
+    {
+      "id": "entry",
+      "type": "navigate",
+      "url": "https://wenshu.court.gov.cn/"
+    },
+    {
+      "id": "search",
+      "type": "agent",
+      "instructions": "在裁判文书网检索关键词“${query}”。通过页面正常操作，等待实际文书结果出现。如果出现登录或验证码，立即 ask_user 并说明当前URL和所需人工动作，不输入账号密码。只看到框架时最多等待一次，仍无数据则报告 blocked。不得通过内部接口代替网页访问。",
+      "checks": [
+        {
+          "kind": "visible",
+          "selector": ".LM_list .caseName"
+        }
+      ],
+      "max_steps": 8,
+      "replay_safe": true
+    }
+  ]
+}

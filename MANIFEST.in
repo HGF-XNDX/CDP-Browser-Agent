@@ -1,2 +1,8 @@
 include README.md
 recursive-include examples *.json
+recursive-include examples *.md *.py
+recursive-include cdp_browser_agent/skills *.md
+recursive-include docs *.md *.json
+recursive-include tests *.py
+recursive-include scripts *.py
+include README.zh-CN.md
