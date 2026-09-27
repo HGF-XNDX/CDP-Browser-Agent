@@ -14,6 +14,7 @@ from .runner import run_browser_agent
 from ..workflows.runner import run_workflow
 from ..workflows.spec import WorkflowCatalog
 from ..workflows.store import WorkflowStore
+from ..web.tools import WebTools
 
 
 def _load_config(path: str | None) -> dict[str, Any]:
@@ -28,6 +29,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("task", nargs="?", help="Natural-language browser task.")
     parser.add_argument("--task", dest="task_option", help="Natural-language browser task; overrides positional task.")
     parser.add_argument("--config", help="Optional JSON config overlay.")
+    quick = parser.add_mutually_exclusive_group()
+    quick.add_argument("--web-search", metavar="QUERY", help="Search directly without calling the model or starting a browser.")
+    quick.add_argument("--web-fetch", metavar="URL", help="Read a public page directly without calling the model or starting a browser.")
     parser.add_argument("--base-url", default=None, help="OpenAI-compatible base URL, e.g. http://127.0.0.1:8080/v1.")
     parser.add_argument("--model", default=None, help="Model name. Empty means auto-discover/fallback.")
     parser.add_argument("--api-key", default=None, help="API key for compatible endpoints.")
@@ -73,6 +77,13 @@ async def _main() -> None:
         return
     task = args.task_option or args.task
     config = _load_config(args.config)
+    if args.web_search is not None or args.web_fetch is not None:
+        if task or args.workflow:
+            raise SystemExit("Direct web tools cannot be combined with a task or workflow")
+        web = WebTools(config.get("web", {}))
+        result = await web.search(args.web_search) if args.web_search is not None else await web.fetch(args.web_fetch)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
     workflows = config.setdefault("workflows", {})
     workflows.setdefault("paths", []).extend(str(Path(p).expanduser().resolve()) for p in args.workflow_path)
     if args.list_workflows:

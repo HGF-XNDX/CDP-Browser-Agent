@@ -170,6 +170,7 @@ class WorkflowExecution:
             if model.get("apiKeyEnv"):
                 model["apiKey"] = os.environ[model["apiKeyEnv"]]
             self.runtime = await ExtensionRuntime(self.config).__aenter__()
+            self.runtime.web.allowed_origins = self.allowed
         for skill in step.get("skills", []):
             self.runtime.skills.load(skill)
         self.state["step_results"][step["id"]] = {"status": "running", "started_at": now()}

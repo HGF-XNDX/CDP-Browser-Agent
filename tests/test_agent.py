@@ -16,6 +16,7 @@ from cdp_browser_agent.browser.policy import validate_action
 @pytest.fixture
 def setup_run(monkeypatch, tmp_path):
     config = browser_agent_default_config()
+    config["web"]["prefer_fast_path"] = False  # Existing browser-lifecycle contracts.
     config["agent"].update(max_steps=4, log_dir=str(tmp_path / "logs"), write_download_manifest=False)
     controller = AsyncMock()
     controller.observe.return_value = {"url": "https://example.com", "title": "Example", "visibleText": "A useful page", "elements": []}

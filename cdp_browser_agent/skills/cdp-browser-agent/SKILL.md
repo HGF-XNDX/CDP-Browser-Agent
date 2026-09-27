@@ -1,16 +1,23 @@
 ---
 name: cdp-browser-agent
-description: Delegate browser navigation, page inspection, form interaction, downloads, and source-based extraction to the CDP Browser Agent. Use for multi-step browser tasks through an installed browser-agent CLI or its browser_task MCP tool.
+description: Search and read public webpages quickly, or delegate browser navigation, forms, downloads, and repeatable website collection to CDP Browser Agent through its CLI or MCP tools.
 ---
 
-Requires cdp-browser-agent 0.4 or later, Playwright Chromium or an accessible CDP browser,
-and an operator-configured OpenAI-compatible model endpoint.
+Requires cdp-browser-agent 0.5 or later. Direct web_search/web_fetch need no model/browser.
+Agent tasks require an operator-configured OpenAI-compatible model endpoint; browser
+fallback additionally needs Playwright Chromium or an accessible CDP browser.
 
 Use the user's task and existing browser/model configuration. This package runs its own
 model loop; an outer agent must not assume its own model or browser session is reused.
 
-If the CDP Browser Agent MCP server is available, inspect `browser_capabilities` then
-call `browser_task` with a concrete task and an optional lower `max_steps` bound.
+If the MCP server is available, inspect `browser_capabilities`. For public information,
+use `web_search` to find URLs and `web_fetch` to read them; skip search for a supplied URL.
+Both automatically use operator-configured proxy discovery by default. Source snippets
+are not page evidence. Follow `next_offset` or inspect the saved text for long content.
+On `needs_browser`, call `browser_task` with the target URL and remaining task. For forms,
+downloads, or an existing login session, use `browser_task` directly. `observe_browser`
+starts/attaches a browser lazily; the run result reports `browser_started`.
+Never treat a challenge/network failure as an empty result or bypass restricted URLs.
 Model endpoints, credentials, external tools and skill roots are operator configuration.
 
 For repeatable fixed-site collection, read [workflows](references/workflows.md) and prefer
@@ -32,7 +39,7 @@ Inspect `status`, `stopped_reason`, `answer`, `sources`, `collected_files`, and 
 the relevant file or page evidence before making a stronger success claim.
 `needs_input` means report the requested intervention to the user. `max_steps`, `stalled`,
 `failed`, `incomplete`, `blocked`, and `timeout` are incomplete outcomes. Do not blindly retry side-effecting tasks.
-Calls are bounded runs, not durable resumable browser sessions. A launched browser is
+Agent calls are bounded runs, not durable resumable browser sessions. A launched browser is
 closed at exit; an attached CDP browser stays open for the user.
 
 To make this agent consume other skills, configure `harness.skill_paths` and optionally

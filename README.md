@@ -7,7 +7,11 @@ Completions endpoint. Launch Chromium or attach to Chrome/Edge over CDP. Load
 Agent Skills, call external MCP tools, expose the agent as an MCP server, or
 export its bundled Skill for another agent host.
 
-Version 0.4 adds reusable website workflows: verified page preparation, deterministic
+Version 0.5 adds free web search, fast public-page fetching, automatic proxy discovery
+for both tools, and lazy browser startup. Use the browser when static reading needs
+interaction. See the [web tools guide](docs/WEB_TOOLS.md).
+
+Version 0.4 introduced reusable website workflows: verified page preparation, deterministic
 list/detail extraction, pagination, durable checkpoints, snapshots, and change detection.
 See [workflow guide](docs/WORKFLOWS.md), [validation](docs/WORKFLOW_VALIDATION.md), and
 [earlier upgrade notes](docs/UPGRADE.md).
@@ -93,7 +97,9 @@ cdp-browser-agent-mcp --config examples/harness.json
 cdp-browser-agent-mcp --config examples/harness.json --transport streamable-http --port 8000
 ```
 
-The tools are `browser_capabilities()` and `browser_task(task, max_steps?)`.
+Tools include `browser_capabilities()`, `browser_task(task, max_steps?)`, the four workflow
+tools, and `web_search(query, max_results?)` / `web_fetch(url, offset?, max_chars?)`.
+Direct web calls require neither a model call nor a running browser.
 The operator owns configuration; callers cannot change file paths, model
 endpoints, subprocess commands or credentials. `max_steps` can only lower the
 operator's limit. Concurrent tasks return `busy` to avoid sharing a CDP page.

@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 import logging
+from copy import deepcopy
 from pathlib import Path
 
 from .controller import BrowserController
@@ -37,6 +38,25 @@ def collect_source(sources: list[dict], observation: dict) -> list[dict]:
     return [s for s in sources if s["url"] != url][-19:] + [source]
 
 
+def collect_web_sources(sources, name, result):
+    if not result.get("ok"):
+        return sources
+    if name == "web_search":
+        rows = [{**row, "kind": "search_result"} for row in result.get("results", [])]
+    elif name == "web_fetch":
+        rows = [{"url": result["url"], "title": result.get("title", ""), "kind": "web_fetch",
+                 "snippet": result.get("text", "")[:6000], "accessed_at": result.get("accessed_at"),
+                 "text_sha256": result.get("text_sha256"), "artifact_paths": result.get("artifact_paths", [])}]
+    else:
+        return sources
+    for row in rows:
+        # A later search snippet must not replace an already fetched source.
+        if name == "web_search" and any(s["url"] == row["url"] and s.get("kind") != "search_result" for s in sources):
+            continue
+        sources = [s for s in sources if s["url"] != row["url"]][-19:] + [row]
+    return sources
+
+
 async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = None, *, session: RunSession | None = None,
                     controller: BrowserController | None = None, completion_check=None, action_guard=None) -> dict:
     if runtime is None:
@@ -58,14 +78,20 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
     model_errors = 0
     feedback = None
     pending_screenshot = None
+    state["browser_started"] = controller is not None
     try:
-        if controller is None:
+        if controller is None and (not config.get("web", {}).get("enabled", True)
+                                   or not config.get("web", {}).get("prefer_fast_path", True) or completion_check):
             controller = await BrowserController.launch(config)
+            state["browser_started"] = True
         if settings.get("browser_site_memory_enabled", False):
             site_memory = BrowserSiteMemory(Path(settings.get("memory_dir", "memory")) / "browser_site_memory.json")
         for step in range(1, max_steps + 1):
             state["step"] = step
-            observation = await controller.observe()
+            observation = await controller.observe() if controller else {
+                "url": "about:blank", "title": "Browser not started", "pageType": "not_started", "elements": [],
+                "fullText": "No browser page has been observed. Use web_search/web_fetch for public reading or observe_browser for interactive tasks. "
+                            + "Configured initial URL: " + config.get("browser", {}).get("start_url", "about:blank")}
             state["sources"] = collect_source(state["sources"], observation)
             state["observed_resource_candidates"] = collect_observed_candidate_resources(state["observed_resource_candidates"], observation)
             signature = progress_signature(observation, previous_action, state["last_result"] or {})
@@ -81,7 +107,8 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
             if site_memory:
                 memory_context["site_memory"] = site_memory.recall(observation.get("url", ""))
             request = {"task": task, "step": step, "observation": observation,
-                       "page_context": await controller.page_context(), "model_settings": model_settings,
+                       "page_context": await controller.page_context() if controller else {"pages": []}, "model_settings": model_settings,
+                       "browser_started": controller is not None,
                        "agent_settings": settings, "memory_context": memory_context,
                        "memory": memory.to_legacy_memory(), "sources": state["sources"],
                        "history": state["history"], "last_result": state["last_result"],
@@ -137,12 +164,28 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
             try:
                 if action["action"] == "tool":
                     result = await runtime.registry.call(action["name"], action["arguments"])
-                elif action["action"] == "observe_vision":
-                    if model_settings.get("enableVision", False):
-                        pending_screenshot = await controller.capture_screenshot_for_vision()
-                    result = {"ok": bool(pending_screenshot), "message": "vision_captured" if pending_screenshot else "vision_unavailable"}
+                    if action["name"] in runtime.web_tool_names:
+                        state["sources"] = collect_web_sources(state["sources"], action["name"], result)
+                        for path in result.get("artifact_paths", []):
+                            if path not in state["collected_files"]:
+                                state["collected_files"].append(path)
                 else:
-                    result = await controller.execute(action)
+                    if controller is None:
+                        launch_config = deepcopy(config)
+                        if action["action"] in {"navigate", "open_tab"}:
+                            launch_config.setdefault("browser", {})["start_url"] = "about:blank"
+                        controller = await BrowserController.launch(launch_config)
+                        state["browser_started"] = True
+                        recorder.write("browser_started", {"step": step, "trigger": action["action"],
+                            "previous_web_status": (state["last_result"] or {}).get("status")})
+                    if action["action"] == "observe_browser":
+                        result = {"ok": True, "message": "Browser ready; inspect the next observation"}
+                    elif action["action"] == "observe_vision":
+                        if model_settings.get("enableVision", False):
+                            pending_screenshot = await controller.capture_screenshot_for_vision()
+                        result = {"ok": bool(pending_screenshot), "message": "vision_captured" if pending_screenshot else "vision_unavailable"}
+                    else:
+                        result = await controller.execute(action)
             except Exception as exc:
                 result = {"ok": False, "errorType": type(exc).__name__, "message": str(exc)[:2000]}
             entry = {"actionId": f"A{step:04d}", "step": step,

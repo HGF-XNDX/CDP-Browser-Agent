@@ -25,6 +25,7 @@ ACTION_SCHEMAS = {
     "back": _schema(),
     "wait": _schema({"ms": {"type": "integer", "minimum": 0, "maximum": 10000}}),
     "observe_vision": _schema(),
+    "observe_browser": _schema(),
     "done": _schema({"answer": STRING, "outcome": {"enum": ["completed", "incomplete", "blocked"]}}, ["answer", "outcome"]),
     "ask_user": _schema({"message": STRING}, ["message"]),
     "tool": _schema({"name": STRING, "arguments": {"type": "object"}}, ["name", "arguments"]),
@@ -33,6 +34,11 @@ ALLOWED_ACTIONS = set(ACTION_SCHEMAS)
 
 
 def validate_action(action: dict, observation: dict, request: dict | None = None) -> dict:
+    # Common planners emit native-looking web actions. Normalize only these two
+    # known aliases; arguments still pass the registered tool's JSON Schema.
+    if isinstance(action, dict) and action.get("action") in {"web_search", "web_fetch"}:
+        action = {"action": "tool", "name": action["action"],
+                  "arguments": {key: value for key, value in action.items() if key != "action"}}
     if not isinstance(action, dict) or action.get("action") not in ACTION_SCHEMAS:
         raise ValueError("Unknown browser action")
     validate(action, ACTION_SCHEMAS[action["action"]])

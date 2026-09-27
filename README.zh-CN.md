@@ -6,7 +6,11 @@
 使用 OpenAI-compatible Chat Completions 接口规划动作。支持内部加载 Agent Skills、
 调用外部 MCP 工具，也能作为 MCP 服务或一个可分发的 Skill 被其他智能体使用。
 
-0.4 新增固定网站工作流：页面准备、宿主核验、列表/详情提取、翻页、断点恢复、
+0.5 新增 `web_search` / `web_fetch`：默认免密搜索、正文读取、两个工具的自动代理检测，
+以及按需启动浏览器。公开信息先快速检索/读取，动态页面和交互任务再交给浏览器。
+配置及使用见 [快速联网工具](docs/WEB_TOOLS.md)。
+
+0.4 已加入固定网站工作流：页面准备、宿主核验、列表/详情提取、翻页、断点恢复、
 原始快照和增量比较。站点字段保存在工作流配置里，业务知识通过 Skill 和外部工具接入。
 使用见 [工作流指南](docs/WORKFLOWS.md)，实测结果见 [工作流验收](docs/WORKFLOW_VALIDATION.md)。
 此前改动与兼容性说明见 [升级记录](docs/UPGRADE.md)。
@@ -133,7 +137,8 @@ asyncio.run(main())
 }
 ```
 
-暴露 `browser_capabilities()` 与 `browser_task(task, max_steps?)`。
+暴露 `browser_capabilities()`、`browser_task(task, max_steps?)`、`web_search`、`web_fetch`
+及四个 `browser_workflow_*` / `browser_workflows` 工作流工具。两个 web 工具可独立使用，不调用模型或启动浏览器。
 前者只检查配置和 Skill 目录，不连接模型或浏览器。
 后者可降低部署配置的步骤上限。模型、密钥、浏览器、目录及外部 MCP 均由启动配置固定，
 工具调用者不能传 `config_path` 或更换服务地址。

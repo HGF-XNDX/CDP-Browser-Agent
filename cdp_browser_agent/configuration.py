@@ -26,6 +26,8 @@ def load_config(path: str | None = None) -> dict:
     workflows = config.setdefault("workflows", {})
     workflows["paths"] = [absolute(p) for p in workflows.get("paths", [])]
     workflows["state_dir"] = absolute(workflows.get("state_dir", "workflow-runs"))
+    web = config.setdefault("web", {})
+    web["artifact_dir"] = absolute(web.get("artifact_dir", "downloads/web"))
     for server in harness.get("mcp_servers", {}).values():
         if server.get("transport", "stdio") == "stdio":
             server["cwd"] = absolute(server.get("cwd", "."))

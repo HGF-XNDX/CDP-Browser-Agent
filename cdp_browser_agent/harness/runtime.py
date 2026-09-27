@@ -11,6 +11,7 @@ from mcp.client.streamable_http import streamable_http_client
 
 from .skills import SkillCatalog
 from .tools import Tool, ToolRegistry
+from ..web.tools import WebTools
 
 
 def object_schema(properties: dict, required: list[str] | None = None) -> dict:
@@ -28,7 +29,13 @@ class ExtensionRuntime:
                                    int(settings.get("max_skill_chars", 20000)),
                                    int(settings.get("active_skill_budget_chars", 30000)))
         self.stack = AsyncExitStack()
+        self.web = WebTools(config.get("web", {}), self.registry.max_result_chars)
         self._register_builtins()
+        self.web_tool_names = []
+        if config.get("web", {}).get("enabled", True):
+            for tool in self.web.definitions():
+                self.registry.register(tool)
+                self.web_tool_names.append(tool.name)
         for tool in tools or []:
             self.registry.register(tool)
         for name in settings.get("active_skills", []):
@@ -139,7 +146,7 @@ class ExtensionRuntime:
         return await self.stack.__aexit__(*exc)
 
     def context(self) -> dict:
-        return {"builtin_tools": [self.registry.describe(n) for n in self.builtin_names],
+        return {"builtin_tools": [self.registry.describe(n) for n in self.builtin_names + self.web_tool_names],
                 "skills": self.skills.catalog(limit=15),
                 "active_skills": list(self.skills.active.values()),
-                "external_tool_count": len(self.registry._tools) - len(self.builtin_names)}
+                "external_tool_count": len(self.registry._tools) - len(self.builtin_names) - len(self.web_tool_names)}

@@ -67,6 +67,7 @@ async def test_real_browser_skill_mcp_and_model_http(tmp_path):
     thread.start()
     url = f"http://127.0.0.1:{server.server_port}"
     config = browser_agent_default_config()
+    config["web"]["prefer_fast_path"] = False
     config["model"].update(baseUrl=url + "/v1", model="fixture", provider="openai-compatible", maxRetries=0)
     config["browser"].update(headless=True, focus_page=False, start_url=url, downloads_path=str(tmp_path / "downloads"))
     config["agent"].update(max_steps=10, log_dir=str(tmp_path / "logs"))

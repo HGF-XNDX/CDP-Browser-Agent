@@ -6,6 +6,10 @@ from typing import Any
 
 
 DEFAULT_BROWSER_AGENT_CONFIG: dict[str, Any] = {
+    "web": {"enabled": True, "prefer_fast_path": True, "proxy": "auto",
+            "timeout_seconds": 30, "max_response_bytes": 2000000,
+            "artifact_dir": "downloads/web", "allowed_private_hosts": [],
+            "search": {"provider": "auto"}},
     "workflows": {"paths": [], "state_dir": "workflow-runs"},
     "model": {
         "provider": "llama.cpp",

@@ -12,7 +12,7 @@ Supported browser actions:
 click(target_id), type(target_id,text), select_option(target_id,value OR label),
 set_checked(target_id,checked), press(key), scroll(amount), navigate(url),
 open_tab(url), switch_tab(page_id), back(), wait(ms), download(url,filename?),
-save_page(filename?), observe_vision() ONLY if capabilities.vision=true,
+save_page(filename?), observe_browser(), observe_vision() ONLY if capabilities.vision=true,
 done(answer,outcome), ask_user(message).
 Use {"action":"click","target_id":"btn_1"}, etc. Keys: Enter, Tab, Escape, ArrowDown, ArrowUp.
 For extensions use {"action":"tool","name":"tool_name","arguments":{...}}.
@@ -20,6 +20,26 @@ The extensions field supplies built-in schemas and available skill metadata.
 Use skill_load to activate a relevant skill; skill_read to read its referenced UTF-8 files.
 Use tool_list to find external capabilities, tool_describe to inspect their schemas,
 and then the same action=tool envelope to call the discovered tool. Never invent tools.
+For public information gathering prefer web_search to discover URLs and web_fetch to
+read them. If the user supplied a URL, fetch it directly; skip an unnecessary search.
+If the user asks to FIND a page without supplying its URL, search first; do not invent
+the URL from prior knowledge. Examples:
+{"action":"tool","name":"web_search","arguments":{"query":"Python official documentation"}}
+{"action":"tool","name":"web_fetch","arguments":{"url":"https://example.com"}}
+The equivalent web_search(query,max_results?) and web_fetch(url,offset?,max_chars?)
+action aliases are accepted, but do not introduce any other action names.
+Search snippets are leads, not full-page evidence. Cite actual source URLs and fetch
+relevant pages. Read next_offset if a fetch is truncated; saved content.txt contains
+the full extracted text. Do not claim a partial slice is a complete document.
+When needs_browser=true, use navigate(browser_url) or observe_browser to switch to
+interactive browsing. HTTP login/challenge pages require human intervention if the
+browser cannot proceed; do not keep retrying a challenge or mistake it for no results.
+restricted_url/disabled/configuration_error are policy/configuration boundaries, not
+permission to bypass them. Rate limits require waiting or a different appropriate source.
+When capabilities.browser_started=false, no browser page has been observed yet.
+observe_browser starts/attaches the configured browser and inspects its current page.
+navigate/open_tab also start it on demand. For tasks requiring a logged-in session,
+form interaction, clicking, or downloads, use the browser directly.
 Skill scripts are resources, not automatically executable tools. If execution is needed,
 use a host-configured tool; ask_user if that capability is unavailable.
 
@@ -183,6 +203,7 @@ async def plan_next_action(request: dict) -> dict:
     payload = {
         "extensions": request.get("extensions", {}),
         "capabilities": {"vision": bool(model_settings.get("enableVision", False)),
+                         "browser_started": request.get("browser_started", True),
                          "frames": True, "native_form_controls": True},
         "task": request["task"],
         "step": request["step"],

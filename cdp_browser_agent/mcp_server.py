@@ -15,6 +15,7 @@ from .harness.skills import SkillCatalog
 from .workflows.runner import run_workflow
 from .workflows.spec import WorkflowCatalog
 from .workflows.store import WorkflowStore, WorkflowBusy
+from .web.tools import WebTools, capabilities as web_capabilities
 
 
 def create_mcp_server(config: dict | None = None) -> MCPServer:
@@ -22,8 +23,10 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
     base = deepcopy(config if config is not None else load_config())
     # CDP attaches to a shared browser; serialize tasks on this server instance.
     lock = asyncio.Lock()
+    web = WebTools(base.get("web", {}))
     server = MCPServer("CDP Browser Agent", version=__version__, instructions=(
-        "Use browser_task for a bounded browser task. Inspect status: completed means the "
+        "Use web_search/web_fetch for fast public reading without a model or browser, "
+        "and browser_task for interactive tasks or web-tool fallback. Inspect status: completed means the "
         "planner reported completion; needs_input requires user action. Model/browser/skill/MCP "
         "connections are configured by the server operator, not tool arguments."))
 
@@ -37,6 +40,7 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
                 "max_steps": base.get("agent", {}).get("max_steps", 40),
                 "skills": skills.catalog(), "active_skills": settings.get("active_skills", []),
                 "configured_mcp_servers": list(settings.get("mcp_servers", {})),
+                "web": web_capabilities(base.get("web", {})),
                 "workflows": WorkflowCatalog(base.get("workflows", {}).get("paths", [])).catalog(),
                 "external_connections_verified": False}
 
@@ -60,9 +64,27 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
         async with lock:
             result = await run_browser_agent(task, config)
         # Detailed observations/history stay in the run log rather than bloating the host's context.
-        keys = ("run_id", "status", "stopped_reason", "answer", "step", "completion_basis", "collected_files", "log_file")
+        keys = ("run_id", "status", "stopped_reason", "answer", "step", "completion_basis", "browser_started", "collected_files", "log_file")
         return {**{key: result[key] for key in keys if key in result},
-                "sources": [{"url": s["url"], "title": s.get("title", "")} for s in result.get("sources", [])]}
+                "sources": [{"url": s["url"], "title": s.get("title", ""), "kind": s.get("kind", "page")} for s in result.get("sources", [])]}
+
+    @server.tool()
+    async def web_search(query: str, max_results: int = 5) -> dict[str, Any]:
+        """Find public webpages quickly, without a model/browser. Fetch promising URLs for full text.
+
+        Network/proxy/provider configuration is operator-owned. Search snippets are leads,
+        not verified page content. needs_browser/browser_url describe an interactive fallback.
+        """
+        return await web.search(query, max_results)
+
+    @server.tool()
+    async def web_fetch(url: str, offset: int = 0, max_chars: int = 6000) -> dict[str, Any]:
+        """Read public HTML/text, with source files and offsets. Does not use browser login cookies.
+
+        On needs_browser=true, use browser_task for the requested page. Restricted URLs and
+        disabled capabilities are not authorization to bypass policy using another tool.
+        """
+        return await web.fetch(url, offset, max_chars)
 
     @server.tool()
     async def browser_workflows() -> dict[str, Any]:
