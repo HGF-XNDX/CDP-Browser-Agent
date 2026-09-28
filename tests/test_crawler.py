@@ -214,18 +214,29 @@ async def test_real_stdio_mcp_crawler_to_worker(site, tmp_path):
         assert not result.is_error and result.structured_content["validated_count"] == 3, result
 
 
-async def test_robots_delay_survives_deadline_without_phantom_reservations(site):
+async def test_robots_delay_survives_deadline_without_phantom_reservations(site, monkeypatch):
+    from types import SimpleNamespace
+    from cdp_browser_agent.crawler import store as storage
+
     config, server, url = site
-    config["crawler"]["run_timeout_seconds"] = .15
+    # Give the real local HTTP connection time to start on Windows. Freeze only
+    # the rate-limit clock so the deadline always interrupts a robots delay,
+    # regardless of how long HTTP client initialization takes.
+    clock = [time.time()]
+    monkeypatch.setattr(storage, "time", SimpleNamespace(time=lambda: clock[0]))
+    config["crawler"]["run_timeout_seconds"] = 3
     server.robots += "Crawl-delay: 0.4\n"
     service = Crawler(config)
     first = await service.run({"seed_urls": [url+"/detail/a"], "max_depth": 0})
     assert first["status"] == "paused" and first["reason"] == "deadline"
     assert [p for p, _ in server.requests] == ["/robots.txt"]
-    await asyncio.sleep(.4)
+    clock[0] += .4
     done = await service.run(crawl_id=first["crawl_id"])
     assert done["ok"], done
-    assert server.requests[1][1]-server.requests[0][1] >= .4
+    assert [p for p, _ in server.requests] == ["/robots.txt", "/detail/a"]
+    with CrawlStore(service.root) as store:
+        reserved = store.db.execute("SELECT last_request FROM origins").fetchone()[0]
+    assert reserved == clock[0]
 
 
 async def test_caller_cancellation_is_checkpointed(site):

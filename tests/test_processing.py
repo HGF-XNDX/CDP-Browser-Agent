@@ -159,6 +159,10 @@ async def test_processing_deadline_retains_completed_receipts(processing, tmp_pa
     config, profile, path = processing
     profile.update(timeout_seconds=1, max_repairs=0)
     path.write_text(json.dumps(profile), encoding="utf-8")
+    # This test times the worker, not network-based model discovery. Without
+    # isolating discovery, an unavailable local service can consume the entire
+    # deadline before even the first mocked model response is recorded.
+    monkeypatch.setattr(engine, "prepare_model_options", AsyncMock(side_effect=lambda options: dict(options)))
     calls = 0
     async def slow(*_):
         nonlocal calls
@@ -170,8 +174,10 @@ async def test_processing_deadline_retains_completed_receipts(processing, tmp_pa
     records = [{"data": {"text": "Fact"}, "record_key": str(i)} for i in range(2)]
     with pytest.raises(asyncio.TimeoutError):
         await ProcessingEngine(config).run("facts", records, tmp_path / "out")
+    assert calls == 2
     result = await ProcessingEngine(config).run("facts", records, tmp_path / "out")
     assert result["ok"] and result["reused_count"] == 1
+    assert calls == 3
 
 
 def test_cli_processing_utf8_and_model_override(processing, tmp_path):
