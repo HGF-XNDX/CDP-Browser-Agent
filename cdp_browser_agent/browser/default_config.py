@@ -6,6 +6,10 @@ from typing import Any
 
 
 DEFAULT_BROWSER_AGENT_CONFIG: dict[str, Any] = {
+    "learning": {"enabled": False, "auto_replay": True, "reflect_success": False,
+                 "task_type": "general", "replay_paths": [], "ttl_days": 30,
+                 "max_entries": 4, "max_context_chars": 6000, "timeout_seconds": 180,
+                 "max_candidates": 2},
     "intervention": {"mode": "auto", "wait_seconds": 120, "max_auto_decisions": 3},
     "processing": {"paths": [], "artifact_dir": "downloads/processed", "replay_paths": [],
                    "worker_max_turns": 5, "worker_max_attempts": 3, "max_concurrent_sessions": 1,

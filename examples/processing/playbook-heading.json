@@ -1,0 +1,16 @@
+{
+  "name": "playbook-heading",
+  "description": "演示限定工作流中自动学习栏目选择偏好。",
+  "mode": "llm",
+  "instructions": "提取一个标题，保持原文。默认使用输入 title。若 continuation.feedback、procedural_advice 或 playbook_advice 指明需要某个栏目，提取该栏目下第一条标题。不要使用其他栏目的内容。data 只有 title 字段，evidence 引用支持 title 的连续原文。",
+  "max_records": 20,
+  "max_repairs": 0,
+  "require_evidence": true,
+  "evidence_fields": ["title"],
+  "verification": [{"kind": "contained_in_input", "output": "title", "input": "text"}],
+  "formats": ["json", "csv", "markdown"],
+  "output_schema": {
+    "type": "object", "properties": {"title": {"type": "string", "minLength": 1}},
+    "required": ["title"], "additionalProperties": false
+  }
+}

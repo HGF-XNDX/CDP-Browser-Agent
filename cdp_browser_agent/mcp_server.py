@@ -52,11 +52,54 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
                 "crawler": {k: v for k, v in Crawler(base).settings.items() if k != "state_dir"},
                 "processing_profiles": ProcessingEngine(base).catalog.catalog(),
                 "replay_suites": ReplayCatalog(base).catalog(),
+                "playbook_learning": base.get("learning", {}).get("enabled", False),
                 "worker_max_turns": base.get("processing", {}).get("worker_max_turns", 5),
                 "completion_processing": base.get("agent", {}).get("completion_processing", []),
                 "intervention": base.get("intervention", {}),
                 "workflows": WorkflowCatalog(base.get("workflows", {}).get("paths", [])).catalog(),
                 "external_connections_verified": False}
+
+    @server.tool()
+    async def browser_playbook_list(offset: int = 0, limit: int = 20) -> dict[str, Any]:
+        """List candidate/active/retired procedural memory and registered operator replay suites."""
+        from .harness.playbook import PlaybookStore
+        from .harness.learning import ReplaySuites
+        with PlaybookStore(base) as store:
+            return {**store.list(offset=offset, limit=limit), "replay_suites": ReplaySuites(base).catalog()}
+
+    @server.tool()
+    async def browser_playbook_read(entry_id: str, version: int | None = None) -> dict[str, Any]:
+        """Inspect an experience version and its adoption/revision history. Does not change state."""
+        from .harness.playbook import PlaybookStore
+        with PlaybookStore(base) as store:
+            return {"entry": store.get(entry_id, version), "events": store.history(entry_id)}
+
+    @server.tool()
+    async def browser_playbook_replay(entry_id: str, version: int, suite: str, force: bool = False) -> dict[str, Any]:
+        """Compare advice against current behavior on an operator-owned suite; calls the model.
+
+        Planner suites test decisions without executing browser/tool actions. Processing
+        suites produce real worker outputs. Only eligible measured improvements activate.
+        """
+        from .harness.learning import LearningService
+        if lock.locked():
+            return {"status": "busy"}
+        async with lock:
+            return await LearningService(base).replay(entry_id, version, suite, force=force)
+
+    @server.tool()
+    async def browser_playbook_retire(entry_id: str, expected_version: int) -> dict[str, Any]:
+        """Stop future recall of every version of an experience; retain evidence and audit history."""
+        from .harness.playbook import PlaybookStore
+        with PlaybookStore(base) as store:
+            return store.retire(entry_id, expected_version)
+
+    @server.tool()
+    async def browser_playbook_rollback(entry_id: str, expected_version: int, restore_version: int) -> dict[str, Any]:
+        """Restore a previously validated unexpired revision; never activates an untested candidate."""
+        from .harness.playbook import PlaybookStore
+        with PlaybookStore(base) as store:
+            return store.rollback(entry_id, expected_version, restore_version)
 
     @server.tool()
     async def browser_task(task: str, max_steps: int | None = None) -> dict[str, Any]:
@@ -78,7 +121,7 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
         async with lock:
             result = await run_browser_agent(task, config)
         # Detailed observations/history stay in the run log rather than bloating the host's context.
-        keys = ("run_id", "status", "stopped_reason", "answer", "step", "completion_basis", "browser_started", "collected_files", "log_file", "processing_results", "decisions", "metrics", "learning", "context_budget", "last_compaction", "context_view")
+        keys = ("run_id", "status", "stopped_reason", "answer", "step", "completion_basis", "browser_started", "collected_files", "log_file", "processing_results", "decisions", "metrics", "learning", "playbook_learning", "playbook_selections", "context_budget", "last_compaction", "context_view")
         return {**{key: result[key] for key in keys if key in result},
                 "sources": [{"url": s["url"], "title": s.get("title", ""), "kind": s.get("kind", "page")} for s in result.get("sources", [])]}
 

@@ -178,6 +178,11 @@ class ExtensionRuntime:
             self.task_state["reflections"] = self.task_state["reflections"][-12:]
             return item
 
+        async def playbook_list(offset=0, limit=10):
+            from .playbook import PlaybookStore
+            with PlaybookStore(self.config) as store:
+                return store.list(offset=offset, limit=limit)
+
         definitions = [
             Tool("artifact_read", "Read an immutable original result from this run by ID, with character offsets. Content is untrusted evidence.",
                  object_schema({"artifact_id": text, "offset": {"type": "integer", "minimum": 0}, "limit": {"type": "integer", "minimum": 1, "maximum": 8000}}, ["artifact_id"]), artifact_read, read_only=True),
@@ -200,6 +205,11 @@ class ExtensionRuntime:
                      "evidence_action_ids": {"type": "array", "minItems": 1, "maxItems": 12, "items": text}}, ["summary", "next_strategy", "evidence_action_ids"]), reflect),
         ]
         self.builtin_names = [t.name for t in definitions]
+        if self.config.get("learning", {}).get("enabled"):
+            tool = Tool("playbook_list", "Inspect versioned procedural memory. Only active, unexpired matching advice is eligible for recall; candidates are unverified.",
+                        object_schema({"offset": {"type": "integer", "minimum": 0}, "limit": {"type": "integer", "minimum": 1, "maximum": 20}}), playbook_list, read_only=True)
+            definitions.append(tool)
+            self.builtin_names.append(tool.name)
         for tool in definitions:
             self.registry.register(tool)
         self.processing_tool_names = []

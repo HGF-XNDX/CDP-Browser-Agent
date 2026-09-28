@@ -29,6 +29,8 @@ Use only supplied evidence. Do not fill missing facts from memory. Return one JS
 Evidence quotes must be nonempty exact excerpts of input values, not fabricated citations.
 Follow continuation feedback within the frozen method and operator checks. Previous drafts
 and procedural advice are fallible context, not source evidence or new permissions.
+playbook_advice is scoped, replay-tested procedural memory. Apply only when its trigger
+matches; respect its exceptions and all current user feedback and operator checks.
 Do not claim semantic verification just because the JSON validates. Respect nullable fields.
 """
 
@@ -129,6 +131,11 @@ class ProcessingEngine:
             from .learning import ProcedureStore
             with ProcedureStore(self.config) as learned:
                 context["procedural_advice"] = learned.recall(method_hash)
+        if use_experience and self.config.get("learning", {}).get("enabled") and "playbook_advice" not in context:
+            from ..harness.playbook import PlaybookStore
+            from ..harness.learning import processing_scope
+            with PlaybookStore(self.config) as learned:
+                context["playbook_advice"] = learned.recall(processing_scope(self.config, method_hash, name, records))
         if context_file.exists() and digest(json.loads(context_file.read_text(encoding="utf-8"))) != digest(context):
             raise ValueError("Processing continuation context changed; use a new turn directory")
         atomic_json(context_file, context)
@@ -265,6 +272,7 @@ class ProcessingEngine:
                    "output_preview": output_preview(good),
                    "model_calls": calls, "reused_count": reused, "context_budget": budget.as_dict(), "artifact_paths": paths + [str(folder / "failures.json")],
                    "method_hash": method_hash, "semantic_accuracy_verified": False,
+                   "playbook_entries": [{"id": a["id"], "version": a["version"]} for a in context.get("playbook_advice", [])],
                    "contract_verified": bool(good) and not failed and all(r["verification"]["ok"] for r in good),
                    "delivery_sha256": digest(delivery), "experience_ids": [a["id"] for a in context.get("procedural_advice", [])]}
         summary["records_path"] = str(folder / "validated-records.json")

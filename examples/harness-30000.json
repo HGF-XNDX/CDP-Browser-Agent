@@ -1,4 +1,5 @@
 {
+  "learning": {"enabled": true, "auto_replay": true, "task_type": "general", "state_dir": "../downloads/playbook", "replay_paths": [], "timeout_seconds": 120},
   "intervention": {"mode": "auto", "wait_seconds": 120, "max_auto_decisions": 3},
   "processing": {"paths": ["processing"], "artifact_dir": "../downloads/processed"},
   "model": {
@@ -30,7 +31,7 @@
     "state_dir": "../workflow-runs"
   },
   "harness": {
-    "run_timeout_seconds": 180,
+    "run_timeout_seconds": 360,
     "skill_paths": [
       "skills"
     ],

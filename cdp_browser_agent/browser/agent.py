@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 from copy import deepcopy
 from pathlib import Path
 
@@ -21,6 +22,8 @@ from ..harness.experience import ExperienceStore
 from ..harness.verification import check_processing
 from ..harness.artifacts import ArtifactStore
 from ..harness.compaction import ContextCompactor
+from ..harness.playbook import PlaybookStore, host_of, planner_method, scope, settings as learning_settings
+from ..harness.learning import LearningService, run_evidence
 from ..model_client import prepare_model_options
 from ..context_budget import ContextBudget, ContextBudgetExceeded, ContextWindowExceeded
 
@@ -96,6 +99,8 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
     memory = BrowserAgentMemory(agent_settings=settings, model_settings=model_settings)
     memory.restore(state.get("memory_snapshot", {}))
     experience = ExperienceStore(config)
+    learning_enabled = learning_settings(config)["enabled"]
+    learning_method = None
     max_steps = int(settings.get("max_steps", 40))
     seen_progress: dict[str, int] = {}
     no_progress_limit = max(2, int(settings.get("browser_no_progress_hard", 8)))
@@ -142,6 +147,17 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                     "last_result": state["last_result"], "extensions": extensions}
             memory_context = memory.build_context(task, observation, state["last_result"], state["sources"], base)
             memory_context["verified_experience"] = experience.recall(observation.get("url") if controller else (state["last_result"] or {}).get("url", ""))
+            if learning_enabled:
+                learning_method = planner_method(config, runtime, model_settings)
+                urls = [observation.get("url"), (state["last_result"] or {}).get("url")]
+                urls += [s.get("url") for s in reversed(state["sources"])]
+                urls += re.findall(r"https?://[^\s<>\"']+", task)
+                host = next((host_of(u) for u in urls if host_of(u)), "")
+                with PlaybookStore(config) as playbook:
+                    recalled = playbook.recall(scope(config, "planner", learning_method, host), task)
+                memory_context["playbook_advice"] = recalled
+                state.setdefault("playbook_selections", []).append({"step": step, "entries": [
+                    {"id": e["id"], "version": e["version"]} for e in recalled]})
             memory_context["run_notes"] = {"plan": state.get("plan", []), "decisions": state.get("decisions", [])[-4:],
                                            "reflections": state.get("reflections", [])[-2:]}
             if site_memory:
@@ -319,6 +335,12 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                 recorder.write("artifact_error", {"message": str(exc)})
             finally:
                 await controller.close()
-        if owns_session:
-            session.finish()
+        try:
+            if learning_enabled and learning_method and state["status"] not in {"cancelled", "timeout"}:
+                state["playbook_learning"] = await LearningService(config).learn(run_evidence(config, state, learning_method), runtime=runtime)
+                recorder.write("playbook_learning", state["playbook_learning"])
+                session.checkpoint()
+        finally:
+            if owns_session:
+                session.finish()
     return state

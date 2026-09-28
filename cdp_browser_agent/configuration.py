@@ -34,6 +34,10 @@ def load_config(path: str | None = None) -> dict:
     processing["paths"] = [absolute(p) for p in processing.get("paths", [])]
     processing["replay_paths"] = [absolute(p) for p in processing.get("replay_paths", [])]
     processing["artifact_dir"] = absolute(processing.get("artifact_dir", "downloads/processed"))
+    learning = config.setdefault("learning", {})
+    learning["replay_paths"] = [absolute(p) for p in learning.get("replay_paths", [])]
+    if learning.get("state_dir"):
+        learning["state_dir"] = absolute(learning["state_dir"])
     if harness.get("artifact_dir"):
         harness["artifact_dir"] = absolute(harness["artifact_dir"])
     if harness.get("state_dir"):

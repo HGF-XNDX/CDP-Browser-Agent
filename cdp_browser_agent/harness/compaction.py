@@ -57,7 +57,7 @@ class ContextCompactor:
 
         try:
             # First prune redundant recall, retaining the newest action/result.
-            for key in ("compressed_action_memory", "recalled_relevant_history", "site_memory", "verified_experience", "sources", "recent_history"):
+            for key in ("compressed_action_memory", "recalled_relevant_history", "site_memory", "verified_experience", "playbook_advice", "sources", "recent_history"):
                 if fits():
                     break
                 value = view.get(key)

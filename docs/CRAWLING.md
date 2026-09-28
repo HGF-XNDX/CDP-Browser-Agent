@@ -24,7 +24,7 @@ python -m cdp_browser_agent.browser --config examples/learning-30000.json "采�
 实际任务应指定目标网址及范围。命令中的自然语言只是任务写法示例。
 免模型直接爬取不需要连接 30000，也不启动 Chromium。
 
-MCP 新增 `web_crawl`、`web_crawl_status`、`web_crawl_read`、`web_crawl_pause`，总计 25 个工具。
+0.9 的 MCP 新增 `web_crawl`、`web_crawl_status`、`web_crawl_read`、`web_crawl_pause`，当时共 25 个工具；0.10 加入经验管理后共 30 个。
 MCP 调用示例：
 
 ```json

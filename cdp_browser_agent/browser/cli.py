@@ -90,6 +90,14 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--experience-replay", metavar="ID")
     parser.add_argument("--replay-suite", help="Operator-registered held-out replay suite name.")
     parser.add_argument("--experience-revoke", metavar="ID")
+    parser.add_argument("--playbook-list", action="store_true")
+    parser.add_argument("--playbook-history", metavar="ID")
+    parser.add_argument("--playbook-replay", metavar="ID")
+    parser.add_argument("--playbook-retire", metavar="ID")
+    parser.add_argument("--playbook-rollback", metavar="ID")
+    parser.add_argument("--playbook-version", type=int, help="Expected version for replay, retirement or rollback.")
+    parser.add_argument("--restore-version", type=int, help="Previously validated version to restore.")
+    parser.add_argument("--revalidate", action="store_true", help="Run a fresh playbook replay instead of reusing its receipt.")
     parser.add_argument("--page-budget", type=int, help="Pause after this many collected listing pages in this invocation.")
     parser.add_argument("--retry-uncertain-step", action="store_true", help="Explicitly retry an interrupted agent step after checking its effects.")
     parser.add_argument("--workflow-status", metavar="RUN_ID")
@@ -168,7 +176,8 @@ async def _main() -> None:
         print(json.dumps(skills.catalog(limit=50), ensure_ascii=False, indent=2))
         return
     session_commands = [args.worker_start, args.worker_continue, args.worker_status, args.worker_cancel,
-                        args.experience_list, args.experience_replay, args.experience_revoke]
+                        args.experience_list, args.experience_replay, args.experience_revoke,
+                        args.playbook_list, args.playbook_history, args.playbook_replay, args.playbook_retire, args.playbook_rollback]
     if sum(bool(v) for v in session_commands) > 1:
         raise SystemExit("Choose one worker/experience operation")
     if any(session_commands) and (task or args.workflow or args.resume_task or args.process_profile):
@@ -225,7 +234,28 @@ async def _main() -> None:
         from ..processing.sessions import ProcessingSessions, WorkerBusy
         from ..processing.learning import ProcedureStore, ReplayCatalog, replay_experience
         service = ProcessingSessions(config)
-        if args.worker_start:
+        if any((args.playbook_list, args.playbook_history, args.playbook_replay, args.playbook_retire, args.playbook_rollback)):
+            from ..harness.playbook import PlaybookStore
+            from ..harness.learning import LearningService, ReplaySuites
+            if (args.playbook_replay or args.playbook_retire or args.playbook_rollback) and args.playbook_version is None:
+                raise SystemExit("--playbook-version is required")
+            if args.playbook_replay:
+                if not args.replay_suite:
+                    raise SystemExit("--replay-suite is required")
+                result = await LearningService(config).replay(args.playbook_replay, args.playbook_version, args.replay_suite, force=args.revalidate)
+            else:
+                with PlaybookStore(config) as book:
+                    if args.playbook_retire:
+                        result = book.retire(args.playbook_retire, args.playbook_version)
+                    elif args.playbook_rollback:
+                        if args.restore_version is None:
+                            raise SystemExit("--restore-version is required")
+                        result = book.rollback(args.playbook_rollback, args.playbook_version, args.restore_version)
+                    elif args.playbook_history:
+                        result = {"events": book.history(args.playbook_history)}
+                    else:
+                        result = {**book.list(), "replay_suites": ReplaySuites(config).catalog()}
+        elif args.worker_start:
             if not args.processing_input:
                 raise SystemExit("--processing-input is required")
             records = json.loads(Path(args.processing_input).read_text(encoding="utf-8-sig"))

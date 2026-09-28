@@ -249,11 +249,26 @@ class ProcessingSessions:
         with WorkerStore(self.config) as store:
             return self.public(store.cancel(identity, parent_id))
 
+    async def _learn_completed(self, state, response):
+        if not self.config.get("learning", {}).get("enabled") or response.get("status") != "completed":
+            return response
+        from ..harness.learning import LearningService, worker_evidence
+        try:
+            root = processing_root(self.config) / "workers" / state["worker_session_id"]
+            records = ArtifactStore(root / "artifacts").load(state["input"]["artifact_id"])["records"]
+            previous_path = root / "turns" / str(state["turn"]-1) / "result.json"
+            previous = json.loads(previous_path.read_text(encoding="utf-8")) if previous_path.exists() else None
+            response["playbook_learning"] = await LearningService(self.config).learn(worker_evidence(self.config, state, records, previous))
+        except Exception as exc:
+            # The worker delivery is already committed. Learning never rewrites it.
+            response["playbook_learning"] = {"status": "failed", "error": type(exc).__name__+": "+str(exc)[:500]}
+        return response
+
     async def run(self, identity, *, feedback=None, expected_turn=None, parent_id=None, origin="caller"):
         with WorkerStore(self.config) as store:
             state, admitted = store.acquire(identity, feedback, expected_turn, origin, parent_id)
             if not admitted:
-                return self.public(state)
+                return await self._learn_completed(state, self.public(state))
             operation = None
             previous_result = state.get("result")
             try:
@@ -264,6 +279,10 @@ class ProcessingSessions:
                 frozen_context = state.get("contexts", {}).get(str(state["turn"]))
                 if frozen_context:
                     context = artifacts.load(frozen_context["artifact_id"])
+                    if context.get("playbook_advice"):
+                        from ..harness.playbook import PlaybookStore
+                        with PlaybookStore(self.config) as playbook:
+                            playbook.validate_advice(context["playbook_advice"])
                     # Resume the same frozen prompt; a revoked experience blocks reuse.
                     with ProcedureStore(self.config) as learned:
                         if any(learned.get(a["id"])["state"] == "revoked" for a in context.get("procedural_advice", [])):
@@ -281,6 +300,11 @@ class ProcessingSessions:
                         advice = learned.recall(state["method_hash"])
                     context = {"feedback": state["feedback"], "feedback_origin": state["feedback_origin"], "previous": previous,
                                "procedural_advice": advice}
+                    if self.config.get("learning", {}).get("enabled"):
+                        from ..harness.playbook import PlaybookStore
+                        from ..harness.learning import processing_scope
+                        with PlaybookStore(self.config) as playbook:
+                            context["playbook_advice"] = playbook.recall(processing_scope(self.config, state["method_hash"], state["profile"], records), state["feedback"])
                     state.setdefault("contexts", {})[str(state["turn"])] = artifacts.save(context)
                     store.save_running(state)
                 engine = ProcessingEngine(self.config)
@@ -314,6 +338,7 @@ class ProcessingSessions:
                 if isinstance(exc, asyncio.CancelledError) and not cancelled:
                     raise
             response = self.public(store.get(identity))
+        response = await self._learn_completed(state, response)
         if response.get("candidate_experience_id") and self.config.get("processing", {}).get("auto_replay", False):
             try:
                 suites = [s for s in ReplayCatalog(self.config).catalog() if s["profile"] == state["profile"]]

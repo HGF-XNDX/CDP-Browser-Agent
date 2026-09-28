@@ -1,0 +1,8 @@
+{
+  "name": "playbook-release-headings", "target": "processing",
+  "task_type": "release-collection", "host": "example.com", "profile": "playbook-heading",
+  "cases": [
+    {"record": {"source_url": "https://example.com/beta", "data": {"title": "Beta Portal", "text": "Beta Portal\nNews\nTeam gathering\nReleases\nBeta 3.1 is available\nSupport\nContact our team"}}, "expected": {"title": "Beta 3.1 is available"}},
+    {"record": {"source_url": "https://example.com/gamma", "data": {"title": "Gamma Home", "text": "Gamma Home\nReleases\nGamma Spring Update\nNews\nMonthly meetup\nSupport\nDocumentation"}}, "expected": {"title": "Gamma Spring Update"}}
+  ]
+}

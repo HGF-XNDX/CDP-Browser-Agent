@@ -6,6 +6,13 @@
 使用 OpenAI-compatible Chat Completions 接口规划动作。支持内部加载 Agent Skills、
 调用外部 MCP 工具，也能作为 MCP 服务或一个可分发的 Skill 被其他智能体使用。
 
+0.10 加入借鉴 ACE 的经验学习：任务结束后自动反思、整理结构化经验，经独立样例对照回放
+验证改善后才供后续任务使用。经验按网站、任务类型、模型／工具／Skill 配置隔离，支持
+版本、过期、停用和回滚，覆盖浏览器规划器与处理子智能体。30000 通用配置已开启候选学习；
+`examples/playbook-30000.json` 提供注册工作流内的自动回放与采用示例。
+详见 [经验学习配置与实现边界](docs/PLAYBOOK_LEARNING.md)、[验收记录](docs/PLAYBOOK_VALIDATION.md)。
+MCP 共 30 个工具。
+
 0.9 加入基础 HTTP 爬虫：批量 URL、站内链接、CSS 字段提取、普通链接翻页、去重、
 限速与退避、robots、暂停和断点恢复，导出 JSON/JSONL/CSV。重复页面采集不逐页调用模型。
 记录集可通过 crawl_id 完整交给处理子智能体；固定工作流新增 http_crawl 步骤，

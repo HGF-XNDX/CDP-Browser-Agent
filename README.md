@@ -7,6 +7,14 @@ Completions endpoint. Launch Chromium or attach to Chrome/Edge over CDP. Load
 Agent Skills, call external MCP tools, expose the agent as an MCP server, or
 export its bundled Skill for another agent host.
 
+Version 0.10 adds ACE-inspired procedural learning: automatic reflection and curation,
+versioned scoped playbooks, paired held-out replay before adoption, expiry, retirement
+and rollback. Browser planners and processing workers can reuse verified lessons.
+The 30000 harness example enables candidate learning; the dedicated
+`examples/playbook-30000.json` demonstrates automatic replay and adoption in a registered
+workflow. See [learning configuration and boundaries](docs/PLAYBOOK_LEARNING.md) and
+[validation evidence](docs/PLAYBOOK_VALIDATION.md). MCP now exposes 30 tools.
+
 Version 0.9 adds bounded HTTP crawling: persistent URL queues, static pagination,
 CSS field extraction, robots rules, shared origin throttling, retry/backoff, immutable
 source records and JSON/JSONL/CSV exports. `web_crawl` can hand its complete dataset

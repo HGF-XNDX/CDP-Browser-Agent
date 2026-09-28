@@ -1,0 +1,15 @@
+{
+  "model": {
+    "provider": "llama.cpp", "baseUrl": "http://127.0.0.1:30000/v1", "model": "",
+    "maxTokens": 2048, "apiTimeout": 90, "maxRetries": 0, "enableThinking": false, "enableVision": false
+  },
+  "browser": {"connection": "launch", "headless": true, "focus_page": false},
+  "agent": {"context_window_tokens": null, "log_dir": "../logs/playbook-agent", "max_steps": 16},
+  "harness": {"run_timeout_seconds": 480, "tool_timeout_seconds": 300},
+  "processing": {"paths": ["processing/playbook-heading.json"], "artifact_dir": "../downloads/playbook-processing"},
+  "learning": {
+    "enabled": true, "auto_replay": true, "task_type": "release-collection",
+    "state_dir": "../downloads/playbook", "replay_paths": ["playbook-replays"],
+    "max_candidates": 1, "timeout_seconds": 240
+  }
+}
