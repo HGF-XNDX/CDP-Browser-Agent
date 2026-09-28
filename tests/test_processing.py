@@ -27,6 +27,14 @@ def processing(tmp_path):
     return config, profile, path
 
 
+def test_processing_preview_is_bounded_without_silently_cutting_a_row():
+    records = [{"record_key": str(i), "source_url": "https://example.com", "data": {"text": "x"*3000}} for i in range(3)]
+    preview = engine.output_preview(records)
+    assert len(json.dumps(preview, ensure_ascii=False)) <= 4000
+    assert preview["truncated"] and preview["total_records"] == 3
+    assert len(preview["records"]) == 1 and preview["records"][0]["data"] == records[0]["data"]
+
+
 async def test_subagent_repairs_quotes_exports_and_reuses_success(processing, tmp_path, monkeypatch):
     config, _, _ = processing
     model = AsyncMock(side_effect=[json.dumps({"data": {"title": "Fact"}, "evidence": [{"field": "title", "quote": "invented"}]}),
@@ -38,6 +46,8 @@ async def test_subagent_repairs_quotes_exports_and_reuses_success(processing, tm
     assert {Path(p).suffix for p in result["artifact_paths"]} >= {".json", ".csv", ".md"}
     saved = json.loads(Path(result["records_path"]).read_text(encoding="utf-8"))
     assert saved[0]["source_url"] == "https://example.com" and saved[0]["data"]["title"] == "Fact"
+    assert result["output_preview"]["records"][0]["data"] == saved[0]["data"]
+    assert not result["output_preview"]["truncated"] and result["output_preview"]["total_records"] == 1
     again = await ProcessingEngine(config).run("facts", records, tmp_path / "out")
     assert again["reused_count"] == 1 and again["model_calls"] == 0 and model.await_count == 2
     prompts = model.call_args.args[0]
@@ -55,6 +65,7 @@ async def test_failed_records_not_exported_and_only_failures_retried(processing,
     result = await ProcessingEngine(config).run("facts", records, tmp_path / "out")
     assert result["status"] == "incomplete" and result["validated_count"] == 1
     assert len(json.loads(Path(result["records_path"]).read_text())) == 1
+    assert result["output_preview"]["total_records"] == 1
     result = await ProcessingEngine(config).run("facts", records, tmp_path / "out")
     assert result["ok"] and result["reused_count"] == 1 and result["model_calls"] == 1
     profile["instructions"] += " Changed."

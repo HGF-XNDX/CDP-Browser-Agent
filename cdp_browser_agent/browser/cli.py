@@ -33,6 +33,15 @@ def _parse_args() -> argparse.Namespace:
     quick = parser.add_mutually_exclusive_group()
     quick.add_argument("--web-search", metavar="QUERY", help="Search directly without calling the model or starting a browser.")
     quick.add_argument("--web-fetch", metavar="URL", help="Read a public page directly without calling the model or starting a browser.")
+    quick.add_argument("--crawl-spec", metavar="JSON", help="Run an HTTP crawl from a JSON specification, without a model/browser.")
+    quick.add_argument("--crawl-resume", metavar="ID", help="Resume a crawl's durable frontier.")
+    quick.add_argument("--crawl-status", metavar="ID")
+    quick.add_argument("--crawl-read", metavar="ID", help="Read dataset JSON by character offsets.")
+    quick.add_argument("--crawl-pause", metavar="ID")
+    parser.add_argument("--crawl-page-budget", type=int, default=10)
+    parser.add_argument("--crawl-offset", type=int, default=0)
+    parser.add_argument("--crawl-limit", type=int, default=4000)
+    parser.add_argument("--web-fetch-format", choices=["text", "html"], default="text")
     parser.add_argument("--base-url", default=None, help="OpenAI-compatible base URL, e.g. http://127.0.0.1:8080/v1.")
     parser.add_argument("--model", default=None, help="Model name. Empty means auto-discover/fallback.")
     parser.add_argument("--api-key", default=None, help="API key for compatible endpoints.")
@@ -98,6 +107,22 @@ async def _main() -> None:
         return
     task = args.task_option or args.task
     config = _load_config(args.config)
+    if any((args.crawl_spec, args.crawl_resume, args.crawl_status, args.crawl_read, args.crawl_pause)):
+        if task or args.workflow or args.resume_task or args.worker_start or args.process_profile:
+            raise SystemExit("Direct crawl operations cannot be combined with tasks, workflows or processing")
+        from ..crawler.engine import Crawler
+        service = Crawler(config)
+        if args.crawl_spec or args.crawl_resume:
+            spec = json.loads(Path(args.crawl_spec).read_text(encoding="utf-8-sig")) if args.crawl_spec else None
+            result = await service.run(spec=spec, crawl_id=args.crawl_resume, page_budget=args.crawl_page_budget)
+        elif args.crawl_status:
+            result = service.status(args.crawl_status)
+        elif args.crawl_read:
+            result = service.read(args.crawl_read, args.crawl_offset, args.crawl_limit)
+        else:
+            result = service.pause(args.crawl_pause)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
     config.setdefault("processing", {}).setdefault("paths", []).extend(str(Path(p).resolve()) for p in args.processing_path)
     if args.intervention:
         config.setdefault("intervention", {})["mode"] = args.intervention
@@ -117,7 +142,7 @@ async def _main() -> None:
         if task or args.workflow:
             raise SystemExit("Direct web tools cannot be combined with a task or workflow")
         web = WebTools(config.get("web", {}))
-        result = await web.search(args.web_search) if args.web_search is not None else await web.fetch(args.web_fetch)
+        result = await web.search(args.web_search) if args.web_search is not None else await web.fetch(args.web_fetch, content_format=args.web_fetch_format)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return
     workflows = config.setdefault("workflows", {})

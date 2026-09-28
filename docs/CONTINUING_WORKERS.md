@@ -54,7 +54,7 @@ python -m cdp_browser_agent.browser --config examples/learning-30000.json --work
 `--worker-continue ID` 不带反馈表示继续中断轮次；已完成会话会直接返回现有结果。
 `--worker-cancel ID` 取消当前轮。新的会话 ID 为 32 位十六进制字符串，不能传路径。
 
-MCP 总计 21 个工具，本次新增：
+0.8 发布时 MCP 总计 21 个工具，该版本新增：
 
 | 工具 | 用途 |
 |---|---|

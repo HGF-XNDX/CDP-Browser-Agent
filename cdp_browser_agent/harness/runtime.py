@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from uuid import uuid4
 from contextlib import AsyncExitStack
+from dataclasses import replace
 
 import httpx2
 from mcp import Client
@@ -16,6 +17,7 @@ from .skills import SkillCatalog
 from .tools import Tool, ToolRegistry
 from .artifacts import ArtifactStore
 from ..web.tools import WebTools
+from ..crawler.engine import Crawler
 from ..processing.engine import ProcessingEngine
 from ..processing.sessions import ProcessingSessions, WorkerBusy
 from ..processing.learning import ProcedureStore, ReplayCatalog, replay_experience
@@ -43,12 +45,24 @@ class ExtensionRuntime:
         self.stack = AsyncExitStack()
         self.unavailable_servers = {}
         self.web = WebTools(config.get("web", {}), self.registry.max_result_chars)
+        self.crawl_allowed_origins = None
         self._register_builtins()
         self.web_tool_names = []
         if config.get("web", {}).get("enabled", True):
             for tool in self.web.definitions():
                 self.registry.register(tool)
                 self.web_tool_names.append(tool.name)
+            if config.get("crawler", {}).get("enabled", True):
+                for tool in Crawler(config).definitions():
+                    async def crawl_call(_name=tool.name, **args):
+                        service = self.crawler()
+                        handler = next(t.handler for t in service.definitions() if t.name == _name)
+                        result = await handler(**args)
+                        self.task_state.setdefault("collected_files", []).extend(
+                            p for p in result.get("artifact_paths", []) if p not in self.task_state.get("collected_files", []))
+                        return result
+                    self.registry.register(replace(tool, handler=crawl_call))
+                    self.web_tool_names.append(tool.name)
         for tool in tools or []:
             self.registry.register(tool)
         for name in settings.get("active_skills", []):
@@ -120,9 +134,9 @@ class ExtensionRuntime:
         async def experience_replay(experience_id, suite):
             return await replay_experience(self.config, experience_id, suite)
 
-        async def delegate_processing(profile):
+        async def delegate_processing(profile, crawl_id=None):
             records = []
-            for source in self.task_state.get("sources", []):
+            for source in ([] if crawl_id else self.task_state.get("sources", [])):
                 if source.get("kind") == "search_result":
                     continue
                 text = source.get("snippet", "")
@@ -141,6 +155,8 @@ class ExtensionRuntime:
                         coverage = "full_extracted_text"
                 records.append({"source_url": source["url"], "data": {"title": source.get("title", ""),
                                 "text": text, "coverage": coverage}})
+            if crawl_id:
+                records = self.crawler().records(crawl_id)
             child = await self.workers.create(profile, records, parent_id=self.task_state.get("run_id"))
             remember_worker(child)
             try:
@@ -188,8 +204,8 @@ class ExtensionRuntime:
             self.registry.register(tool)
         self.processing_tool_names = []
         if self.processing.catalog.profiles:
-            tool = Tool("delegate_processing", "Send collected page evidence to a separate processing subagent using an operator profile; outputs validated data and export files.",
-                        object_schema({"profile": {"enum": list(self.processing.catalog.profiles)}}, ["profile"]), delegate_processing)
+            tool = Tool("delegate_processing", "Send collected page evidence, or a completed crawl's full dataset by crawl_id, to a processing worker using an operator profile. No need to copy all records into context.",
+                        object_schema({"profile": {"enum": list(self.processing.catalog.profiles)}, "crawl_id": text}, ["profile"]), delegate_processing)
             self.registry.register(tool)
             self.processing_tool_names.append(tool.name)
             extra = [
@@ -293,10 +309,14 @@ class ExtensionRuntime:
     async def __aexit__(self, *exc):
         return await self.stack.__aexit__(*exc)
 
+    def crawler(self):
+        return Crawler(self.config, parent_id=self.task_state.get("run_id"), allowed_origins=self.crawl_allowed_origins)
+
     def context(self) -> dict:
         return {"builtin_tools": [self.registry.describe(n) for n in self.builtin_names + self.web_tool_names + self.processing_tool_names],
                 "processing_profiles": self.processing.catalog.catalog(),
                 "child_workers": self.workers.list(self.task_state["run_id"]) if self.task_state.get("run_id") else [],
+                "crawls": self.crawler().list() if self.task_state.get("run_id") else [],
                 "completion_processing": self.config.get("agent", {}).get("completion_processing", []),
                 "skills": self.skills.catalog(limit=15),
                 "active_skills": list(self.skills.active.values()),

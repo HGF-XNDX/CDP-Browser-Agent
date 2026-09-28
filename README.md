@@ -7,6 +7,14 @@ Completions endpoint. Launch Chromium or attach to Chrome/Edge over CDP. Load
 Agent Skills, call external MCP tools, expose the agent as an MCP server, or
 export its bundled Skill for another agent host.
 
+Version 0.9 adds bounded HTTP crawling: persistent URL queues, static pagination,
+CSS field extraction, robots rules, shared origin throttling, retry/backoff, immutable
+source records and JSON/JSONL/CSV exports. `web_crawl` can hand its complete dataset
+to a processing worker by ID; HTTP crawling uses no per-page model calls or browser.
+Use workflow `http_crawl` for repeatable collection and the existing browser `crawl`
+for rendered pages. See the [crawler guide and design references](docs/CRAWLING.md)
+and [acceptance evidence](docs/CRAWLER_VALIDATION.md).
+
 Version 0.8 adds durable processing conversations, feedback revisions, cancellation,
 operator-checked task completion, and paired held-out replay before processing advice
 can be reused. CLI and MCP share the same persistent worker state. See the

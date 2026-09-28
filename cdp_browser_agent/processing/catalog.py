@@ -66,6 +66,7 @@ class ProcessingCatalog:
 
     def catalog(self):
         return [{"name": p["name"], "description": p.get("description", ""),
+                 "max_records": p.get("max_records", 500), "mode": p.get("mode", "llm"),
                  "formats": p.get("formats", ["json", "csv", "markdown"]), "output_schema": p["output_schema"],
                  "verification": p.get("verification", [])}
                 for p in self.profiles.values()]

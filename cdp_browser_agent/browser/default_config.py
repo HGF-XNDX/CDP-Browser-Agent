@@ -15,6 +15,9 @@ DEFAULT_BROWSER_AGENT_CONFIG: dict[str, Any] = {
             "artifact_dir": "downloads/web", "allowed_private_hosts": [],
             "search": {"provider": "auto"}},
     "workflows": {"paths": [], "state_dir": "workflow-runs"},
+    "crawler": {"enabled": True, "state_dir": "downloads/crawls", "max_pages": 200,
+                "max_records": 5000, "request_delay_seconds": 0.5, "max_retries": 2,
+                "run_timeout_seconds": 30, "respect_robots": True, "max_data_bytes": 50000000},
     "model": {
         "provider": "llama.cpp",
         "baseUrl": "http://127.0.0.1:8080/v1",

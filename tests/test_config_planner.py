@@ -13,6 +13,7 @@ def test_config_paths_are_relative_to_config_file(tmp_path, monkeypatch):
     monkeypatch.chdir(Path(tmp_path).parent)
     config = load_config(str(file))
     assert config["harness"]["skill_paths"] == [str(tmp_path / "skills")]
+    assert config["crawler"]["state_dir"] == str(tmp_path / "downloads" / "crawls")
     assert config["harness"]["mcp_servers"]["example"]["command"] == str(tmp_path / "python.exe")
 
 

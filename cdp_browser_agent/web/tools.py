@@ -16,7 +16,7 @@ from urllib.request import proxy_bypass_environment
 import httpx
 
 from ..harness.tools import Tool
-from .extract import extract_page, parse_search
+from .extract import decode, extract_page, parse_search
 from .network import WebError, download, ordered_routes, remember_route, valid_url
 
 
@@ -29,7 +29,7 @@ def schema(properties, required):
 
 
 class WebTools:
-    def __init__(self, settings=None, max_result_chars=12000):
+    def __init__(self, settings=None, max_result_chars=12000, *, artifact_root=None):
         self.settings = deepcopy(settings or {})
         self.max_result_chars = max_result_chars
         self.timeout = float(self.settings.get("timeout_seconds", 30))
@@ -39,17 +39,21 @@ class WebTools:
         if not 1024 <= self.max_bytes <= 10_000_000:
             raise ValueError("web.max_response_bytes must be between 1024 and 10000000")
         self.allowed_origins = None  # Bound by an enclosing workflow, when applicable.
+        self.request_guard = None  # Host-owned crawler scope/robots/rate guard, including redirects.
         self.cache = {}
         self.artifacts = Path(self.settings.get("artifact_dir", "downloads/web")).expanduser().resolve() / uuid4().hex
+        if artifact_root is not None:
+            self.artifacts = Path(artifact_root).resolve()  # Caller already owns a unique run directory.
 
     def definitions(self):
         return [Tool("web_search", "Quick web discovery without a browser. Results are snippets, not full pages. Fetch relevant URLs; use browser_url if search is blocked.",
                      schema({"query": {"type": "string", "minLength": 1, "maxLength": 500},
                              "max_results": {"type": "integer", "minimum": 1, "maximum": 10}}, ["query"]), self.search),
-                Tool("web_fetch", "Read a public HTTP(S) page without launching a browser or using its cookies. Returns text, sources and saved evidence. needs_browser indicates dynamic/auth/challenge content. Use offset for more text.",
+                Tool("web_fetch", "Read a public HTTP(S) page without a browser/cookies. content_format='html' returns bounded raw HTML for inspecting CSS selectors before crawling; default is extracted text. Use offset for more. needs_browser indicates dynamic/auth/challenge content.",
                      schema({"url": {"type": "string", "minLength": 1, "maxLength": 8000},
                              "offset": {"type": "integer", "minimum": 0},
-                             "max_chars": {"type": "integer", "minimum": 500, "maximum": 12000}}, ["url"]), self.fetch)]
+                             "max_chars": {"type": "integer", "minimum": 500, "maximum": 12000},
+                             "content_format": {"enum": ["text", "html"]}}, ["url"]), self.fetch)]
 
     async def _request(self, url, *, purpose, attempts, **kwargs):
         mode = self.settings.get(purpose, {}).get("proxy", self.settings.get("proxy", "auto"))
@@ -173,11 +177,13 @@ class WebTools:
         except WebError as exc:
             return {**result, "ok": False, "status": exc.status, "needs_browser": exc.needs_browser, "results": [], "message": str(exc)}
 
-    async def fetch(self, url, offset=0, max_chars=6000):
+    async def fetch(self, url, offset=0, max_chars=6000, content_format="text"):
         attempts = []
         result = {"requested_url": url, "network_attempts": attempts}
         try:
             current = str(valid_url(url))
+            if content_format not in {"text", "html"}:
+                raise WebError("invalid_arguments", "content_format must be text or html")
             if isinstance(offset, bool) or not isinstance(offset, int) or offset < 0 or isinstance(max_chars, bool) or not isinstance(max_chars, int) or not 500 <= max_chars <= 12000:
                 raise WebError("invalid_arguments", "offset must be nonnegative and max_chars must be 500..12000")
             if not self.settings.get("enabled", True):
@@ -187,9 +193,12 @@ class WebTools:
                 if offset > 0 and cached and time.monotonic() - cached[1] < 60:
                     return deepcopy(cached[0]), True
                 response = await self._request(current, purpose="fetch", attempts=attempts, public_only=True,
-                    allowed_private_hosts=self.settings.get("allowed_private_hosts", []), allowed_origins=self.allowed_origins)
+                    allowed_private_hosts=self.settings.get("allowed_private_hosts", []), allowed_origins=self.allowed_origins,
+                    before_request=self.request_guard)
                 code = response["status_code"]
                 result.update(url=response["url"], http_status=code, network_route=response["network_route"])
+                if response["headers"].get("retry-after"):
+                    result["retry_after"] = response["headers"]["retry-after"][:128]
                 if not 200 <= code < 300:
                     raise WebError("rate_limited" if code == 429 else "http_error", f"Page returned HTTP {code}", needs_browser=code != 429)
                 content_type = response["headers"].get("content-type", "").lower()
@@ -214,11 +223,19 @@ class WebTools:
                 self.cache[current] = (deepcopy(data), time.monotonic())
                 return data, False
             page, cached = await asyncio.wait_for(execute(), self.timeout)
-            total = len(page["text"])
-            text = page["text"][offset:offset + max_chars]
+            content = page["text"]
+            if content_format == "html":
+                if page["extraction"] == "plain_text":
+                    raise WebError("unsupported_content", "HTML inspection requires an HTML response; use content_format=text")
+                raw = Path(page["artifact_paths"][1]).read_bytes()
+                if hashlib.sha256(raw).hexdigest() != page["response_sha256"]:
+                    raise WebError("evidence_changed", "Saved HTML hash differs; fetch the page again")
+                content = decode(raw, page["content_type"])
+            total = len(content)
+            text = content[offset:offset + max_chars]
             return self._fit({**result, **page, "ok": not page["needs_browser"],
                 "status": page.get("fallback_reason") or "success", "cache_hit": cached,
-                "text": text, "total_chars": total, "offset": offset, "truncated": offset + len(text) < total,
+                "text": text, "content_format": content_format, "total_chars": total, "offset": offset, "truncated": offset + len(text) < total,
                 "next_offset": offset + len(text) if offset + len(text) < total else None,
                 "browser_url": page["url"]})
         except asyncio.TimeoutError:

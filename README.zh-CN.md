@@ -6,6 +6,12 @@
 使用 OpenAI-compatible Chat Completions 接口规划动作。支持内部加载 Agent Skills、
 调用外部 MCP 工具，也能作为 MCP 服务或一个可分发的 Skill 被其他智能体使用。
 
+0.9 加入基础 HTTP 爬虫：批量 URL、站内链接、CSS 字段提取、普通链接翻页、去重、
+限速与退避、robots、暂停和断点恢复，导出 JSON/JSONL/CSV。重复页面采集不逐页调用模型。
+记录集可通过 crawl_id 完整交给处理子智能体；固定工作流新增 http_crawl 步骤，
+动态交互继续使用浏览器。详见 [爬虫使用与现有框架借鉴](docs/CRAWLING.md)、
+[爬虫与加工验收](docs/CRAWLER_VALIDATION.md)。
+
 0.8 加入可持续加工子会话：同一份材料可以接受后续反馈、分轮修订、跨进程恢复和取消；
 主任务完成前可以按配置核验加工结果。成功修订产生候选经验，只有在独立样例上通过
 原方法与候选方法的对照回放，才会被后续任务采用。CLI 和 MCP 共用持久化状态。

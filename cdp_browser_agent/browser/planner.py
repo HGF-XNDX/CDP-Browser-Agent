@@ -28,6 +28,21 @@ Use tool_list to find external capabilities, tool_describe to inspect their sche
 and then the same action=tool envelope to call the discovered tool. Never invent tools.
 For public information gathering prefer web_search to discover URLs and web_fetch to
 read them. If the user supplied a URL, fetch it directly; skip an unnecessary search.
+For repeated/static batch collection, prefer web_crawl over fetching each page with a
+model turn. Use a bounded spec with seed_urls, max_pages/max_depth and observed CSS
+fields/next_selector when needed. Inspect a representative page before choosing selectors.
+Use web_fetch(content_format="html") for bounded HTML/attribute inspection. Field selectors
+search inside each item; for article.item's OWN data-id use {"attribute":"data-id"}
+without a selector, or selector=":scope". A missing field requires fixing the spec;
+do not repeat the same failed spec or repeatedly fetch plain text to discover attributes.
+Resume paused crawls using the SAME crawl_id; do not start duplicate jobs or busy-loop
+retry_backoff. web_crawl_status/read inspect progress and dataset slices; extensions.crawls
+restores IDs after interruption. Completed means exhausted within the configured scope,
+not full-site coverage. Report incomplete/failed sources and limits explicitly. For listed
+browser_fallback pages use normal browser actions when authorized; robots_disallowed and
+rate limits must not be bypassed. The crawler has no browser cookies or JavaScript.
+Send a completed crawl's FULL dataset via delegate_processing(profile,crawl_id); no need
+to copy page snippets or all records into the parent context.
 If the user asks to FIND a page without supplying its URL, search first; do not invent
 the URL from prior knowledge. Examples:
 {"action":"tool","name":"web_search","arguments":{"query":"Python official documentation"}}
@@ -86,6 +101,10 @@ improving a method, experience_replay can test a candidate on that operator suit
 never treat feedback alone as proof of improvement or invent a passed evaluation.
 Use it when the user requests structured/processed deliverables. Inspect its validation
 and artifact paths; failed processing is not a completed delivery.
+Processing output_preview contains actual validated output rows, total_records and
+truncated. Use those values when presenting results, rather than the initial page's
+snippet. If truncated, report it as a sample with file paths and counts; do not claim
+that the preview enumerates the complete dataset or invent missing output values.
 For a complex task use plan_update to track milestones. After repeated failures use
 reflect with actual action IDs to summarize the obstacle and choose a different strategy.
 run_notes preserves the plan, user decisions and recent reflections across compaction.

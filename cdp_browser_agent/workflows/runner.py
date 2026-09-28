@@ -16,6 +16,7 @@ from ..harness.verification import check_page
 from .spec import WorkflowCatalog, digest, render, scoped_url
 from .store import WorkflowBusy, WorkflowStore, now
 from ..web.tools import WebTools
+from ..crawler.engine import Crawler
 from ..processing.engine import ProcessingEngine
 from jsonschema import Draft202012Validator, FormatChecker
 
@@ -175,6 +176,27 @@ class WorkflowExecution:
                 raise WorkflowStop("incomplete", "Configured crawl limit reached; results are partial")
         return {"status": "completed", "pages": cursor["pages"], "records": self.store.count(run_id, sid), "coverage": cursor["coverage"]}
 
+    async def http_crawl(self, step):
+        service = Crawler(self.config, parent_id=self.state["run_id"], allowed_origins=self.allowed)
+        ids = self.state.setdefault("http_crawls", {})
+        if step["id"] not in ids:
+            ids[step["id"]] = service.create(step["spec"])["crawl_id"]
+            self.store.save(self.state)
+        budget = min(50, self.page_budget-self.pages_this_attempt) if self.page_budget else 10
+        if budget <= 0:
+            raise WorkflowStop("paused", "Page budget reached")
+        identity = ids[step["id"]]
+        previous = service.status(identity)["request_attempts"]
+        result = await service.run(crawl_id=identity, page_budget=budget)
+        self.pages_this_attempt += result["request_attempts"]-previous
+        self.state["step_results"][step["id"]] = result
+        self.state.setdefault("datasets", {})[step["id"]] = service.records(identity, require_complete=False)
+        self.boundary()
+        if not result["ok"]:
+            raise WorkflowStop("paused" if result["status"] in {"paused", "busy"} else "incomplete",
+                               "HTTP crawl " + result["status"] + ": " + str(result["reason"]))
+        return result
+
     async def agent_step(self, step):
         previous = self.state["step_results"].get(step["id"], {})
         if previous.get("status") == "running" and not step.get("replay_safe", False) and not self.retry_uncertain:
@@ -193,6 +215,7 @@ class WorkflowExecution:
                 model["apiKey"] = os.environ[model["apiKeyEnv"]]
             self.runtime = await ExtensionRuntime(self.config).__aenter__()
             self.runtime.web.allowed_origins = self.allowed
+            self.runtime.crawl_allowed_origins = self.allowed
         for skill in step.get("skills", []):
             self.runtime.skills.load(skill)
         self.state["step_results"][step["id"]] = {"status": "running", "started_at": now()}
@@ -319,6 +342,8 @@ class WorkflowExecution:
                     result = await self.agent_step(step)
                 elif step["type"] == "crawl":
                     result = await self.crawl(step)
+                elif step["type"] == "http_crawl":
+                    result = await self.http_crawl(step)
                 elif step["type"] in {"search", "fetch"}:
                     result = await self.web_step(step)
                 else:
@@ -337,7 +362,7 @@ class WorkflowExecution:
                 self.store.save(self.state)
                 self.event("step_completed", step_id=step["id"], result=result)
             count = len(self.store.collected(self.state))
-            minimum = self.spec.get("min_records", 1 if any(s["type"] == "crawl" for s in self.spec["steps"]) else 0)
+            minimum = self.spec.get("min_records", 1 if any(s["type"] in {"crawl", "http_crawl"} for s in self.spec["steps"]) else 0)
             verified = count >= minimum and not any(self.state.get("collection_failures", {}).values())
             self.state["verification"] = {"ok": verified, "record_count": count, "min_records": minimum,
                                           "all_steps_completed": True, "required_fields_checked": True}

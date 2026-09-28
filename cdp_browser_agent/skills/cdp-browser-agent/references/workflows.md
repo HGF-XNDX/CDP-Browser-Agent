@@ -1,6 +1,8 @@
 # Repeatable website collection
 
 Use a registered workflow when the same website and fields will be collected repeatedly.
+For static HTTP collection use `http_crawl` followed by `process`; see
+[crawler rules and handoff](crawling.md). The existing `crawl` step uses the browser.
 Inspect `browser_workflows`, then call `browser_workflow_run` with its name and schema-valid parameters.
 Read `status`, `completion_basis`, `record_count`, `step_results`, `changes`, and the output files.
 `coverage: bounded` means an intentionally limited sample, not an exhausted website.

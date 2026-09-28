@@ -1,0 +1,7 @@
+{
+  "seed_urls": ["https://example.com/"],
+  "max_pages": 1,
+  "max_depth": 0,
+  "max_records": 1,
+  "fields": {"title": {"selector": "h1"}, "text": {"selector": "body"}}
+}

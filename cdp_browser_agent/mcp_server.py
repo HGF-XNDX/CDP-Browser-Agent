@@ -16,6 +16,7 @@ from .workflows.runner import run_workflow
 from .workflows.spec import WorkflowCatalog
 from .workflows.store import WorkflowStore, WorkflowBusy
 from .web.tools import WebTools, capabilities as web_capabilities
+from .crawler.engine import Crawler
 from .processing.engine import ProcessingEngine
 from .processing.sessions import ProcessingSessions, WorkerBusy
 from .processing.learning import ProcedureStore, ReplayCatalog, replay_experience
@@ -32,7 +33,7 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
     lock = asyncio.Lock()
     web = WebTools(base.get("web", {}))
     server = MCPServer("CDP Browser Agent", version=__version__, instructions=(
-        "Use web_search/web_fetch for fast public reading without a model or browser, "
+        "Use web_search/web_fetch for fast public reading and web_crawl for bounded batch collection without per-page model calls. "
         "and browser_task for interactive tasks or web-tool fallback. Inspect status: completed means the "
         "planner reported completion; needs_input requires user action. Model/browser/skill/MCP "
         "connections are configured by the server operator, not tool arguments."))
@@ -48,6 +49,7 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
                 "skills": skills.catalog(), "active_skills": settings.get("active_skills", []),
                 "configured_mcp_servers": list(settings.get("mcp_servers", {})),
                 "web": web_capabilities(base.get("web", {})),
+                "crawler": {k: v for k, v in Crawler(base).settings.items() if k != "state_dir"},
                 "processing_profiles": ProcessingEngine(base).catalog.catalog(),
                 "replay_suites": ReplayCatalog(base).catalog(),
                 "worker_max_turns": base.get("processing", {}).get("worker_max_turns", 5),
@@ -141,8 +143,12 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
         return await engine.run(profile, records, output)
 
     @server.tool()
-    async def browser_worker_start(profile: str, records: list[dict[str, Any]]) -> dict[str, Any]:
-        """Create a persistent processing conversation and execute its first turn with frozen source records."""
+    async def browser_worker_start(profile: str, records: list[dict[str, Any]] | None = None, crawl_id: str | None = None) -> dict[str, Any]:
+        """Process supplied records OR a completed crawl dataset by ID, retaining all records without copying them through caller context."""
+        if (records is None) == (crawl_id is None):
+            raise ValueError("Supply exactly one of records or crawl_id")
+        if crawl_id:
+            records = Crawler(base).records(crawl_id)
         service = ProcessingSessions(base)
         created = await service.create(profile, records)
         try:
@@ -196,13 +202,40 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
         return await web.search(query, max_results)
 
     @server.tool()
-    async def web_fetch(url: str, offset: int = 0, max_chars: int = 6000) -> dict[str, Any]:
+    async def web_fetch(url: str, offset: int = 0, max_chars: int = 6000, content_format: str = "text") -> dict[str, Any]:
         """Read public HTML/text, with source files and offsets. Does not use browser login cookies.
 
+        content_format='html' reads raw HTML slices for observing CSS selectors; default is text.
         On needs_browser=true, use browser_task for the requested page. Restricted URLs and
         disabled capabilities are not authorization to bypass policy using another tool.
         """
-        return await web.fetch(url, offset, max_chars)
+        return await web.fetch(url, offset, max_chars, content_format)
+
+    @server.tool()
+    async def web_crawl(spec: dict[str, Any] | None = None, crawl_id: str | None = None, page_budget: int = 10) -> dict[str, Any]:
+        """Batch HTTP GET collection with robots, scope filters, CSS extraction and durable pause/resume.
+
+        Supply spec={seed_urls:[...],max_pages:20,max_depth:1,fields:{title:{selector:'h1'}}}
+        OR resume with crawl_id. Optional item_selector extracts list rows; next_selector follows
+        pagination at the same depth. Completed datasets can feed browser_worker_start(crawl_id=...).
+        Paused requires another resume; incomplete is partial. Browser fallback is listed separately.
+        """
+        return await Crawler(base).run(spec, crawl_id, page_budget)
+
+    @server.tool()
+    async def web_crawl_status(crawl_id: str) -> dict[str, Any]:
+        """Inspect crawl progress, failures and artifact paths without network requests."""
+        return Crawler(base).status(crawl_id)
+
+    @server.tool()
+    async def web_crawl_read(crawl_id: str, offset: int = 0, limit: int = 4000) -> dict[str, Any]:
+        """Read immutable crawl dataset JSON by character offsets, with hash verification."""
+        return Crawler(base).read(crawl_id, offset, limit)
+
+    @server.tool()
+    async def web_crawl_pause(crawl_id: str) -> dict[str, Any]:
+        """Request cancellation of in-flight reads and pause without dropping saved pages/frontier."""
+        return Crawler(base).pause(crawl_id)
 
     @server.tool()
     async def browser_workflows() -> dict[str, Any]:

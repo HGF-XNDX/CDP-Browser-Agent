@@ -1,9 +1,9 @@
 ---
 name: cdp-browser-agent
-description: Search public webpages, delegate browser tasks and repeatable website collection, or process collected evidence into structured files through CDP Browser Agent CLI or MCP tools.
+description: Search and fetch webpages, batch crawl static sites, delegate interactive browser tasks, or process collected evidence into structured files through CDP Browser Agent CLI or MCP tools.
 ---
 
-Requires cdp-browser-agent 0.8 or later. Direct web_search/web_fetch need no model/browser.
+Requires cdp-browser-agent 0.9 or later. Direct web_search/web_fetch/web_crawl need no model/browser.
 Agent tasks require an operator-configured OpenAI-compatible model endpoint; browser
 fallback additionally needs Playwright Chromium or an accessible CDP browser.
 
@@ -22,6 +22,9 @@ Model endpoints, credentials, external tools and skill roots are operator config
 
 For repeatable fixed-site collection, read [workflows](references/workflows.md) and prefer
 the registered workflow tools. They provide host checks, checkpoints, raw snapshots and change detection.
+For batch static pages, link pagination or CSS field extraction, read
+[HTTP crawling](references/crawling.md). Prefer `web_crawl` to per-page agent turns;
+keep the crawl ID for resume and send it directly to a processing worker.
 The generic `browser_task` result remains model-reported unless an explicit host verifier is supplied.
 For data transformation, use an operator-registered processing profile from capabilities.
 `browser_process(profile, records)` processes supplied `{data, source_url}` records;

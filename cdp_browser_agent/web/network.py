@@ -94,7 +94,7 @@ def remember_route(mode, purpose, route):
 
 async def download(url, *, timeout=12, max_bytes=2_000_000, public_only=True,
                    allowed_private_hosts=(), allowed_origins=None, proxy=None,
-                   method="GET", json_body=None, headers=None):
+                   method="GET", json_body=None, headers=None, before_request=None):
     current = valid_url(url)
     original_origin = origin(str(current))
     redirects = []
@@ -108,6 +108,8 @@ async def download(url, *, timeout=12, max_bytes=2_000_000, public_only=True,
         for _ in range(6):
             if allowed_origins is not None and origin(str(current)) not in {origin(x) for x in allowed_origins}:
                 raise WebError("restricted_url", "URL is outside the workflow origins")
+            if before_request:
+                await before_request(str(current))
             pinned = current
             extra = {}
             request_headers = dict(headers or {})

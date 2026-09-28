@@ -92,7 +92,8 @@ class ToolRegistry:
                 reference = self.artifacts.save(result)
                 # Keep machine-readable source identity; a JSON preview is not a tool result.
                 compact = {k: result[k] for k in ("ok", "status", "url", "needs_browser", "browser_url",
-                    "artifact_paths", "artifact_id", "artifact", "text_sha256", "response_sha256", "offset", "next_offset", "total_chars") if k in result}
+                    "artifact_paths", "artifact_id", "artifact", "text_sha256", "response_sha256", "offset", "next_offset", "total_chars", "content_format",
+                    "crawl_id", "record_count", "scope_completed", "next_retry_at", "worker_session_id", "turn") if k in result}
                 compact.update(truncated=True, original_chars=len(encoded), artifact=reference,
                                message="Full result saved. Use artifact_read or artifact_search for omitted evidence.")
                 spare = self.max_result_chars - len(json.dumps(compact, ensure_ascii=False)) - 40

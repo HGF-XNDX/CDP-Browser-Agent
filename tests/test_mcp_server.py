@@ -12,12 +12,12 @@ from cdp_browser_agent.browser.default_config import browser_agent_default_confi
 async def test_real_stdio_server_capabilities_and_argument_boundary():
     async with Client(StdioServerParameters(command=sys.executable, args=["-m", "cdp_browser_agent.mcp_server"])) as client:
         tools = await client.list_tools()
-        assert {tool.name for tool in tools.tools} == {"browser_task", "browser_capabilities", "browser_workflows", "browser_workflow_run", "browser_workflow_status", "browser_workflow_pause", "web_search", "web_fetch", "browser_process", "browser_task_resume", "browser_task_status", "browser_task_respond", "browser_artifact_read", "browser_artifact_search", "browser_worker_start", "browser_worker_continue", "browser_worker_status", "browser_worker_cancel", "browser_experience_list", "browser_experience_replay", "browser_experience_revoke"}
+        assert {tool.name for tool in tools.tools} == {"browser_task", "browser_capabilities", "browser_workflows", "browser_workflow_run", "browser_workflow_status", "browser_workflow_pause", "web_search", "web_fetch", "web_crawl", "web_crawl_status", "web_crawl_read", "web_crawl_pause", "browser_process", "browser_task_resume", "browser_task_status", "browser_task_respond", "browser_artifact_read", "browser_artifact_search", "browser_worker_start", "browser_worker_continue", "browser_worker_status", "browser_worker_cancel", "browser_experience_list", "browser_experience_replay", "browser_experience_revoke"}
         task = next(t for t in tools.tools if t.name == "browser_task")
         assert set(task.input_schema["properties"]) == {"task", "max_steps"}
         result = await client.call_tool("browser_capabilities", {})
         assert not result.is_error
-        assert result.structured_content["version"] == "0.8.0"
+        assert result.structured_content["version"] == "0.9.0"
         invalid = await client.call_tool("browser_task", {"task": " ", "max_steps": 1})
         assert invalid.is_error
 

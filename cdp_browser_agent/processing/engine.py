@@ -48,6 +48,19 @@ def cell(value):
     return text
 
 
+def output_preview(records, max_chars=4000, max_records=8):
+    """Return complete validated rows only, with explicit coverage for the parent."""
+    preview = {"records": [], "total_records": len(records), "truncated": bool(records)}
+    for record in records[:max_records]:
+        row = {k: record[k] for k in ("record_key", "source_url", "data")}
+        candidate = {**preview, "records": preview["records"] + [row]}
+        if len(json.dumps(candidate, ensure_ascii=False)) > max_chars:
+            break
+        preview["records"].append(row)
+    preview["truncated"] = len(preview["records"]) < len(records)
+    return preview
+
+
 def validate_candidate(profile, candidate, source):
     Draft202012Validator(profile["output_schema"], format_checker=FormatChecker()).validate(candidate["data"])
     evidence = candidate.get("evidence", [])
@@ -249,6 +262,7 @@ class ProcessingEngine:
         atomic_json(folder / "delivery.json", delivery)
         summary = {"ok": not failed, "status": "completed" if not failed else "incomplete", "profile": name,
                    "input_count": len(records), "validated_count": len(good), "failed_count": len(failed),
+                   "output_preview": output_preview(good),
                    "model_calls": calls, "reused_count": reused, "context_budget": budget.as_dict(), "artifact_paths": paths + [str(folder / "failures.json")],
                    "method_hash": method_hash, "semantic_accuracy_verified": False,
                    "contract_verified": bool(good) and not failed and all(r["verification"]["ok"] for r in good),

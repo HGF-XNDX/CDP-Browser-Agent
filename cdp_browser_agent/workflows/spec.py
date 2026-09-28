@@ -8,6 +8,7 @@ import re
 from urllib.parse import quote, urldefrag, urlsplit
 
 from jsonschema import Draft202012Validator
+from ..crawler.spec import CRAWL_SCHEMA
 
 
 def obj(properties, required=()):
@@ -37,6 +38,7 @@ SCHEMA = obj({
              "input_step": IDENTIFIER, "url_field": IDENTIFIER, "browser_fallback": {"type": "boolean"},
              "on_error": {"enum": ["stop", "continue"]}}, ["id", "type"]),
         obj({**COMMON, "type": {"const": "process"}, "input_step": IDENTIFIER, "profile": IDENTIFIER}, ["id", "type", "input_step", "profile"]),
+        obj({**COMMON, "type": {"const": "http_crawl"}, "spec": CRAWL_SCHEMA}, ["id", "type", "spec"]),
         obj({**COMMON, "type": {"const": "agent"}, "instructions": TEXT,
              "checks": {"type": "array", "items": CHECK, "minItems": 1, "maxItems": 20},
              "skills": {"type": "array", "items": TEXT, "maxItems": 20},
