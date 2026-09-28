@@ -30,6 +30,7 @@ def load_config(path: str | None = None) -> dict:
     web["artifact_dir"] = absolute(web.get("artifact_dir", "downloads/web"))
     processing = config.setdefault("processing", {})
     processing["paths"] = [absolute(p) for p in processing.get("paths", [])]
+    processing["replay_paths"] = [absolute(p) for p in processing.get("replay_paths", [])]
     processing["artifact_dir"] = absolute(processing.get("artifact_dir", "downloads/processed"))
     if harness.get("artifact_dir"):
         harness["artifact_dir"] = absolute(harness["artifact_dir"])

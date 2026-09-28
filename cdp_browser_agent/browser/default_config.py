@@ -7,7 +7,9 @@ from typing import Any
 
 DEFAULT_BROWSER_AGENT_CONFIG: dict[str, Any] = {
     "intervention": {"mode": "auto", "wait_seconds": 120, "max_auto_decisions": 3},
-    "processing": {"paths": [], "artifact_dir": "downloads/processed"},
+    "processing": {"paths": [], "artifact_dir": "downloads/processed", "replay_paths": [],
+                   "worker_max_turns": 5, "worker_max_attempts": 3, "max_concurrent_sessions": 1,
+                   "max_children_per_task": 8, "auto_replay": False, "replay_timeout_seconds": 300},
     "web": {"enabled": True, "prefer_fast_path": True, "proxy": "auto",
             "timeout_seconds": 30, "max_response_bytes": 2000000,
             "artifact_dir": "downloads/web", "allowed_private_hosts": [],

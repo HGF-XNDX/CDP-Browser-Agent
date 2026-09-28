@@ -22,6 +22,8 @@ CSV/Markdown are convenient views. Input size limits fail explicitly. Successful
 are reusable on workflow resume; failed items retain their attempts. Changing method,
 model or Skill requires a new processing run. This worker has no browser, shell or
 recursive delegation. Source quote matching is not independent semantic verification.
+For persistent feedback revisions rather than one-shot processing, read
+[continuing workers](workers.md). Do not start a duplicate worker to revise the same input.
 
 Use `browser_task_status(run_id)` for progress, plan and pending input. Omit run_id to
 list recent tasks. Respond to a live `waiting_input` request using its exact request ID

@@ -17,6 +17,8 @@ from .workflows.spec import WorkflowCatalog
 from .workflows.store import WorkflowStore, WorkflowBusy
 from .web.tools import WebTools, capabilities as web_capabilities
 from .processing.engine import ProcessingEngine
+from .processing.sessions import ProcessingSessions, WorkerBusy
+from .processing.learning import ProcedureStore, ReplayCatalog, replay_experience
 from .harness.task_store import TaskStore
 from .harness.artifacts import ArtifactStore
 from pathlib import Path
@@ -47,6 +49,9 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
                 "configured_mcp_servers": list(settings.get("mcp_servers", {})),
                 "web": web_capabilities(base.get("web", {})),
                 "processing_profiles": ProcessingEngine(base).catalog.catalog(),
+                "replay_suites": ReplayCatalog(base).catalog(),
+                "worker_max_turns": base.get("processing", {}).get("worker_max_turns", 5),
+                "completion_processing": base.get("agent", {}).get("completion_processing", []),
                 "intervention": base.get("intervention", {}),
                 "workflows": WorkflowCatalog(base.get("workflows", {}).get("paths", [])).catalog(),
                 "external_connections_verified": False}
@@ -134,6 +139,52 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
         engine.catalog.get(profile)
         output = Path(base.get("processing", {}).get("artifact_dir", "downloads/processed")) / uuid4().hex
         return await engine.run(profile, records, output)
+
+    @server.tool()
+    async def browser_worker_start(profile: str, records: list[dict[str, Any]]) -> dict[str, Any]:
+        """Create a persistent processing conversation and execute its first turn with frozen source records."""
+        service = ProcessingSessions(base)
+        created = await service.create(profile, records)
+        try:
+            return await service.run(created["worker_session_id"])
+        except WorkerBusy:
+            return {**created, "status": "busy", "message": "Session is queued; continue after the active worker completes"}
+
+    @server.tool()
+    async def browser_worker_continue(worker_session_id: str, feedback: str | None = None, expected_turn: int | None = None) -> dict[str, Any]:
+        """Send feedback with the last observed turn, or resume an interrupted pending turn without feedback. Does not change the method or inputs."""
+        try:
+            return await ProcessingSessions(base).run(worker_session_id, feedback=feedback, expected_turn=expected_turn)
+        except WorkerBusy as exc:
+            return {"ok": False, "status": "busy", "worker_session_id": worker_session_id, "message": str(exc)}
+
+    @server.tool()
+    async def browser_worker_status(worker_session_id: str | None = None, after: int = 0) -> dict[str, Any]:
+        """Inspect a worker and paginated durable events, or list standalone workers if ID is omitted."""
+        service = ProcessingSessions(base)
+        return service.status(worker_session_id, after=after) if worker_session_id else {"workers": service.list()}
+
+    @server.tool()
+    async def browser_worker_cancel(worker_session_id: str) -> dict[str, Any]:
+        """Cancel the pending/current turn; preserve source, completed records and prior turn outputs."""
+        return ProcessingSessions(base).cancel(worker_session_id)
+
+    @server.tool()
+    async def browser_experience_list(profile: str | None = None) -> dict[str, Any]:
+        """Inspect processing advice state and operator replay suites; does not call the model."""
+        with ProcedureStore(base) as store:
+            return {"experiences": store.list(profile), "replay_suites": ReplayCatalog(base).catalog()}
+
+    @server.tool()
+    async def browser_experience_replay(experience_id: str, suite: str) -> dict[str, Any]:
+        """Evaluate baseline and candidate on an operator suite. Calls the model; promotion requires held-out improvement without regression."""
+        return await replay_experience(base, experience_id, suite)
+
+    @server.tool()
+    async def browser_experience_revoke(experience_id: str) -> dict[str, Any]:
+        """Revoke processing advice so subsequent jobs cannot adopt it; retain its history."""
+        with ProcedureStore(base) as store:
+            return store.revoke(experience_id)
 
     @server.tool()
     async def web_search(query: str, max_results: int = 5) -> dict[str, Any]:

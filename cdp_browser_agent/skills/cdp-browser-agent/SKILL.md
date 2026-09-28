@@ -3,7 +3,7 @@ name: cdp-browser-agent
 description: Search public webpages, delegate browser tasks and repeatable website collection, or process collected evidence into structured files through CDP Browser Agent CLI or MCP tools.
 ---
 
-Requires cdp-browser-agent 0.7 or later. Direct web_search/web_fetch need no model/browser.
+Requires cdp-browser-agent 0.8 or later. Direct web_search/web_fetch need no model/browser.
 Agent tasks require an operator-configured OpenAI-compatible model endpoint; browser
 fallback additionally needs Playwright Chromium or an accessible CDP browser.
 
@@ -29,6 +29,10 @@ inside a task, `delegate_processing` hands collected evidence to the configured 
 Inspect validated_count, failed_count and actual export files; schema and exact-quote
 checks do not prove semantic accuracy. Read [processing and resume](references/processing.md)
 when defining a pipeline or continuing an interrupted task.
+For a processing conversation, use `browser_worker_start` and keep its worker_session_id.
+Read [continuing workers and experience](references/workers.md) before sending revisions
+or evaluating reusable advice. A feedback revision preserves the source and method;
+use a new worker for different inputs. Host verification covers configured checks only.
 
 With the CLI, use the Python environment containing this package:
 

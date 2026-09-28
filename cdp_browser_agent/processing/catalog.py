@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 
 from jsonschema import Draft202012Validator
+from .verification import validate_checks
 
 
 def local_schema(schema):
@@ -37,6 +38,7 @@ class ProcessingCatalog:
                     raise ValueError("Invalid or duplicate processing profile name")
                 if profile.get("mode", "llm") not in {"llm", "mapping"}:
                     raise ValueError("Processing mode must be llm or mapping")
+                validate_checks(profile.get("verification", []))
                 local_schema(profile["output_schema"])
                 if profile["output_schema"].get("type") != "object":
                     raise ValueError("Processing output schema must describe an object")
@@ -64,5 +66,6 @@ class ProcessingCatalog:
 
     def catalog(self):
         return [{"name": p["name"], "description": p.get("description", ""),
-                 "formats": p.get("formats", ["json", "csv", "markdown"]), "output_schema": p["output_schema"]}
+                 "formats": p.get("formats", ["json", "csv", "markdown"]), "output_schema": p["output_schema"],
+                 "verification": p.get("verification", [])}
                 for p in self.profiles.values()]

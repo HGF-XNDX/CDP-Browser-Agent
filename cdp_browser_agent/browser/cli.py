@@ -71,6 +71,16 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--processing-path", action="append", default=[], help="Registered processing profile JSON or directory.")
     parser.add_argument("--process-profile", help="Run a data-processing profile directly.")
     parser.add_argument("--processing-input", help="JSON array of {data, source_url} records to process.")
+    parser.add_argument("--worker-start", metavar="PROFILE", help="Start a persistent processing conversation with --processing-input.")
+    parser.add_argument("--worker-continue", metavar="ID", help="Resume a pending turn or continue with feedback.")
+    parser.add_argument("--worker-feedback", help="Follow-up processing instruction, within the frozen method.")
+    parser.add_argument("--worker-turn", type=int, help="Last observed turn; required when sending new feedback.")
+    parser.add_argument("--worker-status", nargs="?", const="all")
+    parser.add_argument("--worker-cancel", metavar="ID")
+    parser.add_argument("--experience-list", nargs="?", const="all")
+    parser.add_argument("--experience-replay", metavar="ID")
+    parser.add_argument("--replay-suite", help="Operator-registered held-out replay suite name.")
+    parser.add_argument("--experience-revoke", metavar="ID")
     parser.add_argument("--page-budget", type=int, help="Pause after this many collected listing pages in this invocation.")
     parser.add_argument("--retry-uncertain-step", action="store_true", help="Explicitly retry an interrupted agent step after checking its effects.")
     parser.add_argument("--workflow-status", metavar="RUN_ID")
@@ -132,7 +142,15 @@ async def _main() -> None:
         skills = SkillCatalog(harness["skill_paths"], int(harness.get("max_skill_chars", 20000)), int(harness.get("active_skill_budget_chars", 30000)))
         print(json.dumps(skills.catalog(limit=50), ensure_ascii=False, indent=2))
         return
-    if not task and not args.workflow and not args.resume_task and not args.process_profile:
+    session_commands = [args.worker_start, args.worker_continue, args.worker_status, args.worker_cancel,
+                        args.experience_list, args.experience_replay, args.experience_revoke]
+    if sum(bool(v) for v in session_commands) > 1:
+        raise SystemExit("Choose one worker/experience operation")
+    if any(session_commands) and (task or args.workflow or args.resume_task or args.process_profile):
+        raise SystemExit("Worker/experience operations cannot be combined with tasks or one-shot processing")
+    if (args.worker_feedback is not None or args.worker_turn is not None) and not args.worker_continue:
+        raise SystemExit("--worker-feedback and --worker-turn require --worker-continue")
+    if not task and not args.workflow and not args.resume_task and not args.process_profile and not any(session_commands):
         raise SystemExit("error: provide a task as positional text or --task")
     model = config.setdefault("model", {})
     browser = config.setdefault("browser", {})
@@ -178,6 +196,39 @@ async def _main() -> None:
         agent["analyze_downloads_after_run"] = True
         agent["skip_download_model_summary"] = False
 
+    if any(session_commands):
+        from ..processing.sessions import ProcessingSessions, WorkerBusy
+        from ..processing.learning import ProcedureStore, ReplayCatalog, replay_experience
+        service = ProcessingSessions(config)
+        if args.worker_start:
+            if not args.processing_input:
+                raise SystemExit("--processing-input is required")
+            records = json.loads(Path(args.processing_input).read_text(encoding="utf-8-sig"))
+            created = await service.create(args.worker_start, records)
+            try:
+                result = await service.run(created["worker_session_id"])
+            except WorkerBusy as exc:
+                result = {**created, "status": "busy", "message": str(exc)}
+        elif args.worker_continue:
+            try:
+                result = await service.run(args.worker_continue, feedback=args.worker_feedback, expected_turn=args.worker_turn)
+            except WorkerBusy as exc:
+                result = {"ok": False, "status": "busy", "worker_session_id": args.worker_continue, "message": str(exc)}
+        elif args.worker_status:
+            result = {"workers": service.list()} if args.worker_status == "all" else service.status(args.worker_status)
+        elif args.worker_cancel:
+            result = service.cancel(args.worker_cancel)
+        elif args.experience_replay:
+            if not args.replay_suite:
+                raise SystemExit("--replay-suite is required")
+            result = await replay_experience(config, args.experience_replay, args.replay_suite)
+        else:
+            with ProcedureStore(config) as store:
+                result = store.revoke(args.experience_revoke) if args.experience_revoke else {
+                    "experiences": store.list(None if args.experience_list == "all" else args.experience_list),
+                    "replay_suites": ReplayCatalog(config).catalog()}
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
     if args.process_profile:
         from ..processing.engine import ProcessingEngine
         from uuid import uuid4

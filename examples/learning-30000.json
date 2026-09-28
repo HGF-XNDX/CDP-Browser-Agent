@@ -1,0 +1,14 @@
+{
+  "model": {
+    "provider": "llama.cpp", "baseUrl": "http://127.0.0.1:30000/v1", "model": "",
+    "maxTokens": 1536, "apiTimeout": 90, "maxRetries": 0, "enableThinking": false, "enableVision": false
+  },
+  "browser": {"connection": "launch", "headless": true, "focus_page": false},
+  "agent": {"context_window_tokens": null, "log_dir": "../logs/browser-agent", "max_steps": 16},
+  "harness": {"run_timeout_seconds": 300, "tool_timeout_seconds": 240},
+  "processing": {
+    "paths": ["processing"], "replay_paths": ["replays"], "artifact_dir": "../downloads/learning",
+    "worker_max_turns": 5, "worker_max_attempts": 3, "max_concurrent_sessions": 1,
+    "auto_replay": false, "replay_timeout_seconds": 300
+  }
+}

@@ -7,6 +7,11 @@ Completions endpoint. Launch Chromium or attach to Chrome/Edge over CDP. Load
 Agent Skills, call external MCP tools, expose the agent as an MCP server, or
 export its bundled Skill for another agent host.
 
+Version 0.8 adds durable processing conversations, feedback revisions, cancellation,
+operator-checked task completion, and paired held-out replay before processing advice
+can be reused. CLI and MCP share the same persistent worker state. See the
+[worker and learning guide](docs/CONTINUING_WORKERS.md) and [validation](docs/WORKER_VALIDATION.md).
+
 Version 0.7 discovers active model context capacity, shares one token budget across planner/memory/workers, retains oversized tool results with read/search references, and commits recoverable prompt projections. Explicit smaller limits still apply. See [context and evidence management](docs/CONTEXT_HARNESS.md).
 
 Version 0.6 adds independent data-processing workers with configurable methods, Skills,

@@ -9,6 +9,11 @@
   "max_repairs": 1,
   "require_evidence": true,
   "evidence_fields": ["summary"],
+  "verification": [
+    {"kind": "equals_input", "output": "title", "input": "title"},
+    {"kind": "nonempty", "output": "summary"},
+    {"kind": "nonempty", "output": "tags"}
+  ],
   "formats": ["json", "csv", "markdown"],
   "output_schema": {
     "type": "object",

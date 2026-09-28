@@ -1,0 +1,20 @@
+{
+  "name": "section-heading",
+  "description": "可通过后续反馈选择特定栏目标题；用于演示持续加工会话和经验回放。",
+  "mode": "llm",
+  "instructions": "从输入中提取一个标题。默认输出输入的 title（网站总标题）。如果 continuation.feedback 或经验证的 procedural_advice 指明了栏目，则输出该栏目下的标题。保留原文的大小写、空格和标点。data 只能有 title 字段；evidence 引用支持 title 的连续原文。",
+  "max_records": 20,
+  "max_repairs": 1,
+  "require_evidence": true,
+  "evidence_fields": ["title"],
+  "verification": [
+    {"kind": "contained_in_input", "output": "title", "input": "text"}
+  ],
+  "formats": ["json", "csv", "markdown"],
+  "output_schema": {
+    "type": "object",
+    "properties": {"title": {"type": "string", "minLength": 1}},
+    "required": ["title"],
+    "additionalProperties": false
+  }
+}

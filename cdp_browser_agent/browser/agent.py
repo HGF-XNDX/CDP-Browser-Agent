@@ -18,6 +18,7 @@ from ..harness.runtime import ExtensionRuntime
 from ..harness.session import RunSession
 from ..harness.intervention import handle_intervention
 from ..harness.experience import ExperienceStore
+from ..harness.verification import check_processing
 from ..harness.artifacts import ArtifactStore
 from ..harness.compaction import ContextCompactor
 from ..model_client import prepare_model_options
@@ -191,9 +192,15 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
             recorder.write("action_start", {"step": step, "action": action})
             log.info("run=%s step=%s action=%s", recorder.run_id, step, action["action"])
             if action["action"] == "done":
-                if action["outcome"] == "completed" and completion_check:
+                processing_checks = config.get("agent", {}).get("completion_processing")
+                if action["outcome"] == "completed" and (completion_check or processing_checks):
                     try:
-                        verification = await completion_check(controller, state)
+                        reports = []
+                        if completion_check:
+                            reports.append(await completion_check(controller, state))
+                        if processing_checks:
+                            reports.append(check_processing(config, state))
+                        verification = {"ok": all(r.get("ok") is True for r in reports), "checks": reports}
                     except Exception as exc:
                         verification = {"ok": False, "error": str(exc)[:1000]}
                     state["verification"] = verification
@@ -203,7 +210,7 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                                                 "message": "Host completion checks failed. Continue the task or report incomplete/blocked."}
                         continue
                 state.update(status=action["outcome"], stopped_reason="done", answer=action["answer"], completion_basis="model_reported")
-                if completion_check and action["outcome"] == "completed":
+                if (completion_check or processing_checks) and action["outcome"] == "completed":
                     state["completion_basis"] = "host_verified"
                 if site_memory and state["status"] == "completed":
                     site_memory.record_successful_workflow(task, state["history"])

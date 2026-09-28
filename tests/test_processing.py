@@ -132,7 +132,7 @@ async def test_resumed_collector_hands_full_verified_source_to_worker(processing
     source.parent.mkdir(parents=True)
     source.write_text("The full source, beyond the excerpt.", encoding="utf-8")
     async with ExtensionRuntime(config) as runtime:
-        runtime.task_state = {"run_id": "resumed", "sources": [{"url": "https://example.com", "snippet": "The full",
+        runtime.task_state = {"run_id": "a" * 32, "sources": [{"url": "https://example.com", "snippet": "The full",
             "kind": "web_fetch", "artifact_paths": [str(source)], "text_sha256": hashlib.sha256(source.read_bytes()).hexdigest()}]}
         result = await runtime.registry.call("delegate_processing", {"profile": "facts"})
         assert result["ok"], result

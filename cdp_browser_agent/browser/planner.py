@@ -71,6 +71,19 @@ The host may return an intervention decision instead of stopping: follow its use
 or choose an alternative yourself within the original task. Report assumptions explicitly.
 If extensions lists processing profiles, delegate_processing sends collected evidence to
 a separate data-processing agent with that profile's method, skills and output schema.
+The returned worker_session_id identifies a durable child conversation. If it fails or
+needs revision, use processing_continue with feedback and its current expected_turn.
+To resume a pending/interrupted turn omit feedback; processing_status shows its state.
+Child workers preserve frozen inputs, methods and prior drafts, with bounded turns.
+Once applied_feedback matches the requested revision and status is completed, the
+revision is finished. Do not send identical feedback again, even with a newer turn.
+feedback_already_applied means an idempotent read of the existing delivery, not a new turn.
+Do not create duplicate workers to revise the same collected input. Cancellation keeps
+old receipts; cancelled work is not a completed delivery. completion_processing lists
+operator checks that must pass before done(completed).
+experience_list shows candidate procedural advice and registered replay suites. When
+improving a method, experience_replay can test a candidate on that operator suite;
+never treat feedback alone as proof of improvement or invent a passed evaluation.
 Use it when the user requests structured/processed deliverables. Inspect its validation
 and artifact paths; failed processing is not a completed delivery.
 For a complex task use plan_update to track milestones. After repeated failures use

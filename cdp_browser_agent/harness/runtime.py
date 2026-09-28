@@ -17,6 +17,8 @@ from .tools import Tool, ToolRegistry
 from .artifacts import ArtifactStore
 from ..web.tools import WebTools
 from ..processing.engine import ProcessingEngine
+from ..processing.sessions import ProcessingSessions, WorkerBusy
+from ..processing.learning import ProcedureStore, ReplayCatalog, replay_experience
 
 
 def object_schema(properties: dict, required: list[str] | None = None) -> dict:
@@ -31,6 +33,7 @@ class ExtensionRuntime:
         self.config = config
         self.task_state = {}
         self.processing = ProcessingEngine(config)
+        self.workers = ProcessingSessions(config)
         self.registry = ToolRegistry(float(settings.get("tool_timeout_seconds", 60)),
                                      int(settings.get("max_tool_result_chars", 12000)),
                                      ArtifactStore(Path(settings.get("artifact_dir") or Path(config.get("agent", {}).get("log_dir", "logs/browser-agent")) / "artifacts") / uuid4().hex))
@@ -92,6 +95,31 @@ class ExtensionRuntime:
                     return item
             raise ValueError("Action ID is absent from the current run")
 
+        def remember_worker(result):
+            identity = result["worker_session_id"]
+            old = self.task_state.setdefault("processing_results", [])
+            self.task_state["processing_results"] = [r for r in old if r.get("worker_session_id") != identity] + [result]
+            self.task_state.setdefault("collected_files", []).extend(p for p in result.get("artifact_paths", []) if p not in self.task_state.get("collected_files", []))
+            return result
+
+        async def processing_continue(worker_session_id, feedback=None, expected_turn=None):
+            result = await self.workers.run(worker_session_id, feedback=feedback, expected_turn=expected_turn,
+                parent_id=self.task_state.get("run_id"), origin="parent_agent")
+            return remember_worker(result)
+
+        async def processing_status(worker_session_id):
+            return self.workers.status(worker_session_id, parent_id=self.task_state.get("run_id"))
+
+        async def processing_cancel(worker_session_id):
+            return self.workers.cancel(worker_session_id, parent_id=self.task_state.get("run_id"))
+
+        async def experience_list(profile=None):
+            with ProcedureStore(self.config) as learned:
+                return {"experiences": learned.list(profile), "replay_suites": ReplayCatalog(self.config).catalog()}
+
+        async def experience_replay(experience_id, suite):
+            return await replay_experience(self.config, experience_id, suite)
+
         async def delegate_processing(profile):
             records = []
             for source in self.task_state.get("sources", []):
@@ -113,11 +141,13 @@ class ExtensionRuntime:
                         coverage = "full_extracted_text"
                 records.append({"source_url": source["url"], "data": {"title": source.get("title", ""),
                                 "text": text, "coverage": coverage}})
-            folder = Path(self.config.get("processing", {}).get("artifact_dir", "downloads/processed")) / self.task_state.get("run_id", uuid4().hex) / profile
-            result = await self.processing.run(profile, records, folder)
-            self.task_state.setdefault("processing_results", []).append(result)
-            self.task_state.setdefault("collected_files", []).extend(p for p in result["artifact_paths"] if p not in self.task_state.get("collected_files", []))
-            return result
+            child = await self.workers.create(profile, records, parent_id=self.task_state.get("run_id"))
+            remember_worker(child)
+            try:
+                return remember_worker(await self.workers.run(child["worker_session_id"]))
+            except WorkerBusy:
+                return {**child, "ok": False, "status": "busy", "message": "Worker was queued; resume with processing_continue after the current worker finishes"}
+
 
         async def plan_update(steps):
             self.task_state["plan"] = steps
@@ -162,6 +192,20 @@ class ExtensionRuntime:
                         object_schema({"profile": {"enum": list(self.processing.catalog.profiles)}}, ["profile"]), delegate_processing)
             self.registry.register(tool)
             self.processing_tool_names.append(tool.name)
+            extra = [
+                Tool("processing_continue", "Continue the same worker with feedback and expected_turn, or resume its pending turn without feedback. Frozen source/method and bounded prior drafts are retained.",
+                     object_schema({"worker_session_id": text, "feedback": {"type": "string", "minLength": 1, "maxLength": 4000}, "expected_turn": {"type": "integer", "minimum": 1}}, ["worker_session_id"]), processing_continue),
+                Tool("processing_status", "Inspect an existing child worker and its recent events.", object_schema({"worker_session_id": text}, ["worker_session_id"]), processing_status, read_only=True),
+                Tool("processing_cancel", "Cancel the current child turn; preserve its prior results and receipts.", object_schema({"worker_session_id": text}, ["worker_session_id"]), processing_cancel),
+                Tool("experience_list", "Inspect processing experience candidates, active advice and operator replay suites.", object_schema({"profile": text}), experience_list, read_only=True),
+            ]
+            if self.config.get("processing", {}).get("replay_paths"):
+                extra.append(Tool("experience_replay", "Run bounded paired evaluation on an operator-held-out suite. Only passing candidate results with a baseline improvement can promote advice; this calls the configured model.",
+                    object_schema({"experience_id": text, "suite": text}, ["experience_id", "suite"]), experience_replay))
+            for item in extra:
+                self.registry.register(item)
+                self.processing_tool_names.append(item.name)
+
 
     async def __aenter__(self):
         try:
@@ -252,6 +296,8 @@ class ExtensionRuntime:
     def context(self) -> dict:
         return {"builtin_tools": [self.registry.describe(n) for n in self.builtin_names + self.web_tool_names + self.processing_tool_names],
                 "processing_profiles": self.processing.catalog.catalog(),
+                "child_workers": self.workers.list(self.task_state["run_id"]) if self.task_state.get("run_id") else [],
+                "completion_processing": self.config.get("agent", {}).get("completion_processing", []),
                 "skills": self.skills.catalog(limit=15),
                 "active_skills": list(self.skills.active.values()),
                 "unavailable_servers": self.unavailable_servers,
