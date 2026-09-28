@@ -1,0 +1,23 @@
+{
+  "name": "page-facts",
+  "description": "把采集网页整理成带原文引文的标题、摘要和主题标签。",
+  "mode": "llm",
+  "instructions": "阅读输入的 title 和 text。title 保持原文标题；summary 用中文简要概括，只能包含输入中有依据的信息；tags 给出 1 至 4 个主题词。信息不足时明确说明，不从记忆补充事实。evidence 至少引用一段支持 summary 的原文，quote 必须是输入中连续出现的原文。输出严格匹配指定 Schema。",
+  "skills": [],
+  "max_input_chars": 60000,
+  "max_records": 500,
+  "max_repairs": 1,
+  "require_evidence": true,
+  "evidence_fields": ["summary"],
+  "formats": ["json", "csv", "markdown"],
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "title": {"type": "string", "minLength": 1},
+      "summary": {"type": "string", "minLength": 1, "maxLength": 1200},
+      "tags": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": 4}
+    },
+    "required": ["title", "summary", "tags"],
+    "additionalProperties": false
+  }
+}

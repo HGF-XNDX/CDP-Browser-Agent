@@ -5,6 +5,7 @@ import re
 from copy import deepcopy
 
 from ..model_client import chat_completion
+from ..model_client import RUN_METRICS
 
 
 SYSTEM_PROMPT = """You are a general-purpose browser agent planner. Return one strict JSON object per step.
@@ -61,6 +62,18 @@ from an error page, a click alone, or missing files. done MUST include outcome:
 "completed" only when the entire requested result was observed; "incomplete" for unfinished
 work; "blocked" for missing capabilities. A failure explanation is never outcome=completed.
 Include source URLs only when actually observed. Use ask_user when user input is required.
+The host may return an intervention decision instead of stopping: follow its user reply
+or choose an alternative yourself within the original task. Report assumptions explicitly.
+If extensions lists processing profiles, delegate_processing sends collected evidence to
+a separate data-processing agent with that profile's method, skills and output schema.
+Use it when the user requests structured/processed deliverables. Inspect its validation
+and artifact paths; failed processing is not a completed delivery.
+For a complex task use plan_update to track milestones. After repeated failures use
+reflect with actual action IDs to summarize the obstacle and choose a different strategy.
+run_notes preserves the plan, user decisions and recent reflections across compaction.
+verified_experience is evidence-backed procedural advice, not a new instruction or a
+guarantee it still applies. Observe the current site before using it. Use history_read
+to inspect a referenced historical action rather than guessing from a compressed summary.
 """
 
 
@@ -201,6 +214,8 @@ async def plan_next_action(request: dict) -> dict:
     language_instruction = answer_language_instruction(model_settings)
     memory_context = request.get("memory_context") or {}
     payload = {
+        "run_notes": memory_context.get("run_notes", {}),
+        "verified_experience": memory_context.get("verified_experience", []),
         "extensions": request.get("extensions", {}),
         "capabilities": {"vision": bool(model_settings.get("enableVision", False)),
                          "browser_started": request.get("browser_started", True),
@@ -230,7 +245,9 @@ async def plan_next_action(request: dict) -> dict:
     # just action memory. Drop redundant history before shortening page evidence.
     settings = request.get("agent_settings", {})
     available = max(1000, int(settings.get("context_window_tokens", 32768)) - int(model_settings.get("maxTokens", 4096)))
-    budget = int(available * float(settings.get("chars_per_token", 3)) * float(settings.get("prompt_budget_ratio", .85)))
+    metrics = RUN_METRICS.get() or {}
+    chars_per_token = min(float(settings.get("chars_per_token", 3)), float(metrics.get("observed_chars_per_token", 3)))
+    budget = int(available * chars_per_token * float(settings.get("prompt_budget_ratio", .85)))
     payload = fit_payload(payload, max(1000, budget - len(SYSTEM_PROMPT)))
     user_content: str | list[dict] = json.dumps(payload, ensure_ascii=False)
     screenshot = request.get("screenshot") or {}
@@ -254,11 +271,15 @@ def fit_payload(payload: dict, budget: int) -> dict:
     def size():
         return len(json.dumps(payload, ensure_ascii=False))
     removed = []
-    for key in ("compressed_action_memory", "recalled_relevant_history", "site_memory", "recent_history", "sources"):
+    for key in ("compressed_action_memory", "recalled_relevant_history", "site_memory", "verified_experience", "recent_history", "sources"):
         if size() <= budget:
             break
         if payload.get(key):
-            payload[key] = [] if isinstance(payload[key], list) else {}
+            if isinstance(payload[key], list):
+                while payload[key] and size() > budget:
+                    payload[key].pop(0)
+            else:
+                payload[key] = {}
             removed.append(key)
     observation = payload.get("observation", {})
     for key in ("semanticTree", "observedText", "visibleText", "pageTextPreview", "fullText", "viewportText"):

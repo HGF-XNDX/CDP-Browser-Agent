@@ -15,6 +15,9 @@ from ..harness.runtime import ExtensionRuntime
 from ..harness.verification import check_page
 from .spec import WorkflowCatalog, digest, render, scoped_url
 from .store import WorkflowBusy, WorkflowStore, now
+from ..web.tools import WebTools
+from ..processing.engine import ProcessingEngine
+from jsonschema import Draft202012Validator, FormatChecker
 
 
 class WorkflowStop(Exception):
@@ -46,6 +49,8 @@ class WorkflowExecution:
         self.pages_this_attempt = 0
         self.controller = None
         self.runtime = None
+        self.web = WebTools(config.get("web", {}), max_result_chars=24000)
+        self.web.allowed_origins = self.allowed
         self.output = store.root / state["run_id"]
         self.output.mkdir(exist_ok=True)
 
@@ -139,11 +144,20 @@ class WorkflowExecution:
                     follow = step["follow"]
                     detail_url = scoped_url(urljoin(source_url, row[follow["url_field"]]), self.allowed)
                     self.boundary()
-                    await self.visit(detail_url, follow.get("wait_for"))
-                    detail = await self.extract(":root", follow["fields"], 1)
-                    record["data"].update(detail["rows"][0])
-                    record["source_url"] = self.controller.page.url
-                    record["detail_sha256"] = await self.snapshot()
+                    cache_path = self.output / "detail-checkpoints" / (digest({"step": sid, "row": row, "url": detail_url})[:24] + ".json")
+                    if cache_path.exists():
+                        record = json.loads(cache_path.read_text(encoding="utf-8"))
+                    else:
+                        await self.visit(detail_url, follow.get("wait_for"))
+                        detail = await self.extract(":root", follow["fields"], 1)
+                        record["data"].update(detail["rows"][0])
+                        record["source_url"] = self.controller.page.url
+                        record["detail_sha256"] = await self.snapshot()
+                        cache_path.parent.mkdir(exist_ok=True)
+                        from .store import atomic_json
+                        atomic_json(cache_path, record)
+                if step.get("record_schema"):
+                    Draft202012Validator(step["record_schema"], format_checker=FormatChecker()).validate(record["data"])
                 if any(not record["data"].get(key) for key in step["key_fields"]):
                     raise ValueError("Record key fields must be non-empty")
                 records.append(record)
@@ -164,6 +178,14 @@ class WorkflowExecution:
     async def agent_step(self, step):
         previous = self.state["step_results"].get(step["id"], {})
         if previous.get("status") == "running" and not step.get("replay_safe", False) and not self.retry_uncertain:
+            checked = await check_page(self.controller, step["checks"])
+            if checked["ok"]:
+                return {"status": "completed", "completion_basis": "host_verified", "verification": checked,
+                        "answer": "Recovered step already satisfies host checks; no action replayed."}
+            if self.config.get("intervention", {}).get("mode") == "auto":
+                self.state.setdefault("decisions", []).append({"step_id": step["id"], "reason": "uncertain_replay",
+                    "decision": "Keep partial results; existing page does not prove the interrupted action's effects."})
+                raise WorkflowStop("incomplete", "Autonomous review could not establish prior effects; retained partial results without repeating an uncertain action")
             raise WorkflowStop("needs_input", "An agent step was interrupted; inspect its effects before explicitly retrying this uncertain step")
         if self.runtime is None:
             model = self.config.setdefault("model", {})
@@ -176,6 +198,8 @@ class WorkflowExecution:
         self.state["step_results"][step["id"]] = {"status": "running", "started_at": now()}
         self.store.save(self.state)
         config = deepcopy(self.config)
+        from ..harness.task_store import task_root
+        config.setdefault("harness", {}).setdefault("state_dir", str(task_root(self.config)))
         config.setdefault("agent", {}).update(max_steps=min(step.get("max_steps", 20), config.get("agent", {}).get("max_steps", 40)),
                                                log_dir=str(self.output / "agent-events"))
 
@@ -207,50 +231,119 @@ class WorkflowExecution:
             raise WorkflowStop(result["status"], "Agent step did not satisfy the host completion checks")
         return compact
 
-    async def execute(self):
+    async def ensure_browser(self):
+        if self.controller:
+            return
         config = deepcopy(self.config)
         config.setdefault("browser", {})["start_url"] = "about:blank"
+        if (self.output / "browser-state.json").exists():
+            config["browser"]["storage_state"] = str(self.output / "browser-state.json")
+        self.controller = await BrowserController.launch(config)
+        async def route_navigation(route):
+            if route.request.is_navigation_request() and route.request.frame.page == self.controller.page:
+                try:
+                    scoped_url(route.request.url, self.allowed)
+                except ValueError:
+                    await route.abort()
+                    return
+            await route.continue_()
+        self.route_navigation = route_navigation
+        await self.controller.context.route("**/*", route_navigation)
+        if self.state.get("page_url") and self.state["step_index"] < len(self.spec["steps"]):
+            current = self.spec["steps"][self.state["step_index"]]
+            if current["type"] != "crawl" or current["id"] not in self.state["cursors"]:
+                await self.visit(self.state["page_url"])
+
+    async def web_step(self, step):
+        if step["type"] == "search":
+            result = await self.web.search(step["query"], step.get("max_results", 5))
+            if not result["ok"]:
+                raise WorkflowStop("incomplete", "Search failed: " + result["status"])
+            self.state.setdefault("datasets", {})[step["id"]] = [{"source_url": r["url"], "record_key": digest(r["url"]),
+                "data": r, "kind": "search_result"} for r in result["results"]]
+            return {"status": "completed", "record_count": len(result["results"])}
+        source = self.dataset(step.get("input_step")) if step.get("input_step") else []
+        urls = step.get("urls") or [r["data"][step.get("url_field", "url")] for r in source]
+        rows = self.state.setdefault("datasets", {}).setdefault(step["id"], [])
+        done = {r["requested_url"] for r in rows}
+        errors = []
+        for url in dict.fromkeys(urls):
+            self.boundary()
+            if url in done:
+                continue
+            scoped_url(url, self.allowed)
+            result = await self.web.fetch(url)
+            if not result["ok"] and result.get("needs_browser") and step.get("browser_fallback", True):
+                await self.ensure_browser()
+                await self.visit(url)
+                from ..web.extract import extract_page
+                try:
+                    observed = extract_page((await self.controller.page.content()).encode(), "text/html; charset=utf-8", self.controller.page.url)
+                    if not observed["needs_browser"]:
+                        result = {**observed, "ok": True, "url": self.controller.page.url,
+                                  "status": "browser_observed", "page_sha256": await self.snapshot()}
+                except ValueError:
+                    pass
+            if not result["ok"]:
+                errors.append({"url": url, "status": result["status"]})
+                if step.get("on_error", "stop") == "stop":
+                    raise WorkflowStop("incomplete", "Fetch failed: " + result["status"])
+                continue
+            text = result.get("text", "")
+            if result.get("artifact_paths"):
+                text = Path(result["artifact_paths"][0]).read_text(encoding="utf-8")
+            rows.append({"source_url": result["url"], "requested_url": url, "record_key": digest(url),
+                         "data": {"title": result.get("title", ""), "text": text},
+                         "artifact_paths": result.get("artifact_paths", []), "text_sha256": hashlib.sha256(text.encode()).hexdigest()})
+            self.store.save(self.state)
+        self.state.setdefault("collection_failures", {})[step["id"]] = errors
+        return {"status": "completed" if not errors else "partial", "record_count": len(rows), "failures": errors}
+
+    def dataset(self, step_id):
+        if step_id in self.state.get("datasets", {}):
+            return self.state["datasets"][step_id]
+        return [r for r in self.store.records(self.state["run_id"]) if r["step_id"] == step_id]
+
+    async def execute(self):
         try:
-            self.controller = await BrowserController.launch(config)
-            # Reject off-origin browser requests at the navigation boundary. This is
-            # collection scoping, not an OS/network sandbox for subresources/tools.
-            async def route_navigation(route):
-                if route.request.is_navigation_request() and route.request.frame.page == self.controller.page:
-                    try:
-                        scoped_url(route.request.url, self.allowed)
-                    except ValueError:
-                        await route.abort()
-                        return
-                await route.continue_()
-            await self.controller.context.route("**/*", route_navigation)
-            if self.state.get("page_url") and self.state["step_index"] < len(self.spec["steps"]):
-                current = self.spec["steps"][self.state["step_index"]]
-                if current["type"] != "crawl" or current["id"] not in self.state["cursors"]:
-                    await self.visit(self.state["page_url"])
             while self.state["step_index"] < len(self.spec["steps"]):
                 self.boundary()
                 step = self.spec["steps"][self.state["step_index"]]
                 self.event("step_start", step_id=step["id"], type=step["type"])
+                if step["type"] in {"navigate", "agent", "crawl"}:
+                    await self.ensure_browser()
                 if step["type"] == "navigate":
                     url = await self.visit(step["url"], step.get("wait_for"))
                     result = {"status": "completed", "url": url}
                 elif step["type"] == "agent":
                     result = await self.agent_step(step)
-                else:
+                elif step["type"] == "crawl":
                     result = await self.crawl(step)
+                elif step["type"] in {"search", "fetch"}:
+                    result = await self.web_step(step)
+                else:
+                    result = await ProcessingEngine(self.config).run(step["profile"], self.dataset(step["input_step"]),
+                        self.output / "processed" / step["id"], checkpoint=self.boundary)
+                    self.state.setdefault("processing_results", {})[step["id"]] = result
+                    if not result["ok"]:
+                        raise WorkflowStop("incomplete", "Some processing records failed; resume retries only failed records")
+                    self.state.setdefault("datasets", {})[step["id"]] = [
+                        {"data": r["data"], "source_url": r["source_url"], "record_key": r["record_key"], "kind": "processed"}
+                        for r in json.loads(Path(result["records_path"]).read_text(encoding="utf-8"))]
                 self.state["step_results"][step["id"]] = result
                 self.state["step_index"] += 1
-                self.state["page_url"] = self.controller.page.url
+                if self.controller:
+                    self.state["page_url"] = self.controller.page.url
                 self.store.save(self.state)
                 self.event("step_completed", step_id=step["id"], result=result)
-            count = self.store.count(self.state["run_id"])
+            count = len(self.store.collected(self.state))
             minimum = self.spec.get("min_records", 1 if any(s["type"] == "crawl" for s in self.spec["steps"]) else 0)
-            verified = count >= minimum
+            verified = count >= minimum and not any(self.state.get("collection_failures", {}).values())
             self.state["verification"] = {"ok": verified, "record_count": count, "min_records": minimum,
                                           "all_steps_completed": True, "required_fields_checked": True}
             self.state.update(status="completed" if verified else "incomplete", completion_basis="host_verified" if verified else "unverified")
             if not verified:
-                self.state["error"] = "Minimum record count not reached"
+                self.state["error"] = "Collection has failed sources or did not reach the minimum record count"
         finally:
             try:
                 if self.runtime:
@@ -258,9 +351,12 @@ class WorkflowExecution:
             finally:
                 if self.controller:
                     try:
-                        await self.controller.context.unroute("**/*", route_navigation)
+                        await self.controller.context.unroute("**/*", self.route_navigation)
                     finally:
-                        await self.controller.close()
+                        try:
+                            await self.controller.save_session(self.output / "browser-state.json")
+                        finally:
+                            await self.controller.close()
 
 
 async def run_workflow(name: str, config: dict, parameters: dict | None = None, *, resume_run_id: str | None = None,
@@ -294,6 +390,14 @@ async def run_workflow(name: str, config: dict, parameters: dict | None = None, 
         state = store.get(state["run_id"])
         if state["status"] == "completed":
             return store.export(state)
+        if resume_run_id:
+            # Retry partial fetches, then refresh dependent processing. Successful
+            # source rows and validated processing receipts remain reusable.
+            failed_steps = state.get("collection_failures", {})
+            rewind = next((i for i, s in enumerate(state["spec"]["steps"])
+                           if failed_steps.get(s["id"])), None)
+            if rewind is not None:
+                state["step_index"] = min(state["step_index"], rewind)
         state.update(status="running", attempt=state["attempt"] + 1, error=None, completion_basis="unverified")
         store.save(state)
         execution = WorkflowExecution(config, store, state, page_budget, retry_uncertain_step)

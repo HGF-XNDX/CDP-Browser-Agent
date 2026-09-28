@@ -16,6 +16,8 @@ from .site_memory import BrowserSiteMemory, target_element
 from .strategy_evaluator import evaluate_strategy
 from ..harness.runtime import ExtensionRuntime
 from ..harness.session import RunSession
+from ..harness.intervention import handle_intervention
+from ..harness.experience import ExperienceStore
 
 
 log = logging.getLogger(__name__)
@@ -25,7 +27,15 @@ def progress_signature(observation: dict, last_action: dict, last_result: dict) 
     # Includes same-page content and form state; URL/count alone misses SPA progress.
     content = {k: observation.get(k) for k in ("url", "fullText", "visibleText", "scrollY", "elements")}
     if last_action.get("action") == "tool":
-        content["tool"] = [last_action, last_result]
+        volatile = {"accessed_at", "searched_at", "captured_at", "artifact_paths", "network_attempts",
+                    "network_route", "elapsed_seconds", "cache_hit", "run_id", "output_dir", "log_file"}
+        def stable(value):
+            if isinstance(value, dict):
+                return {k: stable(v) for k, v in value.items() if k not in volatile}
+            if isinstance(value, list):
+                return [stable(v) for v in value]
+            return value
+        content["tool"] = [last_action, stable(last_result)]
     return hashlib.sha256(json.dumps(content, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest()
 
 
@@ -43,7 +53,7 @@ def collect_web_sources(sources, name, result):
         return sources
     if name == "web_search":
         rows = [{**row, "kind": "search_result"} for row in result.get("results", [])]
-    elif name == "web_fetch":
+    elif name == "web_fetch" and result.get("url"):
         rows = [{"url": result["url"], "title": result.get("title", ""), "kind": "web_fetch",
                  "snippet": result.get("text", "")[:6000], "accessed_at": result.get("accessed_at"),
                  "text_sha256": result.get("text_sha256"), "artifact_paths": result.get("artifact_paths", [])}]
@@ -68,9 +78,16 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
     session = session or RunSession(config, task)
     recorder = session.recorder
     state = session.state
+    runtime.task_state = state
+    if state.get("browser_state_file"):
+        config = deepcopy(config)
+        config.setdefault("browser", {})["storage_state"] = state["browser_state_file"]
+        config["browser"]["start_url"] = state.get("last_page_url", "about:blank")
     owns_controller = controller is None
     site_memory = None
     memory = BrowserAgentMemory(agent_settings=settings, model_settings=model_settings)
+    memory.restore(state.get("memory_snapshot", {}))
+    experience = ExperienceStore(config)
     max_steps = int(settings.get("max_steps", 40))
     seen_progress: dict[str, int] = {}
     no_progress_limit = max(2, int(settings.get("browser_no_progress_hard", 8)))
@@ -86,12 +103,15 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
             state["browser_started"] = True
         if settings.get("browser_site_memory_enabled", False):
             site_memory = BrowserSiteMemory(Path(settings.get("memory_dir", "memory")) / "browser_site_memory.json")
-        for step in range(1, max_steps + 1):
+        first_step = state["step"] + 1
+        for step in range(first_step, first_step + max_steps):
             state["step"] = step
             observation = await controller.observe() if controller else {
                 "url": "about:blank", "title": "Browser not started", "pageType": "not_started", "elements": [],
                 "fullText": "No browser page has been observed. Use web_search/web_fetch for public reading or observe_browser for interactive tasks. "
                             + "Configured initial URL: " + config.get("browser", {}).get("start_url", "about:blank")}
+            if controller:
+                state["last_page_url"] = observation.get("url", "about:blank")
             state["sources"] = collect_source(state["sources"], observation)
             state["observed_resource_candidates"] = collect_observed_candidate_resources(state["observed_resource_candidates"], observation)
             signature = progress_signature(observation, previous_action, state["last_result"] or {})
@@ -104,6 +124,9 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
             base = {"task": task, "observation": compact_observation(observation),
                     "last_result": state["last_result"], "extensions": extensions}
             memory_context = memory.build_context(task, observation, state["last_result"], state["sources"], base)
+            memory_context["verified_experience"] = experience.recall(observation.get("url") if controller else (state["last_result"] or {}).get("url", ""))
+            memory_context["run_notes"] = {"plan": state.get("plan", []), "decisions": state.get("decisions", [])[-4:],
+                                           "reflections": state.get("reflections", [])[-2:]}
             if site_memory:
                 memory_context["site_memory"] = site_memory.recall(observation.get("url", ""))
             request = {"task": task, "step": step, "observation": observation,
@@ -159,8 +182,14 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                     site_memory.record_successful_workflow(task, state["history"])
                 break
             if action["action"] == "ask_user":
+                if await handle_intervention(session, config, action["message"]):
+                    if state["status"] == "incomplete":
+                        break
+                    continue
                 state.update(status="needs_input", stopped_reason="ask_user", answer=action["message"])
                 break
+            state["pending_action"] = action
+            session.checkpoint()
             try:
                 if action["action"] == "tool":
                     result = await runtime.registry.call(action["name"], action["arguments"])
@@ -197,14 +226,26 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                      "result": result, "strategyReviews": reviews, "sourceCount": len(state["sources"])}
             state["history"].append(entry)
             state["last_result"] = result
+            state.pop("pending_action", None)
+            state["active_skills"] = deepcopy(runtime.skills.active)
             previous_action = action
             recorder.write("action_result", {"step": step, "action": action, "result": result})
+            session.checkpoint()
             await memory.add_entry(entry, task, model_settings)
+            state["memory_snapshot"] = memory.snapshot()
             if site_memory:
                 site_memory.record(entry)
             if action["action"] != "tool" and result.get("ok") and result.get("path"):
                 state["collected_files"].append(result["path"])
                 # An artifact is evidence of one action, not completion of a whole task.
+            if controller and owns_controller:
+                try:
+                    snapshot = await controller.save_session(session.directory / "browser-state.json")
+                    if isinstance(snapshot, dict):
+                        state.update(snapshot)
+                except Exception as exc:
+                    recorder.write("session_snapshot_error", {"error_type": type(exc).__name__})
+            session.checkpoint()
         else:
             state.update(status="max_steps", stopped_reason="max_steps", answer=f"Reached max steps ({max_steps}); task completion is unverified.")
     except asyncio.CancelledError:
@@ -214,6 +255,14 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
     except Exception as exc:
         state.update(status="failed", stopped_reason="runtime_error", answer=str(exc)[:2000])
     finally:
+        state["memory_snapshot"] = memory.snapshot()
+        state["active_skills"] = deepcopy(runtime.skills.active)
+        try:
+            state["learning"] = experience.record(state)
+        except Exception as exc:
+            recorder.write("learning_error", {"error_type": type(exc).__name__})
+        finally:
+            experience.close()
         state["memory_stats"] = memory.stats()
         if site_memory:
             try:
@@ -222,6 +271,9 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                 recorder.write("site_memory_error", {"message": str(exc)})
         if controller and owns_controller:
             try:
+                snapshot = await controller.save_session(session.directory / "browser-state.json")
+                if isinstance(snapshot, dict):
+                    state.update(snapshot)
                 if settings.get("write_download_manifest", True):
                     download_dir, analysis_dir = controller.artifact_directories()
                     write_download_manifest(download_dir, state, analysis_dir)

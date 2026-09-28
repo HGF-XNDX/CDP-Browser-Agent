@@ -226,6 +226,9 @@ class BrowserController:
             if downloads_path:
                 Path(downloads_path).mkdir(parents=True, exist_ok=True)
             context_options = {"accept_downloads": True}
+            storage = browser_config.get("storage_state") or browser_config.get("auth_state_path")
+            if storage and Path(storage).is_file():
+                context_options["storage_state"] = str(Path(storage).resolve())
             if viewport is None:
                 context_options["no_viewport"] = True
             else:
@@ -277,6 +280,8 @@ class BrowserController:
                     "slow_mo": int(browser_config.get("slow_mo", 300)),
                     "args": ["--start-maximized"] if is_maximized else None,
                 }
+                if browser_config.get("proxy"):
+                    launch_kwargs["proxy"] = browser_config["proxy"]
                 if downloads_path:
                     launch_kwargs["downloads_path"] = str(downloads_path)
                 browser = await playwright.chromium.launch(**launch_kwargs)
@@ -305,6 +310,7 @@ class BrowserController:
                 )
 
             controller._playwright = playwright
+            controller.auth_state_path = browser_config.get("auth_state_path")
             await controller.bring_page_to_front()
             return controller
         except BaseException:
@@ -734,6 +740,16 @@ class BrowserController:
         finally:
             source_page.remove_listener("download", on_download)
             source_page.remove_listener("popup", on_popup)
+
+    async def save_session(self, path):
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        await self.context.storage_state(path=str(path), indexed_db=True)
+        if getattr(self, "auth_state_path", None):
+            target = Path(self.auth_state_path)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(path.read_bytes())
+        return {"browser_state_file": str(path), "last_page_url": self.page.url}
 
     async def close(self) -> None:
         if not self.connected_over_cdp:

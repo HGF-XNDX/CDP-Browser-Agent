@@ -5,12 +5,13 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
+from .task_store import TaskStore
 
 
 class RunLogger:
-    def __init__(self, config: dict, task: str):
+    def __init__(self, config: dict, task: str, run_id=None):
         settings = config.get("agent", {})
-        self.run_id = uuid4().hex
+        self.run_id = run_id or uuid4().hex
         self.path = None
         self.shared_path = Path(settings["shared_events_path"]).resolve() if settings.get("shared_events_path") else None
         self.workflow_id = settings.get("shared_workflow_id", "")
@@ -35,16 +36,47 @@ class RunLogger:
 
 
 class RunSession:
-    def __init__(self, config: dict, task: str):
-        self.recorder = RunLogger(config, task)
-        self.state = {"run_id": self.recorder.run_id, "task": task, "status": "running",
+    def __init__(self, config: dict, task: str, resume_run_id=None):
+        self.store = TaskStore(config)
+        if resume_run_id:
+            try:
+                self.store.get(resume_run_id)  # Validate before forming any log filename.
+            except BaseException:
+                self.store.close()
+                raise
+        self.state = {"run_id": resume_run_id or uuid4().hex, "task": task, "status": "running",
                       "step": 0, "answer": "", "history": [], "sources": [],
                       "collected_files": [], "last_result": None, "observed_resource_candidates": [],
-                      "log_file": str(self.recorder.path) if self.recorder.path else None}
+                      "log_file": None}
+        try:
+            if resume_run_id:
+                self.state = self.store.get(resume_run_id)
+                if self.state["task"] != task:
+                    raise ValueError("Cannot change the original task when resuming")
+            self.store.acquire(self.state, resume=bool(resume_run_id))
+            if resume_run_id:
+                self.state = self.store.get(resume_run_id)
+        except BaseException:
+            self.store.close()
+            raise
+        self.recorder = RunLogger(config, task, self.state["run_id"])
+        self.state["log_file"] = str(self.recorder.path) if self.recorder.path else None
+        self.directory = self.store.root / self.state["run_id"]
+        self.directory.mkdir(exist_ok=True)
+        self.state["attempt"] = self.state.get("attempt", 0) + 1
         self.finished = False
+        self.checkpoint()
+
+    def checkpoint(self):
+        self.store.save(self.state)
 
     def finish(self):
         if not self.finished:
-            self.recorder.write("run_end", {key: self.state.get(key) for key in
-                ("status", "stopped_reason", "step", "answer", "collected_files", "completion_basis")})
-            self.finished = True
+            try:
+                self.checkpoint()
+                self.recorder.write("run_end", {key: self.state.get(key) for key in
+                    ("status", "stopped_reason", "step", "answer", "collected_files", "completion_basis")})
+            finally:
+                self.finished = True
+                self.store.release(self.state["run_id"])
+                self.store.close()

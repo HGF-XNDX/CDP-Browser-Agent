@@ -16,6 +16,10 @@ from .workflows.runner import run_workflow
 from .workflows.spec import WorkflowCatalog
 from .workflows.store import WorkflowStore, WorkflowBusy
 from .web.tools import WebTools, capabilities as web_capabilities
+from .processing.engine import ProcessingEngine
+from .harness.task_store import TaskStore
+from pathlib import Path
+from uuid import uuid4
 
 
 def create_mcp_server(config: dict | None = None) -> MCPServer:
@@ -41,6 +45,8 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
                 "skills": skills.catalog(), "active_skills": settings.get("active_skills", []),
                 "configured_mcp_servers": list(settings.get("mcp_servers", {})),
                 "web": web_capabilities(base.get("web", {})),
+                "processing_profiles": ProcessingEngine(base).catalog.catalog(),
+                "intervention": base.get("intervention", {}),
                 "workflows": WorkflowCatalog(base.get("workflows", {}).get("paths", [])).catalog(),
                 "external_connections_verified": False}
 
@@ -64,9 +70,51 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
         async with lock:
             result = await run_browser_agent(task, config)
         # Detailed observations/history stay in the run log rather than bloating the host's context.
-        keys = ("run_id", "status", "stopped_reason", "answer", "step", "completion_basis", "browser_started", "collected_files", "log_file")
+        keys = ("run_id", "status", "stopped_reason", "answer", "step", "completion_basis", "browser_started", "collected_files", "log_file", "processing_results", "decisions", "metrics", "learning")
         return {**{key: result[key] for key in keys if key in result},
                 "sources": [{"url": s["url"], "title": s.get("title", ""), "kind": s.get("kind", "page")} for s in result.get("sources", [])]}
+
+    @server.tool()
+    async def browser_task_resume(run_id: str, user_input: str | None = None) -> dict[str, Any]:
+        """Resume a persisted task using the same operator configuration and refreshed page state."""
+        if lock.locked():
+            return {"status": "busy"}
+        async with lock:
+            result = await run_browser_agent(None, base, resume_run_id=run_id, user_input=user_input)
+        return {k: result.get(k) for k in ("run_id", "status", "answer", "step", "sources", "collected_files", "decisions", "metrics")}
+
+    @server.tool()
+    async def browser_task_status(run_id: str | None = None) -> dict[str, Any]:
+        """Inspect task progress/pending input, or list recent tasks when run_id is omitted."""
+        store = TaskStore(base)
+        try:
+            if run_id is None:
+                return {"tasks": store.list()}
+            result = store.get(run_id)
+            return {k: result.get(k) for k in ("run_id", "status", "step", "pending_input", "answer", "plan", "metrics")}
+        finally:
+            store.close()
+
+    @server.tool()
+    async def browser_task_respond(run_id: str, request_id: str, answer: str) -> dict[str, Any]:
+        """Supply actual user input to a currently waiting task. Does not restart or duplicate it."""
+        store = TaskStore(base)
+        try:
+            return store.respond(run_id, request_id, answer)
+        finally:
+            store.close()
+
+    @server.tool()
+    async def browser_process(profile: str, records: list[dict[str, Any]]) -> dict[str, Any]:
+        """Process supplied data with an operator-defined subagent method/schema and export JSON/CSV/Markdown.
+
+        records are [{data: {...}, source_url: optional URL}]. Source content is supplied by
+        the caller; schema/quote checks do not independently verify its factual accuracy.
+        """
+        engine = ProcessingEngine(base)
+        engine.catalog.get(profile)
+        output = Path(base.get("processing", {}).get("artifact_dir", "downloads/processed")) / uuid4().hex
+        return await engine.run(profile, records, output)
 
     @server.tool()
     async def web_search(query: str, max_results: int = 5) -> dict[str, Any]:

@@ -31,6 +31,12 @@ SCHEMA = obj({
     "request_delay_ms": {"type": "integer", "minimum": 0, "maximum": 60000},
     "steps": {"type": "array", "minItems": 1, "maxItems": 50, "items": {"oneOf": [
         obj({**COMMON, "type": {"const": "navigate"}, "url": TEXT, "wait_for": TEXT}, ["id", "type", "url"]),
+        obj({**COMMON, "type": {"const": "search"}, "query": TEXT,
+             "max_results": {"type": "integer", "minimum": 1, "maximum": 10}}, ["id", "type", "query"]),
+        obj({**COMMON, "type": {"const": "fetch"}, "urls": {"type": "array", "minItems": 1, "maxItems": 100, "items": TEXT},
+             "input_step": IDENTIFIER, "url_field": IDENTIFIER, "browser_fallback": {"type": "boolean"},
+             "on_error": {"enum": ["stop", "continue"]}}, ["id", "type"]),
+        obj({**COMMON, "type": {"const": "process"}, "input_step": IDENTIFIER, "profile": IDENTIFIER}, ["id", "type", "input_step", "profile"]),
         obj({**COMMON, "type": {"const": "agent"}, "instructions": TEXT,
              "checks": {"type": "array", "items": CHECK, "minItems": 1, "maxItems": 20},
              "skills": {"type": "array", "items": TEXT, "maxItems": 20},
@@ -44,6 +50,7 @@ SCHEMA = obj({
              "max_pages": {"type": "integer", "minimum": 1, "maximum": 500},
              "max_records": {"type": "integer", "minimum": 1, "maximum": 10000},
              "on_limit": {"enum": ["incomplete", "complete"]},
+             "record_schema": {"type": "object"},
              "follow": obj({"url_field": IDENTIFIER, "fields": FIELDS, "wait_for": TEXT}, ["url_field", "fields"])
             }, ["id", "type", "item_selector", "fields", "key_fields"])
     ]}}
@@ -92,7 +99,14 @@ def validate_spec(spec: dict):
                 refs(child)
     refs(parameters)
     for step in spec["steps"]:
+        if step.get("input_step") and step["input_step"] not in ids[:ids.index(step["id"])]:
+            raise ValueError("input_step must refer to a preceding step")
+        if step["type"] == "fetch" and bool(step.get("urls")) == bool(step.get("input_step")):
+            raise ValueError("fetch requires exactly one of urls or input_step")
         if step["type"] == "crawl":
+            if step.get("record_schema"):
+                from ..processing.catalog import local_schema
+                local_schema(step["record_schema"])
             fields = {**step["fields"], **step.get("follow", {}).get("fields", {})}
             if set(step["fields"]) & set(step.get("follow", {}).get("fields", {})):
                 raise ValueError("Detail fields must not overwrite list fields")

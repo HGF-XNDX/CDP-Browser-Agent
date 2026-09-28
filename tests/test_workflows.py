@@ -82,6 +82,19 @@ async def test_page_failure_resumes_without_losing_committed_rows(setup_workflow
     assert server.requests["/catalog?page=1"] == requests
 
 
+async def test_detail_failure_preserves_previous_detail_checkpoint(setup_workflow):
+    _, _, config, server, url, _ = setup_workflow
+    server.fail_paths.add("/product/B28")
+    first = await run_workflow("demo-catalog", config, {"base_url": url})
+    assert first["status"] == "failed"
+    requests = server.requests["/product/A17"]
+    assert requests == 1
+    server.fail_paths.clear()
+    resumed = await run_workflow("demo-catalog", config, resume_run_id=first["run_id"])
+    assert resumed["status"] == "completed" and resumed["record_count"] == 3
+    assert server.requests["/product/A17"] == requests
+
+
 async def test_missing_fields_and_unknown_empty_page_fail(setup_workflow):
     spec, path, config, _, url, _ = setup_workflow
     spec["steps"][0]["fields"]["title"]["selector"] = ".missing-title"
@@ -172,6 +185,7 @@ async def test_live_cooperative_pause_at_page_boundary(setup_workflow, monkeypat
 
 async def test_uncertain_agent_step_is_not_automatically_replayed(setup_workflow):
     spec, path, config, _, url, planner = setup_workflow
+    config["intervention"]["mode"] = "return"
     spec["steps"] = [{"id": "submit", "type": "agent", "instructions": "Submit a form",
                       "checks": [{"kind": "visible", "selector": "#receipt"}]}]
     path.write_text(json.dumps(spec), encoding="utf-8")

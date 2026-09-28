@@ -4,6 +4,7 @@ import json
 import math
 import re
 from collections import Counter
+from copy import deepcopy
 from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
@@ -82,7 +83,8 @@ def redact_action_payload(action: dict | None) -> dict:
 def estimate_tokens(value: object, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN) -> int:
     text = value if isinstance(value, str) else json.dumps(value or {}, ensure_ascii=False, default=str)
     chars_per_token = max(float(chars_per_token or DEFAULT_CHARS_PER_TOKEN), 1.0)
-    return max(1, math.ceil(len(text) / chars_per_token))
+    cjk = len(re.findall(r"[\u4e00-\u9fff]", text))
+    return max(1, math.ceil(cjk + (len(text) - cjk) / chars_per_token))
 
 
 def parse_json_object(text: str) -> dict:
@@ -584,6 +586,16 @@ class BrowserAgentMemory:
     summary_chunks: list[dict] = field(default_factory=list)
     task_state: dict = field(default_factory=dict)
     _next_chunk_start: int = 0
+
+    def snapshot(self):
+        return deepcopy({key: getattr(self, key) for key in
+            ("raw_archive", "action_summaries", "summary_chunks", "task_state", "_next_chunk_start")})
+
+    def restore(self, snapshot):
+        for key in ("raw_archive", "action_summaries", "summary_chunks", "task_state", "_next_chunk_start"):
+            if key in snapshot:
+                setattr(self, key, deepcopy(snapshot[key]))
+        self._trim_archive()
 
     def __post_init__(self) -> None:
         self.context_window_tokens = int(

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "name": "collect-and-process",
+  "version": "1.0.0",
+  "description": "快速读取 example.com，再交给独立处理子智能体输出 JSON、CSV 和 Markdown。",
+  "allowed_origins": ["https://example.com"],
+  "min_records": 1,
+  "steps": [
+    {"id": "collect", "type": "fetch", "urls": ["https://example.com"], "browser_fallback": true},
+    {"id": "deliver", "type": "process", "input_step": "collect", "profile": "page-facts"}
+  ]
+}

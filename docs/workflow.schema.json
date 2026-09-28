@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "schema_version": {
@@ -78,6 +77,120 @@
               "id",
               "type",
               "url"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 12000
+              },
+              "type": {
+                "const": "search"
+              },
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 12000
+              },
+              "max_results": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "query"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 12000
+              },
+              "type": {
+                "const": "fetch"
+              },
+              "urls": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 100,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 12000
+                }
+              },
+              "input_step": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "url_field": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "browser_fallback": {
+                "type": "boolean"
+              },
+              "on_error": {
+                "enum": [
+                  "stop",
+                  "continue"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "type"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 12000
+              },
+              "type": {
+                "const": "process"
+              },
+              "input_step": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "profile": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "input_step",
+              "profile"
             ],
             "additionalProperties": false
           },
@@ -309,6 +422,9 @@
                   "incomplete",
                   "complete"
                 ]
+              },
+              "record_schema": {
+                "type": "object"
               },
               "follow": {
                 "type": "object",

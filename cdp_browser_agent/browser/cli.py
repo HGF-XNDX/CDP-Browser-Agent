@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 import shutil
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -60,6 +61,16 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--workflow-params", help="JSON object of workflow parameters.")
     parser.add_argument("--list-workflows", action="store_true")
     parser.add_argument("--resume-run", help="Resume a workflow run ID with the same frozen definition and parameters.")
+    parser.add_argument("--resume-task", help="Resume a saved ordinary agent task ID.")
+    parser.add_argument("--user-input", help="Actual user reply for a resumed task or --task-respond.")
+    parser.add_argument("--task-status", nargs="?", const="all", help="Inspect a task or list recent tasks.")
+    parser.add_argument("--task-respond", help="Reply to a live task ID waiting for input.")
+    parser.add_argument("--request-id", help="Pending input request ID from task status.")
+    parser.add_argument("--intervention", choices=["auto", "wait", "return"], help="Human input policy for this task.")
+    parser.add_argument("--wait-seconds", type=float, help="Wait time before autonomous decision.")
+    parser.add_argument("--processing-path", action="append", default=[], help="Registered processing profile JSON or directory.")
+    parser.add_argument("--process-profile", help="Run a data-processing profile directly.")
+    parser.add_argument("--processing-input", help="JSON array of {data, source_url} records to process.")
     parser.add_argument("--page-budget", type=int, help="Pause after this many collected listing pages in this invocation.")
     parser.add_argument("--retry-uncertain-step", action="store_true", help="Explicitly retry an interrupted agent step after checking its effects.")
     parser.add_argument("--workflow-status", metavar="RUN_ID")
@@ -77,6 +88,21 @@ async def _main() -> None:
         return
     task = args.task_option or args.task
     config = _load_config(args.config)
+    config.setdefault("processing", {}).setdefault("paths", []).extend(str(Path(p).resolve()) for p in args.processing_path)
+    if args.intervention:
+        config.setdefault("intervention", {})["mode"] = args.intervention
+    if args.wait_seconds is not None:
+        config.setdefault("intervention", {})["wait_seconds"] = args.wait_seconds
+    if args.task_status or args.task_respond:
+        from ..harness.task_store import TaskStore
+        store = TaskStore(config)
+        try:
+            result = store.respond(args.task_respond, args.request_id, args.user_input) if args.task_respond else (
+                store.list() if args.task_status == "all" else store.get(args.task_status))
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        finally:
+            store.close()
+        return
     if args.web_search is not None or args.web_fetch is not None:
         if task or args.workflow:
             raise SystemExit("Direct web tools cannot be combined with a task or workflow")
@@ -106,7 +132,7 @@ async def _main() -> None:
         skills = SkillCatalog(harness["skill_paths"], int(harness.get("max_skill_chars", 20000)), int(harness.get("active_skill_budget_chars", 30000)))
         print(json.dumps(skills.catalog(limit=50), ensure_ascii=False, indent=2))
         return
-    if not task and not args.workflow:
+    if not task and not args.workflow and not args.resume_task and not args.process_profile:
         raise SystemExit("error: provide a task as positional text or --task")
     model = config.setdefault("model", {})
     browser = config.setdefault("browser", {})
@@ -152,16 +178,28 @@ async def _main() -> None:
         agent["analyze_downloads_after_run"] = True
         agent["skip_download_model_summary"] = False
 
+    if args.process_profile:
+        from ..processing.engine import ProcessingEngine
+        from uuid import uuid4
+        if not args.processing_input:
+            raise SystemExit("--processing-input is required")
+        records = json.loads(Path(args.processing_input).read_text(encoding="utf-8-sig"))
+        result = await ProcessingEngine(config).run(args.process_profile, records,
+            Path(config["processing"]["artifact_dir"]) / uuid4().hex)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
     if args.workflow:
         params = json.loads(args.workflow_params) if args.workflow_params is not None else None
         result = await run_workflow(args.workflow, config, params, resume_run_id=args.resume_run,
                                     page_budget=args.page_budget, retry_uncertain_step=args.retry_uncertain_step)
     else:
-        result = await run_browser_agent(task, config)
+        result = await run_browser_agent(task, config, resume_run_id=args.resume_task, user_input=args.user_input)
     print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
 
 
 def main() -> None:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     logging.basicConfig(level=logging.INFO)
     asyncio.run(_main())
 

@@ -1,4 +1,6 @@
 {
+  "intervention": {"mode": "auto", "wait_seconds": 120, "max_auto_decisions": 3},
+  "processing": {"paths": ["processing"], "artifact_dir": "../downloads/processed"},
   "model": {
     "provider": "llama.cpp",
     "baseUrl": "http://127.0.0.1:30000/v1",

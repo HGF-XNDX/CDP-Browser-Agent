@@ -7,6 +7,16 @@ Completions endpoint. Launch Chromium or attach to Chrome/Edge over CDP. Load
 Agent Skills, call external MCP tools, expose the agent as an MCP server, or
 export its bundled Skill for another agent host.
 
+Version 0.6 adds independent data-processing workers with configurable methods, Skills,
+output schemas and JSON/CSV/Markdown exports; persistent task resume; bounded human
+waiting with autonomous continuation; evidence-linked reflection and verified procedural
+memory. See the [usage guide](docs/PROCESSING_AUTONOMY.md),
+[harness/context review](docs/HARNESS_EVOLUTION.md), and [acceptance evidence](docs/HARNESS_VALIDATION.md).
+
+```powershell
+python -m cdp_browser_agent.browser --config examples/harness-30000.json --workflow collect-and-process
+```
+
 Version 0.5 adds free web search, fast public-page fetching, automatic proxy discovery
 for both tools, and lazy browser startup. Use the browser when static reading needs
 interaction. See the [web tools guide](docs/WEB_TOOLS.md).
@@ -65,6 +75,8 @@ External servers support `stdio` and `streamable-http`; each requires an exact
 `mcp.<server>.<tool>` and discovered with `tool_list` / `tool_describe`.
 Arguments are validated against JSON Schema; calls are bounded and never retried
 automatically. Large results are explicitly truncated.
+Optional MCP servers fail independently; set `required: true` to make a connection
+failure abort the task. Source identity and artifact references survive result compaction.
 
 ```json
 {
@@ -99,6 +111,8 @@ cdp-browser-agent-mcp --config examples/harness.json --transport streamable-http
 
 Tools include `browser_capabilities()`, `browser_task(task, max_steps?)`, the four workflow
 tools, and `web_search(query, max_results?)` / `web_fetch(url, offset?, max_chars?)`.
+Version 0.6 also exposes `browser_process`, `browser_task_resume`, `browser_task_status`,
+and `browser_task_respond` (12 tools total).
 Direct web calls require neither a model call nor a running browser.
 The operator owns configuration; callers cannot change file paths, model
 endpoints, subprocess commands or credentials. `max_steps` can only lower the
@@ -131,16 +145,20 @@ this package's MCP or CLI and still requires an independently configured model.
 Runs return `completed`, `incomplete`, `blocked`, `needs_input`, `max_steps`, `stalled`, `failed`, or
 `timeout`. Completion is explicitly `model_reported`, not independent proof of
 success. Review the observed sources, artifacts and UUID JSONL log. Saving one
-file does not terminate a multi-step task. User intervention returns immediately.
+file does not terminate a multi-step task. `intervention.mode` selects `auto` (default),
+bounded `wait` with autonomous continuation, or immediate `return` with a checkpoint.
 Timeouts can leave side effects; verify them before repeating an action.
 
 Launched Chromium is closed at exit; attached CDP browsers remain open. There is
-no durable session resume, arbitrary script sandbox, or multi-tenant browser
-isolation. Native select/checkbox controls and basic iframe observations/actions are
+durable task resume and browser storage snapshots, but no live DOM/JS heap restoration,
+arbitrary script sandbox, or multi-tenant browser isolation. Native select/checkbox controls and basic iframe observations/actions are
 supported. Complex nested/cross-origin frames, Canvas and uploads remain unverified.
 In 0.3, custom planners must include `outcome=completed|incomplete|blocked` in `done`.
 Cross-run site memory, second-pass strategy evaluation and model summaries are
 opt-in. Local logs can contain page and task data.
+Separate procedural experience is only recalled after two independent host-verified
+runs; ordinary model-reported success does not promote it. This is not model training
+or proof of improved task success rates.
 
 ```powershell
 python -m pytest -q

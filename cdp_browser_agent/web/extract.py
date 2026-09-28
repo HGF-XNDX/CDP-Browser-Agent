@@ -44,6 +44,7 @@ def extract_page(body, content_type, url):
     if challenge:
         raise WebError("challenge", "Page requires access verification; browser/human interaction may be necessary", needs_browser=True)
     login = bool(soup.select_one('input[type="password"]'))
+    has_scripts = soup.find("script") is not None
     for tag in soup.select('script, style, noscript, template, svg, nav, header, footer, aside, [hidden], [aria-hidden="true"]'):
         if not tag.decomposed:
             tag.decompose()
@@ -64,7 +65,7 @@ def extract_page(body, content_type, url):
             seen.add(target)
         if len(links) >= 12:
             break
-    dynamic = len(content) < 80 or (len(content) < 600 and any(x in head for x in (
+    dynamic = not content or (has_scripts and len(content) < 80) or (len(content) < 600 and any(x in head for x in (
         "enable javascript", "javascript is required", "请启用javascript", "正在加载")))
     return {"title": title[:500], "text": content, "links": links,
             "extraction": "main_content" if candidates else "body_text",

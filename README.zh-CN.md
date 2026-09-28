@@ -6,6 +6,16 @@
 使用 OpenAI-compatible Chat Completions 接口规划动作。支持内部加载 Agent Skills、
 调用外部 MCP 工具，也能作为 MCP 服务或一个可分发的 Skill 被其他智能体使用。
 
+0.6 增加独立的数据处理子智能体：通过方法、Skill 和输出 Schema 定义加工过程，
+生成 JSON/CSV/Markdown；普通任务可持久化恢复，支持授权自主决定、等待超时继续，
+并加入证据关联的反思、上下文恢复与经过验证的跨任务经验。
+详见 [处理与自主决策](docs/PROCESSING_AUTONOMY.md)、[底层与现代 Harness 对照](docs/HARNESS_EVOLUTION.md)、
+[本轮验收](docs/HARNESS_VALIDATION.md)。
+
+```powershell
+.\.venv\Scripts\python.exe -m cdp_browser_agent.browser --config examples/harness-30000.json --workflow collect-and-process
+```
+
 0.5 新增 `web_search` / `web_fetch`：默认免密搜索、正文读取、两个工具的自动代理检测，
 以及按需启动浏览器。公开信息先快速检索/读取，动态页面和交互任务再交给浏览器。
 配置及使用见 [快速联网工具](docs/WEB_TOOLS.md)。
@@ -66,6 +76,7 @@ CLI 的 stdout 只输出结果 JSON，诊断信息写入 stderr。
 [完整本地示例](examples/harness-with-mcp.json) 接入一个文本处理 MCP 服务。
 示例的 Python 路径适用于本仓库 Windows `.venv`，其他环境修改 `command`。
 模型可发现并调用 `mcp.text.normalize_text`。
+可选 MCP 服务离线只标记该服务不可用，其他工具可以继续工作；设置 `required: true` 才会阻断运行。
 
 ```json
 {
@@ -171,7 +182,8 @@ wheel 安装包包含该文件。导出到项目的 Skill 目录：
 |---|---|
 | completed | 规划器报告完成；`completion_basis=model_reported`，可用来源/文件/日志复核 |
 | incomplete / blocked | 规划器明确报告未完成或受到能力限制 |
-| needs_input | 需要用户介入，立即返回而非占住服务轮询 |
+| needs_input | return 策略需要用户介入，或工作流存在无法解决的访问/重放问题 |
+| waiting_input | wait 策略正在等待实际答复；超时后按自主策略继续 |
 | max_steps | 到达步骤上限，未验证任务完成 |
 | stalled | 相同页面/工具结果反复出现而无新进展 |
 | failed | 模型反复失败或浏览器运行失败 |
@@ -182,9 +194,13 @@ wheel 安装包包含该文件。导出到项目的 Skill 目录：
 下载文件、页面保存和日志使用本地磁盘，可能包含任务内容。相对配置路径以 JSON 配置文件所在目录解析。
 模型密钥可使用 `model.apiKeyEnv` 指定环境变量名。
 默认关闭二次策略评审、模型记忆摘要和跨任务站点记忆，按需开启可控成本的辅助功能。
+新的程序性经验库与旧站点记忆分开：候选策略至少经过两次独立宿主验收才参与召回，
+普通模型自行报告完成不会晋升经验。`intervention.mode` 默认 auto，也可配置 wait 或 return。
 
 运行结束会关闭本次启动的 Chromium；连接已有 CDP 时仅断开连接。
-没有跨进程断点恢复或多租户浏览器隔离，也没有自动执行任意 Skill 脚本的主机沙箱。
+普通任务已有跨进程状态恢复与浏览器存储快照，不恢复活页 DOM/JS 堆；仍没有多租户浏览器隔离，
+也没有自动执行任意 Skill 脚本的主机沙箱。新增 MCP 工具 `browser_process`、`browser_task_resume`、
+`browser_task_status`、`browser_task_respond`，当前共 12 个工具。
 支持原生下拉框、复选框及基本 iframe 的观察与操作；复杂嵌套/跨域 frame、Canvas、文件上传尚未完成专项验证。
 0.3 的内部 `done` 动作必须显式填写 `outcome=completed|incomplete|blocked`；旧自定义规划器需要更新。
 

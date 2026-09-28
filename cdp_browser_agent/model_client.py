@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+from contextvars import ContextVar
+import time
+import json
 
 import httpx
 
 
 DEFAULT_BASE_URL = "http://localhost:8080/v1"
 _model_cache: dict[str, str] = {}
+RUN_METRICS = ContextVar("run_metrics", default=None)
 
 # Network-level transient errors that justify automatic retry with backoff.
 # 5xx server errors, connection drops, and read timeouts all qualify.
@@ -82,6 +86,7 @@ async def resolve_model_name(base_url: str, model_override: str, options: dict) 
 
 
 async def chat_completion(messages: list[dict], options: dict | None = None) -> str:
+    started = time.monotonic()
     options = options or {}
     provider = options.get("provider") or "llama.cpp"
     enable_thinking = bool(options.get("enableThinking", False))
@@ -130,6 +135,17 @@ async def chat_completion(messages: list[dict], options: dict | None = None) -> 
                 raise last_exc
             raise RuntimeError("chat_completion: retry loop exhausted without response")
     data = response.json()
+    metrics = RUN_METRICS.get()
+    if metrics is not None:
+        usage = data.get("usage") or {}
+        metrics["model_calls"] = metrics.get("model_calls", 0) + 1
+        metrics["model_seconds"] = round(metrics.get("model_seconds", 0) + time.monotonic()-started, 3)
+        for target, source in (("input_tokens", "prompt_tokens"), ("output_tokens", "completion_tokens")):
+            metrics[target] = metrics.get(target, 0) + int(usage.get(source) or 0)
+        if not usage:
+            metrics["usage_missing_calls"] = metrics.get("usage_missing_calls", 0) + 1
+        if usage.get("prompt_tokens"):
+            metrics["observed_chars_per_token"] = max(1, min(4, len(json.dumps(messages, ensure_ascii=False)) / usage["prompt_tokens"]))
     content = extract_assistant_content(data)
     if not content:
         choice = (data.get("choices") or [{}])[0] or {}

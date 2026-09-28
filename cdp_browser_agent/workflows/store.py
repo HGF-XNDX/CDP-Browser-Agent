@@ -18,7 +18,7 @@ def now():
 
 
 def atomic_json(path: Path, data):
-    temp = path.with_name(path.name + "." + uuid4().hex + ".tmp")
+    temp = path.with_name("." + uuid4().hex + ".tmp")
     temp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     temp.replace(path)
 
@@ -146,18 +146,22 @@ class WorkflowStore:
     def records(self, run_id):
         return [json.loads(row[0]) for row in self.db.execute("SELECT payload FROM records WHERE run_id=? ORDER BY rowid", (run_id,))]
 
+    def collected(self, state):
+        return self.records(state["run_id"]) + [r for rows in state.get("datasets", {}).values() for r in rows if r.get("kind") not in {"search_result", "processed"}]
+
     def result(self, state):
-        records = self.records(state["run_id"])
+        records = self.collected(state)
         return {key: state[key] for key in ("run_id", "workflow", "version", "status", "step_index", "attempt", "completion_basis", "baseline_run_id")} | {
-            "record_count": len(records), "changes": {kind: sum(r["change"] == kind for r in records) for kind in ("new", "changed", "unchanged")},
+            "record_count": len(records), "changes": {kind: sum(r.get("change") == kind for r in records) for kind in ("new", "changed", "unchanged")},
             "step_results": state["step_results"], "error": state.get("error"),
+            "processing_results": state.get("processing_results", {}), "collection_failures": state.get("collection_failures", {}),
             "output_dir": str(self.root / state["run_id"]), "verification": state.get("verification")}
 
     def export(self, state):
         directory = self.root / state["run_id"]
         directory.mkdir(exist_ok=True)
-        records = self.records(state["run_id"])
-        for filename, selected in (("records.jsonl", records), ("changes.jsonl", [r for r in records if r["change"] != "unchanged"])):
+        records = self.collected(state)
+        for filename, selected in (("records.jsonl", records), ("changes.jsonl", [r for r in records if r.get("change") != "unchanged"])):
             temp = directory / (filename + "." + uuid4().hex + ".tmp")
             temp.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in selected), encoding="utf-8")
             temp.replace(directory / filename)

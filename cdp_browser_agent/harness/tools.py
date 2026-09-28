@@ -16,6 +16,8 @@ class Tool:
     description: str
     input_schema: dict
     handler: Callable[..., Awaitable[Any]]
+    output_schema: dict | None = None
+    read_only: bool = False
 
 
 class ToolRegistry:
@@ -44,6 +46,9 @@ class ToolRegistry:
                     check_refs(item)
         check_refs(tool.input_schema)
         validator_for(tool.input_schema).check_schema(tool.input_schema)
+        if tool.output_schema is not None:
+            check_refs(tool.output_schema)
+            validator_for(tool.output_schema).check_schema(tool.output_schema)
         self._tools[tool.name] = tool
 
     def catalog(self, query: str = "", offset: int = 0, limit: int = 30) -> dict:
@@ -59,7 +64,8 @@ class ToolRegistry:
     def describe(self, name: str) -> dict:
         tool = self._tools[name]
         return {"name": tool.name, "description": tool.description,
-                "input_schema": tool.input_schema}
+                "input_schema": tool.input_schema, "output_schema": tool.output_schema,
+                "read_only": tool.read_only}
 
     def validate(self, name: str, arguments: dict) -> None:
         if name not in self._tools:
@@ -73,12 +79,27 @@ class ToolRegistry:
         try:
             self.validate(name, arguments)
             value = await asyncio.wait_for(self._tools[name].handler(**arguments), self.timeout)
+            output = self._tools[name].output_schema
+            if output:
+                validator_for(output)(output).validate(value)
             result = value if isinstance(value, dict) and "ok" in value else {"ok": True, "data": value}
             encoded = json.dumps(result, ensure_ascii=False, default=str)
             if len(encoded) > self.max_result_chars:
-                return {"ok": bool(result.get("ok")), "truncated": True,
-                        "original_chars": len(encoded), "preview": encoded[:self.max_result_chars],
-                        "message": "Result exceeded context budget; narrow the query."}
+                # Keep machine-readable source identity; a JSON preview is not a tool result.
+                compact = {k: result[k] for k in ("ok", "status", "url", "needs_browser", "browser_url",
+                    "artifact_paths", "text_sha256", "response_sha256", "offset", "next_offset", "total_chars") if k in result}
+                compact.update(truncated=True, original_chars=len(encoded),
+                               message="Result exceeded context budget; use artifact files or request a smaller slice.")
+                spare = self.max_result_chars - len(json.dumps(compact, ensure_ascii=False)) - 40
+                if spare > 0:
+                    if isinstance(result.get("text"), str):
+                        compact["text"] = result["text"][:spare // 2]
+                        compact["next_offset"] = result.get("offset", 0) + len(compact["text"])
+                    else:
+                        compact["preview"] = encoded[:spare // 2]
+                elif "text" in result:
+                    compact["next_offset"] = result.get("offset", 0)
+                return compact  # Identity metadata is allowed to exceed a very small budget.
             return result
         except asyncio.TimeoutError:
             return {"ok": False, "errorType": "tool_timeout",
