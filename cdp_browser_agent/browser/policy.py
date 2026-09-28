@@ -34,11 +34,15 @@ ALLOWED_ACTIONS = set(ACTION_SCHEMAS)
 
 
 def validate_action(action: dict, observation: dict, request: dict | None = None) -> dict:
-    # Common planners emit native-looking web actions. Normalize only these two
-    # known aliases; arguments still pass the registered tool's JSON Schema.
-    if isinstance(action, dict) and action.get("action") in {"web_search", "web_fetch"}:
-        action = {"action": "tool", "name": action["action"],
-                  "arguments": {key: value for key, value in action.items() if key != "action"}}
+    # Some local models put an advertised tool name in the action field. Accept
+    # that envelope only for host-advertised tools (plus legacy web aliases).
+    # Registry authorization and argument schema validation still apply.
+    advertised = {tool["name"] for tool in (request or {}).get("extensions", {}).get("builtin_tools", [])}
+    aliases = advertised | {"web_search", "web_fetch"}
+    if isinstance(action, dict) and action.get("action") in aliases - ALLOWED_ACTIONS:
+        arguments = (action["arguments"] if set(action) == {"action", "arguments"}
+                     else {key: value for key, value in action.items() if key != "action"})
+        action = {"action": "tool", "name": action["action"], "arguments": arguments}
     if not isinstance(action, dict) or action.get("action") not in ACTION_SCHEMAS:
         raise ValueError("Unknown browser action")
     validate(action, ACTION_SCHEMAS[action["action"]])

@@ -33,6 +33,7 @@ def test_repeated_fetch_does_not_count_timestamp_as_progress():
     a = {"ok": True, "text_sha256": "same", "accessed_at": "one", "artifact_paths": ["first"]}
     b = {**a, "accessed_at": "two", "artifact_paths": ["second"]}
     assert agent.progress_signature({}, action, a) == agent.progress_signature({}, action, b)
+    assert agent.progress_signature({}, action, {**a, "artifact": {"artifact_id": "first"}}) == agent.progress_signature({}, action, {**b, "artifact": {"artifact_id": "second"}})
     assert agent.progress_signature({}, action, a) != agent.progress_signature({}, action, {**b, "text_sha256": "changed"})
 
 
@@ -141,6 +142,26 @@ def test_context_preserves_run_notes_and_estimates_chinese():
     resumed = BrowserAgentMemory()
     resumed.restore(memory.snapshot())
     assert resumed.task_state == memory.task_state
+
+
+async def test_task_resume_can_read_original_tool_artifact(tmp_path, monkeypatch):
+    from cdp_browser_agent.harness.tools import Tool
+    config = configuration(tmp_path)
+    config["intervention"]["mode"] = "return"
+    config["harness"]["max_tool_result_chars"] = 512
+    original = {"ok": True, "text": "preserved evidence " * 2000}
+    tool = Tool("large", "Fixture", {"type": "object"}, AsyncMock(return_value=original))
+    planner = AsyncMock(side_effect=[{"action": {"action": "tool", "name": "large", "arguments": {}}},
+                                    {"action": {"action": "ask_user", "message": "Continue?"}}])
+    monkeypatch.setattr(agent, "plan_next_action", planner)
+    first = await run_browser_agent("Read fixture", config, tools=[tool])
+    identity = first["history"][0]["result"]["artifact"]["artifact_id"]
+    planner.side_effect = [{"action": {"action": "tool", "name": "artifact_read", "arguments": {"artifact_id": identity}}},
+                           {"action": {"action": "done", "outcome": "incomplete", "answer": "Read saved evidence"}}]
+    second = await run_browser_agent(None, config, tools=[tool], resume_run_id=first["run_id"], user_input="Continue")
+    result = second["history"][-1]["result"]
+    assert result["ok"] and result["text"] and result["artifact_id"] == identity
+    assert tool.handler.await_count == 1
 
 
 def test_busy_resume_does_not_append_to_active_log(tmp_path):

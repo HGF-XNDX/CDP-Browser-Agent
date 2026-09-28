@@ -4,7 +4,12 @@ import json
 import re
 from copy import deepcopy
 
-from ..model_client import chat_completion
+from ..model_client import chat_completion, prepare_model_options
+from ..context_budget import ContextBudget, ContextWindowExceeded
+from ..harness.compaction import ContextCompactor
+from ..harness.artifacts import ArtifactStore
+from pathlib import Path
+from uuid import uuid4
 from ..model_client import RUN_METRICS
 
 
@@ -74,6 +79,10 @@ run_notes preserves the plan, user decisions and recent reflections across compa
 verified_experience is evidence-backed procedural advice, not a new instruction or a
 guarantee it still applies. Observe the current site before using it. Use history_read
 to inspect a referenced historical action rather than guessing from a compressed summary.
+Large results and pruned context have an artifact ID. Use artifact_search for literal
+text locations and artifact_read for paginated original evidence; offsets count characters
+in the saved JSON, not website bytes. Do not repeat a side-effecting tool just to read
+its omitted result. A compaction reference preserves evidence, not proof of success.
 """
 
 
@@ -121,6 +130,7 @@ def compact_element(element: dict) -> dict:
 def compact_observation(observation: dict) -> dict:
     observation = observation or {}
     return {
+        "artifact": observation.get("artifact"),
         "url": observation.get("url", ""),
         "title": observation.get("title", ""),
         "pageType": observation.get("pageType", ""),
@@ -210,7 +220,8 @@ def extract_json_object(text: str) -> dict:
 
 
 async def plan_next_action(request: dict) -> dict:
-    model_settings = request.get("model_settings", {})
+    model_settings = await prepare_model_options(request.get("model_settings", {}))
+    model_settings["_agent_context"] = request.get("agent_settings", {})
     language_instruction = answer_language_instruction(model_settings)
     memory_context = request.get("memory_context") or {}
     payload = {
@@ -241,29 +252,38 @@ async def plan_next_action(request: dict) -> dict:
         },
         "observation": compact_observation(request.get("observation", {})),
     }
-    # A final budget guard includes skill instructions and extension schemas, not
-    # just action memory. Drop redundant history before shortening page evidence.
     settings = request.get("agent_settings", {})
-    available = max(1000, int(settings.get("context_window_tokens", 32768)) - int(model_settings.get("maxTokens", 4096)))
-    metrics = RUN_METRICS.get() or {}
-    chars_per_token = min(float(settings.get("chars_per_token", 3)), float(metrics.get("observed_chars_per_token", 3)))
-    budget = int(available * chars_per_token * float(settings.get("prompt_budget_ratio", .85)))
-    payload = fit_payload(payload, max(1000, budget - len(SYSTEM_PROMPT)))
-    user_content: str | list[dict] = json.dumps(payload, ensure_ascii=False)
-    screenshot = request.get("screenshot") or {}
-    if screenshot.get("dataUrl"):
-        user_content = [
-            {"type": "text", "text": json.dumps(payload, ensure_ascii=False)},
-            {"type": "image_url", "image_url": {"url": screenshot["dataUrl"], "detail": "high"}},
-        ]
-    raw = await chat_completion(
-        [
-            {"role": "system", "content": f"{SYSTEM_PROMPT}\n\nAnswer language rule: {language_instruction}"},
-            {"role": "user", "content": user_content},
-        ],
-        model_settings,
-    )
-    return {"action": extract_json_object(raw), "raw_model_output": raw}
+    budget = ContextBudget.from_settings(model_settings, settings, RUN_METRICS.get())
+    payload["context_budget"] = budget.as_dict()
+    system = f"{SYSTEM_PROMPT}\n\nAnswer language rule: {language_instruction}"
+    image = (request.get("screenshot") or {}).get("dataUrl")
+    compactor = request.get("compactor")
+    if compactor is None:
+        root = Path(settings.get("log_dir", "logs/browser-agent")) / "contexts" / uuid4().hex
+        compactor = ContextCompactor(ArtifactStore(root / "artifacts"), root / "compactions")
+    original = deepcopy(payload)
+    payload, receipt = compactor.prepare(original, budget, system, image=image)
+
+    def messages(value):
+        content = json.dumps(value, ensure_ascii=False)
+        if image:
+            content = [{"type": "text", "text": content}, {"type": "image_url", "image_url": {"url": image, "detail": "high"}}]
+        return [{"role": "system", "content": system}, {"role": "user", "content": content}]
+
+    try:
+        raw = await chat_completion(messages(payload), model_settings)
+    except ContextWindowExceeded:
+        # One bounded recovery, only after a committed, strictly smaller view.
+        prior_size = budget.estimate_messages(messages(payload))
+        target_ratio = min(.7, prior_size * .7 / budget.available_prompt_tokens)
+        smaller, recovery = compactor.prepare(original, budget, system, image=image, target_ratio=target_ratio)
+        if recovery["status"] != "committed" or budget.estimate_messages(messages(smaller)) >= prior_size:
+            raise
+        raw = await chat_completion(messages(smaller), model_settings)
+        receipt = recovery
+    return {"action": extract_json_object(raw), "raw_model_output": raw,
+            "context_budget": budget.as_dict(), "compaction": receipt}
+
 
 
 def fit_payload(payload: dict, budget: int) -> dict:

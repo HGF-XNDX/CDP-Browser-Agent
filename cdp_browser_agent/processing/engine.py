@@ -14,8 +14,8 @@ from jsonschema import Draft202012Validator, FormatChecker
 from .catalog import ProcessingCatalog
 from ..common.json_utils import extract_json_object
 from ..harness.skills import SkillCatalog
-from ..model_client import chat_completion, resolve_model_name
-from ..browser.memory import estimate_tokens
+from ..model_client import chat_completion, prepare_model_options, RUN_METRICS
+from ..context_budget import ContextBudget, ContextBudgetExceeded, ContextWindowExceeded
 from ..workflows.spec import digest
 from ..workflows.store import atomic_json
 
@@ -71,16 +71,19 @@ class ProcessingEngine:
             import os
             model["apiKey"] = os.environ[model["apiKeyEnv"]]
         if profile.get("mode", "llm") == "llm":
-            model["model"] = await resolve_model_name(model.get("baseUrl", "http://localhost:8080/v1"), model.get("model", ""), model)
+            model = await prepare_model_options(model)
         public_profile = deepcopy(profile)
         public_profile.get("model", {}).pop("apiKey", None)
         frozen = {"profile": public_profile, "skills": instructions,
-                  "model": {k: v for k, v in model.items() if k != "apiKey"}}
+                  "model": {k: v for k, v in model.items() if k != "apiKey" and not k.startswith("_")}}
         method_hash = digest(frozen)
         manifest = folder / "method.json"
         if manifest.exists() and json.loads(manifest.read_text(encoding="utf-8"))["method_hash"] != method_hash:
             raise ValueError("Processing method/model/skills changed; use a new run to preserve prior output")
         atomic_json(manifest, {"method_hash": method_hash, **frozen})
+        model["_agent_context"] = self.config.get("agent", {})
+        budget = ContextBudget.from_settings(model, model["_agent_context"], RUN_METRICS.get())
+        atomic_json(folder / "context-budget.json", budget.as_dict())
         validator = Draft202012Validator(profile["output_schema"], format_checker=FormatChecker())
         outcomes, calls, reused = [], 0, 0
         for index, record in enumerate(records):
@@ -105,18 +108,21 @@ class ProcessingEngine:
             error, result = None, None
             attempt_dir = folder / "attempts" / item_id
             attempt_dir.mkdir(parents=True, exist_ok=True)
+            if profile.get("mode", "llm") == "llm":
+                model = await prepare_model_options(model)
+                if model["model"] != frozen["model"]["model"]:
+                    raise ValueError("Processing model changed during the run; start a new run to preserve the frozen method")
+                budget = ContextBudget.from_settings(model, model["_agent_context"], RUN_METRICS.get())
             prompt_text = SYSTEM + json.dumps(payload, ensure_ascii=False)
-            agent = self.config.get("agent", {})
-            window = int(model.get("contextWindowTokens") or agent.get("context_window_tokens", 32768))
-            token_budget = max(0, int((window - int(model.get("maxTokens", 4096))) * .85))
             if len(prompt_text) + 1600 > profile.get("max_input_chars", 60000):
                 error = "Input exceeds profile limit; split or select fields explicitly (no silent truncation)"
-            elif profile.get("mode", "llm") == "llm" and estimate_tokens(prompt_text) + 1600 > token_budget:
+            elif profile.get("mode", "llm") == "llm" and budget.estimate(prompt_text) + 1600 > budget.available_prompt_tokens:
                 error = "Processing prompt exceeds the configured model context budget; split the input or increase the supported context limit"
             else:
                 for attempt in range(profile.get("max_repairs", 1) + 1):
                     started = time.monotonic()
                     raw = None
+                    context_failure = False
                     try:
                         if profile.get("mode", "llm") == "mapping":
                             data = {}
@@ -127,10 +133,11 @@ class ProcessingEngine:
                                 data[field] = value
                             candidate = {"data": data, "evidence": []}
                         else:
+                            messages = [{"role": "system", "content": SYSTEM},
+                                {"role": "user", "content": json.dumps({**payload, "repair_error": error}, ensure_ascii=False)}]
+                            budget.check(messages)
                             calls += 1
-                            raw = await chat_completion([
-                                {"role": "system", "content": SYSTEM},
-                                {"role": "user", "content": json.dumps({**payload, "repair_error": error}, ensure_ascii=False)}], model)
+                            raw = await chat_completion(messages, model)
                             candidate = extract_json_object(raw)
                         validator.validate(candidate["data"])
                         evidence = candidate.get("evidence", [])
@@ -147,12 +154,15 @@ class ProcessingEngine:
                                   "validation_basis": "schema_and_source_quotes" if evidence else (
                                       "schema_and_mapping" if profile.get("mode") == "mapping" else "schema_only")}
                         error = None
+                    except (ContextBudgetExceeded, ContextWindowExceeded) as exc:
+                        context_failure = True
+                        error = f"{type(exc).__name__}: {exc}"
                     except Exception as exc:
                         error = f"{type(exc).__name__}: {str(exc)[:1500]}"
                     from uuid import uuid4
                     atomic_json(attempt_dir / f"{uuid4().hex[:16]}.json", {"attempt": attempt, "raw_response": raw,
                         "error": error, "elapsed_seconds": round(time.monotonic()-started, 3)})
-                    if result or profile.get("mode") == "mapping":
+                    if result or context_failure or profile.get("mode") == "mapping":
                         break
             result = result or {**identity, "status": "failed", "error": error}
             atomic_json(receipt, result)
@@ -187,7 +197,7 @@ class ProcessingEngine:
         atomic_json(folder / "failures.json", failed)
         summary = {"ok": not failed, "status": "completed" if not failed else "incomplete", "profile": name,
                    "input_count": len(records), "validated_count": len(good), "failed_count": len(failed),
-                   "model_calls": calls, "reused_count": reused, "artifact_paths": paths + [str(folder / "failures.json")],
+                   "model_calls": calls, "reused_count": reused, "context_budget": budget.as_dict(), "artifact_paths": paths + [str(folder / "failures.json")],
                    "method_hash": method_hash, "semantic_accuracy_verified": False}
         summary["records_path"] = str(folder / "validated-records.json")
         atomic_json(folder / "result.json", summary)

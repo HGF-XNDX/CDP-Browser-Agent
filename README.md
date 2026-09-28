@@ -7,6 +7,8 @@ Completions endpoint. Launch Chromium or attach to Chrome/Edge over CDP. Load
 Agent Skills, call external MCP tools, expose the agent as an MCP server, or
 export its bundled Skill for another agent host.
 
+Version 0.7 discovers active model context capacity, shares one token budget across planner/memory/workers, retains oversized tool results with read/search references, and commits recoverable prompt projections. Explicit smaller limits still apply. See [context and evidence management](docs/CONTEXT_HARNESS.md).
+
 Version 0.6 adds independent data-processing workers with configurable methods, Skills,
 output schemas and JSON/CSV/Markdown exports; persistent task resume; bounded human
 waiting with autonomous continuation; evidence-linked reflection and verified procedural

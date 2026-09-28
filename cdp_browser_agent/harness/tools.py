@@ -8,6 +8,9 @@ from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
 from jsonschema.validators import validator_for
+from pathlib import Path
+from uuid import uuid4
+from .artifacts import ArtifactStore
 
 
 @dataclass(frozen=True)
@@ -23,12 +26,13 @@ class Tool:
 class ToolRegistry:
     """Only host-registered tools can run. No model-directed imports or shell."""
 
-    def __init__(self, timeout: float = 60, max_result_chars: int = 12000):
+    def __init__(self, timeout: float = 60, max_result_chars: int = 12000, artifact_store: ArtifactStore | None = None):
         if not math.isfinite(timeout) or timeout <= 0 or max_result_chars < 512:
             raise ValueError("tool timeout must be positive and result budget >= 512")
         self.timeout = timeout
         self.max_result_chars = max_result_chars
         self._tools: dict[str, Tool] = {}
+        self.artifacts = artifact_store or ArtifactStore(Path("downloads/tool-results") / uuid4().hex)
 
     def register(self, tool: Tool) -> None:
         if not re.fullmatch(r"[a-zA-Z0-9_.-]{1,128}", tool.name):
@@ -85,11 +89,12 @@ class ToolRegistry:
             result = value if isinstance(value, dict) and "ok" in value else {"ok": True, "data": value}
             encoded = json.dumps(result, ensure_ascii=False, default=str)
             if len(encoded) > self.max_result_chars:
+                reference = self.artifacts.save(result)
                 # Keep machine-readable source identity; a JSON preview is not a tool result.
                 compact = {k: result[k] for k in ("ok", "status", "url", "needs_browser", "browser_url",
-                    "artifact_paths", "text_sha256", "response_sha256", "offset", "next_offset", "total_chars") if k in result}
-                compact.update(truncated=True, original_chars=len(encoded),
-                               message="Result exceeded context budget; use artifact files or request a smaller slice.")
+                    "artifact_paths", "artifact_id", "artifact", "text_sha256", "response_sha256", "offset", "next_offset", "total_chars") if k in result}
+                compact.update(truncated=True, original_chars=len(encoded), artifact=reference,
+                               message="Full result saved. Use artifact_read or artifact_search for omitted evidence.")
                 spare = self.max_result_chars - len(json.dumps(compact, ensure_ascii=False)) - 40
                 if spare > 0:
                     if isinstance(result.get("text"), str):

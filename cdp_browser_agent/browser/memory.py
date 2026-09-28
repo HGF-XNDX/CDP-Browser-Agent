@@ -1,17 +1,16 @@
 ﻿from __future__ import annotations
 
 import json
-import math
 import re
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
-from ..model_client import chat_completion
+from ..model_client import chat_completion, RUN_METRICS
+from ..context_budget import ContextBudget, estimate_tokens
 
 
-DEFAULT_CONTEXT_WINDOW_TOKENS = 8192
 DEFAULT_CHARS_PER_TOKEN = 3.0
 RESOURCE_FILE_SUFFIXES = (
     ".csv",
@@ -78,13 +77,6 @@ def redact_action_payload(action: dict | None) -> dict:
             action[key] = "[REDACTED]"
             action["redacted"] = True
     return action
-
-
-def estimate_tokens(value: object, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN) -> int:
-    text = value if isinstance(value, str) else json.dumps(value or {}, ensure_ascii=False, default=str)
-    chars_per_token = max(float(chars_per_token or DEFAULT_CHARS_PER_TOKEN), 1.0)
-    cjk = len(re.findall(r"[\u4e00-\u9fff]", text))
-    return max(1, math.ceil(cjk + (len(text) - cjk) / chars_per_token))
 
 
 def parse_json_object(text: str) -> dict:
@@ -598,16 +590,7 @@ class BrowserAgentMemory:
         self._trim_archive()
 
     def __post_init__(self) -> None:
-        self.context_window_tokens = int(
-            self.agent_settings.get("context_window_tokens")
-            or self.model_settings.get("contextWindowTokens")
-            or self.model_settings.get("context_window_tokens")
-            or self.model_settings.get("maxContextTokens")
-            or DEFAULT_CONTEXT_WINDOW_TOKENS
-        )
-        self.reserved_output_tokens = int(self.agent_settings.get("reserved_output_tokens", 2048))
-        self.prompt_budget_ratio = float(self.agent_settings.get("prompt_budget_ratio", 0.85))
-        self.chars_per_token = float(self.agent_settings.get("chars_per_token", DEFAULT_CHARS_PER_TOKEN))
+        self.refresh_budget()
         self.archive_max_items = int(self.agent_settings.get("memory_archive_max_items", 1000))
         self.recent_min = int(self.agent_settings.get("memory_recent_min", 6))
         self.recent_max = int(self.agent_settings.get("memory_recent_max", 40))
@@ -619,6 +602,13 @@ class BrowserAgentMemory:
         self.action_quality_enabled = bool(self.agent_settings.get("memory_action_quality_enabled", True))
         self.run_brief_enabled = bool(self.agent_settings.get("memory_run_brief_enabled", True))
         self.structured_recall_enabled = bool(self.agent_settings.get("memory_structured_recall_enabled", True))
+
+    def refresh_budget(self):
+        self.budget = ContextBudget.from_settings(self.model_settings, self.agent_settings, RUN_METRICS.get())
+        self.context_window_tokens = self.budget.context_window_tokens
+        self.reserved_output_tokens = self.budget.reserved_output_tokens
+        self.prompt_budget_ratio = self.budget.prompt_budget_ratio
+        self.chars_per_token = self.budget.chars_per_token
 
     async def add_entry(self, entry: dict, task: str, model_settings: dict | None = None) -> dict | None:
         if not entry:
@@ -682,6 +672,7 @@ class BrowserAgentMemory:
             "target": target,
             "reason": action.get("reason", ""),
             "result": result_text,
+            "artifact": result.get("artifact") if isinstance(result, dict) else None,
             "success": success,
             "errorType": result.get("errorType", "") if isinstance(result, dict) else "",
             "errorSignature": error_signature(result),
@@ -734,6 +725,7 @@ class BrowserAgentMemory:
             "action": record.get("action", ""),
             "target": record.get("target", ""),
             "result": record.get("result", ""),
+            "artifact": record.get("artifact"),
             "success": record.get("success"),
             "errorType": record.get("errorType", ""),
             "errorSignature": record.get("errorSignature", ""),
@@ -878,7 +870,8 @@ class BrowserAgentMemory:
         return memory_context
 
     def _budget_for(self, base_payload: dict, observation: dict) -> dict:
-        available = max(int((self.context_window_tokens - self.reserved_output_tokens) * self.prompt_budget_ratio), 1024)
+        self.refresh_budget()
+        available = self.budget.available_prompt_tokens
         base_tokens = estimate_tokens(base_payload, self.chars_per_token)
         observation_tokens = estimate_tokens(
             {
@@ -901,7 +894,7 @@ class BrowserAgentMemory:
         summary_budget = max(128, memory_budget - recent_budget - recall_budget)
         pressure = "high" if memory_budget < 1200 else "medium" if memory_budget < 3000 else "low"
         return {
-            "context_window_tokens": self.context_window_tokens,
+            **self.budget.as_dict(),
             "reserved_output_tokens": self.reserved_output_tokens,
             "prompt_budget_ratio": self.prompt_budget_ratio,
             "available_prompt_tokens": available,
@@ -1150,6 +1143,7 @@ class BrowserAgentMemory:
 
     def _format_exact_record(self, record: dict) -> dict:
         return {
+            "artifact": record.get("artifact"),
             "action_id": record.get("actionId", ""),
             "step": record.get("step", ""),
             "url": record.get("url", ""),
@@ -1414,6 +1408,7 @@ class BrowserAgentMemory:
         action = entry.get("action") or {}
         result = entry.get("result") or {}
         action_reference = {
+            "artifact": record.get("artifact"),
             "action_id": record.get("actionId", ""),
             "step": record.get("step", ""),
             "action": action_name,
@@ -1421,7 +1416,8 @@ class BrowserAgentMemory:
         }
         if self.action_quality_enabled:
             quality_record = {
-                "action_id": record.get("actionId", ""),
+                "artifact": record.get("artifact"),
+            "action_id": record.get("actionId", ""),
                 "step": record.get("step", ""),
                 "action": action_name,
                 "quality": record.get("quality", "neutral"),
@@ -1460,7 +1456,8 @@ class BrowserAgentMemory:
                 "source_url": result.get("url") or action.get("url", ""),
                 "bytes": result.get("bytes", 0),
                 "kind": action_name,
-                "action_id": record.get("actionId", ""),
+                "artifact": record.get("artifact"),
+            "action_id": record.get("actionId", ""),
                 "verified_local_result": bool(result.get("path") or result.get("bytes")),
             }
             append_unique(state["local_artifacts"], artifact, "name")

@@ -18,6 +18,7 @@ from .workflows.store import WorkflowStore, WorkflowBusy
 from .web.tools import WebTools, capabilities as web_capabilities
 from .processing.engine import ProcessingEngine
 from .harness.task_store import TaskStore
+from .harness.artifacts import ArtifactStore
 from pathlib import Path
 from uuid import uuid4
 
@@ -70,7 +71,7 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
         async with lock:
             result = await run_browser_agent(task, config)
         # Detailed observations/history stay in the run log rather than bloating the host's context.
-        keys = ("run_id", "status", "stopped_reason", "answer", "step", "completion_basis", "browser_started", "collected_files", "log_file", "processing_results", "decisions", "metrics", "learning")
+        keys = ("run_id", "status", "stopped_reason", "answer", "step", "completion_basis", "browser_started", "collected_files", "log_file", "processing_results", "decisions", "metrics", "learning", "context_budget", "last_compaction", "context_view")
         return {**{key: result[key] for key in keys if key in result},
                 "sources": [{"url": s["url"], "title": s.get("title", ""), "kind": s.get("kind", "page")} for s in result.get("sources", [])]}
 
@@ -81,7 +82,7 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
             return {"status": "busy"}
         async with lock:
             result = await run_browser_agent(None, base, resume_run_id=run_id, user_input=user_input)
-        return {k: result.get(k) for k in ("run_id", "status", "answer", "step", "sources", "collected_files", "decisions", "metrics")}
+        return {k: result.get(k) for k in ("run_id", "status", "answer", "step", "sources", "collected_files", "decisions", "metrics", "context_budget", "last_compaction", "context_view")}
 
     @server.tool()
     async def browser_task_status(run_id: str | None = None) -> dict[str, Any]:
@@ -91,9 +92,27 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
             if run_id is None:
                 return {"tasks": store.list()}
             result = store.get(run_id)
-            return {k: result.get(k) for k in ("run_id", "status", "step", "pending_input", "answer", "plan", "metrics")}
+            return {k: result.get(k) for k in ("run_id", "status", "step", "pending_input", "answer", "plan", "metrics", "context_budget", "last_compaction", "context_view")}
         finally:
             store.close()
+
+    def run_artifacts(run_id):
+        store = TaskStore(base)
+        try:
+            store.get(run_id)  # Validate identity and existence before constructing paths.
+            return ArtifactStore(store.root / run_id / "artifacts")
+        finally:
+            store.close()
+
+    @server.tool()
+    async def browser_artifact_read(run_id: str, artifact_id: str, offset: int = 0, limit: int = 4000) -> dict[str, Any]:
+        """Read original evidence from a known task by hash ID; offsets count JSON characters. No arbitrary paths."""
+        return run_artifacts(run_id).read(artifact_id, offset, limit)
+
+    @server.tool()
+    async def browser_artifact_search(run_id: str, artifact_id: str, query: str, offset: int = 0, limit: int = 10) -> dict[str, Any]:
+        """Search literal text in a task's saved evidence; use returned offsets with browser_artifact_read."""
+        return run_artifacts(run_id).search(artifact_id, query, offset, limit)
 
     @server.tool()
     async def browser_task_respond(run_id: str, request_id: str, answer: str) -> dict[str, Any]:

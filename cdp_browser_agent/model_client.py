@@ -5,11 +5,12 @@ from contextvars import ContextVar
 import time
 import json
 
+from .context_budget import ContextBudget, ContextWindowExceeded, route_key
+
 import httpx
 
 
 DEFAULT_BASE_URL = "http://localhost:8080/v1"
-_model_cache: dict[str, str] = {}
 RUN_METRICS = ContextVar("run_metrics", default=None)
 
 # Network-level transient errors that justify automatic retry with backoff.
@@ -26,68 +27,91 @@ def extract_assistant_content(data: dict) -> str:
     return ""
 
 
+_capability_cache: dict[str, tuple[float, dict]] = {}
+
+
+def _positive_int(value):
+    return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else None
+
+
+async def prepare_model_options(options: dict) -> dict:
+    """Discover active capacity, not training capacity. Failures have a short TTL."""
+    result = dict(options)
+    requested = options.get("_requested_model", options.get("model") or "")
+    key = route_key({**options, "model": requested})
+    cached = _capability_cache.get(key)
+    if cached and cached[0] > time.monotonic():
+        capability = dict(cached[1])
+    else:
+        base = (options.get("baseUrl") or DEFAULT_BASE_URL).rstrip("/")
+        provider = options.get("provider") or "llama.cpp"
+        capability = {"model": requested or ("deepseek-chat" if provider == "deepseek" else options.get("fallbackModel", "local-model")),
+                      "context_window_tokens": None, "source": "fallback_32768"}
+        headers = {"Authorization": f"Bearer {options['apiKey']}"} if options.get("apiKey") else {}
+        seconds = max(.1, float(options.get("modelDiscoveryTimeout", 5)))
+        async with httpx.AsyncClient(timeout=seconds, trust_env=bool(options.get("trustEnv", False))) as client:
+            # Only llama.cpp has the /props contract. It is responsive even while
+            # the sole inference slot is occupied. Match explicitly named models.
+            if provider == "llama.cpp":
+                root = base[:-3] if base.endswith("/v1") else base
+                try:
+                    response = await client.get(root + "/props", headers=headers)
+                    response.raise_for_status()
+                    props = response.json()
+                    alias = props.get("model_alias") or props.get("model_path")
+                    if alias and (not requested or requested in {alias, props.get("model_path")}):
+                        capability.update(model=requested or alias,
+                            context_window_tokens=_positive_int((props.get("default_generation_settings") or {}).get("n_ctx")),
+                            source="llama.cpp/props", slots=_positive_int(props.get("total_slots")))
+                except (httpx.HTTPError, ValueError, TypeError, AttributeError):
+                    pass
+            if capability["context_window_tokens"] is None:
+                try:
+                    response = await client.get(base + "/models", headers=headers)
+                    response.raise_for_status()
+                    values = response.json().get("data") or []
+                    selected = next((v for v in values if isinstance(v, dict) and v.get("id") == requested), {}) if requested else (values[0] if values else {})
+                    if selected.get("id"):
+                        meta = selected.get("meta") or {}
+                        # n_ctx_train is deliberately ignored: it is not the
+                        # runtime allocation and can exceed the server slot.
+                        capacity = _positive_int(meta.get("n_ctx")) or _positive_int(selected.get("context_window"))
+                        capability.update(model=selected["id"], context_window_tokens=capacity,
+                                          source="models" if capacity else "fallback_32768")
+                except (httpx.HTTPError, ValueError, TypeError, AttributeError):
+                    pass
+        ttl = 60 if capability["context_window_tokens"] else 5
+        _capability_cache[key] = (time.monotonic() + ttl, dict(capability))
+    result["_requested_model"] = requested
+    result["model"] = capability["model"]
+    result["_model_capabilities"] = capability
+    # Resolved and auto-discovered routes refer to the same server/model.
+    _capability_cache[route_key(result)] = _capability_cache[key]
+    return result
+
+
 async def resolve_model_name(base_url: str, model_override: str, options: dict) -> str:
-    if model_override:
-        return model_override
-    if options.get("provider") == "deepseek":
-        return "deepseek-chat"
-    key = base_url.rstrip("/")
-    if key in _model_cache:
-        return _model_cache[key]
-    headers = {}
-    if options.get("apiKey"):
-        headers["Authorization"] = f"Bearer {options['apiKey']}"
-    discovery_timeout = max(1.0, float(options.get("modelDiscoveryTimeout", 5)))
-    timeout = httpx.Timeout(
-        discovery_timeout,
-        connect=min(3.0, discovery_timeout),
-        read=discovery_timeout,
-        write=discovery_timeout,
-        pool=discovery_timeout,
-    )
-    fallback = str(options.get("fallbackModel") or "local-model")
-    async with httpx.AsyncClient(
-        timeout=timeout,
-        trust_env=bool(options.get("trustEnv", False)),
-    ) as client:
-        # llama.cpp exposes its model alias at /props. This endpoint remains
-        # responsive while /v1/models can block behind a long generation on a
-        # single-slot server, so prefer it for local llama.cpp deployments.
-        if (options.get("provider") or "llama.cpp") == "llama.cpp":
-            root = key[:-3] if key.endswith("/v1") else key
-            try:
-                response = await client.get(f"{root}/props", headers=headers)
-                response.raise_for_status()
-                props = response.json()
-                alias = str(
-                    props.get("model_alias")
-                    or props.get("model_path")
-                    or ""
-                ).strip()
-                if alias:
-                    _model_cache[key] = alias
-                    return alias
-            except (httpx.HTTPError, ValueError, TypeError):
-                pass
-        try:
-            response = await client.get(f"{key}/models", headers=headers)
-            response.raise_for_status()
-            values = response.json().get("data") or []
-            discovered = str((values[0] if values else {}).get("id") or "").strip()
-            if discovered:
-                _model_cache[key] = discovered
-                return discovered
-        except (httpx.HTTPError, ValueError, TypeError):
-            pass
-    # Model discovery is auxiliary. A temporary /models failure must not abort
-    # the whole workflow; llama.cpp accepts an arbitrary non-empty model field.
-    _model_cache[key] = fallback
-    return _model_cache[key]
+    return (await prepare_model_options({**options, "baseUrl": base_url, "model": model_override}))["model"]
+
+
+def _raise_context_overflow(response):
+    if response.status_code not in {400, 413, 422}:
+        return
+    try:
+        data = response.json()
+        error = data.get("error") or data
+        code = str(error.get("code") or error.get("type") or "").lower()
+        message = str(error.get("message") or "").lower()
+    except (ValueError, AttributeError, TypeError):
+        return
+    codes = {"context_length_exceeded", "context_window_exceeded", "exceed_context_size_error", "n_ctx_exceeded"}
+    if code in codes or any(term in message for term in ("exceeds the available context size", "maximum context length", "exceed_context_size", "context window is full")):
+        raise ContextWindowExceeded("Provider rejected context length; compact the prompt before retrying")
 
 
 async def chat_completion(messages: list[dict], options: dict | None = None) -> str:
     started = time.monotonic()
-    options = options or {}
+    options = await prepare_model_options(options or {})
     provider = options.get("provider") or "llama.cpp"
     enable_thinking = bool(options.get("enableThinking", False))
     base_url = (options.get("baseUrl") or DEFAULT_BASE_URL).rstrip("/")
@@ -95,12 +119,13 @@ async def chat_completion(messages: list[dict], options: dict | None = None) -> 
     if options.get("apiKey"):
         headers["Authorization"] = f"Bearer {options['apiKey']}"
     payload = {
-        "model": await resolve_model_name(base_url, options.get("model") or "", options),
+        "model": options["model"],
         "messages": messages,
         "temperature": options.get("temperature", 0.1),
         "max_tokens": options.get("maxTokens", 2048),
         "stream": False,
     }
+    ContextBudget.from_settings(options, options.get("_agent_context"), RUN_METRICS.get()).check(messages)
     if not enable_thinking:
         payload["response_format"] = {"type": "json_object"}
     if provider == "llama.cpp":
@@ -115,9 +140,11 @@ async def chat_completion(messages: list[dict], options: dict | None = None) -> 
         for attempt in range(max_retries + 1):
             try:
                 response = await client.post(f"{base_url}/chat/completions", headers=headers, json=payload)
-                if response.status_code in {400, 422}:
+                _raise_context_overflow(response)
+                if response.status_code in {400, 422} and "response_format" in payload:
                     payload.pop("response_format", None)
                     response = await client.post(f"{base_url}/chat/completions", headers=headers, json=payload)
+                _raise_context_overflow(response)
                 if response.status_code in _RETRYABLE_STATUS and attempt < max_retries:
                     await asyncio.sleep(base_backoff * (2 ** attempt))
                     continue
@@ -144,8 +171,11 @@ async def chat_completion(messages: list[dict], options: dict | None = None) -> 
             metrics[target] = metrics.get(target, 0) + int(usage.get(source) or 0)
         if not usage:
             metrics["usage_missing_calls"] = metrics.get("usage_missing_calls", 0) + 1
-        if usage.get("prompt_tokens"):
-            metrics["observed_chars_per_token"] = max(1, min(4, len(json.dumps(messages, ensure_ascii=False)) / usage["prompt_tokens"]))
+        if usage.get("prompt_tokens") and all(isinstance(m.get("content"), str) for m in messages):
+            route = metrics.setdefault("model_routes", {}).setdefault(route_key(options), {})
+            ratio = max(1, min(4, len(json.dumps(messages, ensure_ascii=False)) / usage["prompt_tokens"]))
+            route["observed_chars_per_token"] = min(route.get("observed_chars_per_token", 4), ratio)
+            route["prompt_tokens"] = int(usage["prompt_tokens"])
     content = extract_assistant_content(data)
     if not content:
         choice = (data.get("choices") or [{}])[0] or {}

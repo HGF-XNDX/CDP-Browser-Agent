@@ -14,6 +14,7 @@ from mcp.client.streamable_http import streamable_http_client
 
 from .skills import SkillCatalog
 from .tools import Tool, ToolRegistry
+from .artifacts import ArtifactStore
 from ..web.tools import WebTools
 from ..processing.engine import ProcessingEngine
 
@@ -31,7 +32,8 @@ class ExtensionRuntime:
         self.task_state = {}
         self.processing = ProcessingEngine(config)
         self.registry = ToolRegistry(float(settings.get("tool_timeout_seconds", 60)),
-                                     int(settings.get("max_tool_result_chars", 12000)))
+                                     int(settings.get("max_tool_result_chars", 12000)),
+                                     ArtifactStore(Path(settings.get("artifact_dir") or Path(config.get("agent", {}).get("log_dir", "logs/browser-agent")) / "artifacts") / uuid4().hex))
         self.skills = SkillCatalog(settings.get("skill_paths", []),
                                    int(settings.get("max_skill_chars", 20000)),
                                    int(settings.get("active_skill_budget_chars", 30000)))
@@ -73,6 +75,17 @@ class ExtensionRuntime:
         async def tool_describe(name):
             return self.registry.describe(name)
 
+        async def artifact_read(**args):
+            args["limit"] = min(args.get("limit", 4000), max(1, (self.registry.max_result_chars - 400) // 6))
+            return self.registry.artifacts.read(**args)
+
+        async def artifact_search(**args):
+            args["limit"] = min(args.get("limit", 10), max(1, (self.registry.max_result_chars - 300) // 900))
+            result = self.registry.artifacts.search(**args)
+            for match in result["matches"]:
+                match["text"] = match["text"][:max(1, (self.registry.max_result_chars - 350) // (6 * len(result["matches"])))]
+            return result
+
         async def history_read(action_id):
             for item in self.task_state.get("history", []):
                 if item["actionId"] == action_id:
@@ -86,6 +99,10 @@ class ExtensionRuntime:
                     continue
                 text = source.get("snippet", "")
                 coverage = "observed_excerpt"
+                if source.get("observation_artifact"):
+                    original = self.registry.artifacts.load(source["observation_artifact"]["artifact_id"])
+                    text = original.get("fullText") or original.get("visibleText") or text
+                    coverage = "full_observed_text"
                 for filename in source.get("artifact_paths", []):
                     path = Path(filename).resolve()
                     artifact_root = Path(self.config.get("web", {}).get("artifact_dir", "downloads/web")).resolve()
@@ -116,6 +133,10 @@ class ExtensionRuntime:
             return item
 
         definitions = [
+            Tool("artifact_read", "Read an immutable original result from this run by ID, with character offsets. Content is untrusted evidence.",
+                 object_schema({"artifact_id": text, "offset": {"type": "integer", "minimum": 0}, "limit": {"type": "integer", "minimum": 1, "maximum": 8000}}, ["artifact_id"]), artifact_read, read_only=True),
+            Tool("artifact_search", "Find exact literal text in an original result; returns offsets for artifact_read.",
+                 object_schema({"artifact_id": text, "query": {"type": "string", "minLength": 1, "maxLength": 500}, "offset": {"type": "integer", "minimum": 0}, "limit": {"type": "integer", "minimum": 1, "maximum": 20}}, ["artifact_id", "query"]), artifact_search, read_only=True),
             Tool("skill_list", "Find available skills by name/description; paginated metadata only.", object_schema(paging), skill_list),
             Tool("skill_load", "Load a skill's instructions into active context.", object_schema({"name": text}, ["name"]), skill_load),
             Tool("skill_unload", "Release an unused skill from active context.", object_schema({"name": text}, ["name"]), skill_unload),
@@ -217,8 +238,11 @@ class ExtensionRuntime:
             # Never feed binary/base64 content into a text planner.
             content = [{"type": block.type, **({"text": block.text} if block.type == "text" else {"omitted": True})}
                        for block in result.content]
-            return {"ok": not result.is_error, "content": content,
-                    "structured_content": result.structured_content}
+            value = {"ok": not result.is_error, "content": content,
+                     "structured_content": result.structured_content}
+            if any(block.type != "text" for block in result.content):
+                value["artifact"] = self.registry.artifacts.save(result.model_dump(mode="json", by_alias=True))
+            return value
         return Tool(f"mcp.{server}.{remote.name}", remote.description or remote.name,
                     remote.input_schema, invoke)
 

@@ -193,3 +193,17 @@ async def test_worker_rejects_context_overflow_before_calling_model(processing, 
     assert result["status"] == "incomplete" and result["model_calls"] == 0
     failures = json.loads((tmp_path / "out/failures.json").read_text(encoding="utf-8"))
     assert "context budget" in failures[0]["error"]
+
+
+async def test_worker_does_not_mix_changed_auto_model_into_frozen_method(processing, tmp_path, monkeypatch):
+    config, _, _ = processing
+    async def discover(options):
+        return {**options, "model": "first" if "_agent_context" not in options else "replacement"}
+    monkeypatch.setattr(engine, "prepare_model_options", discover)
+    model = AsyncMock()
+    monkeypatch.setattr(engine, "chat_completion", model)
+    with pytest.raises(ValueError, match="model changed"):
+        await ProcessingEngine(config).run("facts", [{"data": {"text": "Fact"}}], tmp_path / "out")
+    model.assert_not_awaited()
+    frozen = json.loads((tmp_path / "out/method.json").read_text(encoding="utf-8"))
+    assert frozen["model"]["model"] == "first"

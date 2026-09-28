@@ -18,6 +18,10 @@ from ..harness.runtime import ExtensionRuntime
 from ..harness.session import RunSession
 from ..harness.intervention import handle_intervention
 from ..harness.experience import ExperienceStore
+from ..harness.artifacts import ArtifactStore
+from ..harness.compaction import ContextCompactor
+from ..model_client import prepare_model_options
+from ..context_budget import ContextBudget, ContextBudgetExceeded, ContextWindowExceeded
 
 
 log = logging.getLogger(__name__)
@@ -31,7 +35,8 @@ def progress_signature(observation: dict, last_action: dict, last_result: dict) 
                     "network_route", "elapsed_seconds", "cache_hit", "run_id", "output_dir", "log_file"}
         def stable(value):
             if isinstance(value, dict):
-                return {k: stable(v) for k, v in value.items() if k not in volatile}
+                return {k: stable(v) for k, v in value.items() if k not in volatile
+                        and not (k == "artifact" and value.get("text_sha256"))}
             if isinstance(value, list):
                 return [stable(v) for v in value]
             return value
@@ -44,7 +49,7 @@ def collect_source(sources: list[dict], observation: dict) -> list[dict]:
     text = observation.get("fullText") or observation.get("visibleText") or ""
     if not url.startswith(("http://", "https://")) or not text.strip():
         return sources
-    source = {"url": url, "title": observation.get("title", ""), "kind": "page", "snippet": text[:6000]}
+    source = {"url": url, "title": observation.get("title", ""), "kind": "page", "snippet": text[:6000], "observation_artifact": observation.get("artifact")}
     return [s for s in sources if s["url"] != url][-19:] + [source]
 
 
@@ -85,6 +90,8 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
         config["browser"]["start_url"] = state.get("last_page_url", "about:blank")
     owns_controller = controller is None
     site_memory = None
+    runtime.registry.artifacts = ArtifactStore(session.directory / "artifacts")
+    compactor = ContextCompactor(runtime.registry.artifacts, session.directory / "compactions", recorder)
     memory = BrowserAgentMemory(agent_settings=settings, model_settings=model_settings)
     memory.restore(state.get("memory_snapshot", {}))
     experience = ExperienceStore(config)
@@ -97,6 +104,12 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
     pending_screenshot = None
     state["browser_started"] = controller is not None
     try:
+        model_settings = await prepare_model_options(model_settings)
+        model_settings["_agent_context"] = settings
+        memory.model_settings = model_settings
+        memory.refresh_budget()
+        state["context_budget"] = memory.budget.as_dict()
+        recorder.write("context_budget", state["context_budget"])
         if controller is None and (not config.get("web", {}).get("enabled", True)
                                    or not config.get("web", {}).get("prefer_fast_path", True) or completion_check):
             controller = await BrowserController.launch(config)
@@ -105,12 +118,15 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
             site_memory = BrowserSiteMemory(Path(settings.get("memory_dir", "memory")) / "browser_site_memory.json")
         first_step = state["step"] + 1
         for step in range(first_step, first_step + max_steps):
+            model_settings = await prepare_model_options(model_settings)
+            memory.model_settings = model_settings
             state["step"] = step
             observation = await controller.observe() if controller else {
                 "url": "about:blank", "title": "Browser not started", "pageType": "not_started", "elements": [],
                 "fullText": "No browser page has been observed. Use web_search/web_fetch for public reading or observe_browser for interactive tasks. "
                             + "Configured initial URL: " + config.get("browser", {}).get("start_url", "about:blank")}
             if controller:
+                observation["artifact"] = runtime.registry.artifacts.save(observation)
                 state["last_page_url"] = observation.get("url", "about:blank")
             state["sources"] = collect_source(state["sources"], observation)
             state["observed_resource_candidates"] = collect_observed_candidate_resources(state["observed_resource_candidates"], observation)
@@ -135,14 +151,25 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                        "agent_settings": settings, "memory_context": memory_context,
                        "memory": memory.to_legacy_memory(), "sources": state["sources"],
                        "history": state["history"], "last_result": state["last_result"],
-                       "extensions": extensions, "strategy_feedback": feedback, "screenshot": pending_screenshot}
+                       "extensions": extensions, "strategy_feedback": feedback, "screenshot": pending_screenshot, "compactor": compactor}
             pending_screenshot = None
             reviews = []
             try:
-                action = validate_action((await plan_next_action(request))["action"], observation, request)
+                planned = await plan_next_action(request)
+                if planned.get("compaction"):
+                    state["context_view"] = planned["compaction"]
+                    if planned["compaction"].get("status") == "committed":
+                        state["last_compaction"] = planned["compaction"]
+                    state["context_budget"] = planned["context_budget"]
+                    session.checkpoint()
+                action = validate_action(planned["action"], observation, request)
                 if action_guard:
                     action_guard(action, observation)
                 model_errors = 0
+            except (ContextBudgetExceeded, ContextWindowExceeded) as exc:
+                state.update(status="incomplete", stopped_reason="context_budget", answer=str(exc))
+                recorder.write("context_budget_error", {"step": step, "message": str(exc)})
+                break
             except Exception as exc:
                 model_errors += 1
                 state["last_result"] = {"ok": False, "errorType": "planner_error", "message": str(exc)[:2000]}

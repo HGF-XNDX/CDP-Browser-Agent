@@ -31,6 +31,8 @@ def load_config(path: str | None = None) -> dict:
     processing = config.setdefault("processing", {})
     processing["paths"] = [absolute(p) for p in processing.get("paths", [])]
     processing["artifact_dir"] = absolute(processing.get("artifact_dir", "downloads/processed"))
+    if harness.get("artifact_dir"):
+        harness["artifact_dir"] = absolute(harness["artifact_dir"])
     if harness.get("state_dir"):
         harness["state_dir"] = absolute(harness["state_dir"])
     for server in harness.get("mcp_servers", {}).values():

@@ -3,7 +3,7 @@ name: cdp-browser-agent
 description: Search public webpages, delegate browser tasks and repeatable website collection, or process collected evidence into structured files through CDP Browser Agent CLI or MCP tools.
 ---
 
-Requires cdp-browser-agent 0.6 or later. Direct web_search/web_fetch need no model/browser.
+Requires cdp-browser-agent 0.7 or later. Direct web_search/web_fetch need no model/browser.
 Agent tasks require an operator-configured OpenAI-compatible model endpoint; browser
 fallback additionally needs Playwright Chromium or an accessible CDP browser.
 
@@ -48,6 +48,9 @@ the relevant file or page evidence before making a stronger success claim.
 autonomously immediately or after a timeout; do not invent a user response.
 `needs_input` preserves a checkpoint for `browser_task_resume`. `max_steps`, `stalled`,
 `failed`, `incomplete`, `blocked`, and `timeout` are incomplete outcomes. Do not blindly retry side-effecting tasks.
+For long tasks, inspect `context_budget` and `last_compaction`. Read
+[context and original evidence](references/context.md) when a result is truncated, a
+reference needs retrieval, or the task stops with `stopped_reason=context_budget`.
 Tasks persist state and memory across runs. Browser storage snapshots restore cookies,
 localStorage and IndexedDB, not the live DOM/JS heap. Reobserve uncertain actions before
 deciding what to do. A launched browser is closed at exit; an attached CDP browser stays open.
