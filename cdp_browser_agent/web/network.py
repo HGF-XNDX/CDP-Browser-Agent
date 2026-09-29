@@ -5,6 +5,7 @@ import ipaddress
 import os
 import socket
 import time
+import zlib
 from urllib.parse import urljoin, urlsplit
 
 import httpx
@@ -92,6 +93,24 @@ def remember_route(mode, purpose, route):
     _SUCCESSFUL_ROUTES[(purpose, tuple(network_routes(mode)))] = (route, time.monotonic() + 300)
 
 
+def decode_response(body, encoding, max_bytes):
+    """Bound both transfer and decoded sizes, including unsolicited compression."""
+    if encoding in {"", "identity"}:
+        return body
+    if encoding not in {"gzip", "deflate"}:
+        raise WebError("unsupported_encoding", "Unsupported content encoding; use browser", needs_browser=True)
+    try:
+        decoder = zlib.decompressobj(16 + zlib.MAX_WBITS if encoding == "gzip" else zlib.MAX_WBITS)
+        decoded = decoder.decompress(body, max_bytes + 1)
+    except zlib.error:
+        raise WebError("invalid_encoding", "Compressed response is corrupt", needs_browser=True) from None
+    if len(decoded) > max_bytes or decoder.unconsumed_tail:
+        raise WebError("too_large", "Decoded response exceeds the configured byte limit", needs_browser=True)
+    if not decoder.eof or decoder.unused_data:
+        raise WebError("invalid_encoding", "Compressed response is incomplete or contains trailing data", needs_browser=True)
+    return decoded
+
+
 async def download(url, *, timeout=12, max_bytes=2_000_000, public_only=True,
                    allowed_private_hosts=(), allowed_origins=None, proxy=None,
                    method="GET", json_body=None, headers=None, before_request=None):
@@ -139,15 +158,15 @@ async def download(url, *, timeout=12, max_bytes=2_000_000, public_only=True,
                 length = response.headers.get("content-length", "")
                 if length.isdigit() and int(length) > max_bytes:
                     raise WebError("too_large", "Response exceeds the configured byte limit", needs_browser=True)
-                # Reject unsolicited compression rather than inflating an unbounded
-                # compression bomb in the HTTP decoder. We request identity above.
-                if response.headers.get("content-encoding", "identity").lower() not in {"", "identity"}:
-                    raise WebError("unsupported_encoding", "Server ignored identity encoding; use browser", needs_browser=True)
+                encoding = response.headers.get("content-encoding", "identity").strip().lower()
                 body = bytearray()
                 async for chunk in response.aiter_raw():
                     body.extend(chunk)
                     if len(body) > max_bytes:
                         raise WebError("too_large", "Response exceeds the configured byte limit", needs_browser=True)
+                encoded = bytes(body)
+                decoded = decode_response(encoded, encoding, max_bytes)
                 return {"url": str(current), "status_code": response.status_code,
-                        "headers": dict(response.headers), "body": bytes(body), "redirects": redirects}
+                        "headers": dict(response.headers), "body": decoded, "redirects": redirects,
+                        "content_encoding": encoding, "encoded_body": encoded}
     raise WebError("redirect_limit", "Too many redirects", needs_browser=True)

@@ -13,6 +13,11 @@
 详见 [经验学习配置与实现边界](docs/PLAYBOOK_LEARNING.md)、[验收记录](docs/PLAYBOOK_VALIDATION.md)。
 MCP 共 30 个工具。
 
+三国专利法实测示例：通过可选 Skill/外部 MCP 下载官方完整来源，再按条文结构交给
+确定性加工 worker，导出每部法律一个 JSON 对象。已验证中国 82 条、美国 176 条目、
+日本 464 条目及附表；美国采用明确标注日期的官方年度版本。
+详见 [工具与流程诊断、版本范围及复现](docs/PATENT_LAWS_VALIDATION.md)。
+
 0.9 加入基础 HTTP 爬虫：批量 URL、站内链接、CSS 字段提取、普通链接翻页、去重、
 限速与退避、robots、暂停和断点恢复，导出 JSON/JSONL/CSV。重复页面采集不逐页调用模型。
 记录集可通过 crawl_id 完整交给处理子智能体；固定工作流新增 http_crawl 步骤，

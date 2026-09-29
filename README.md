@@ -15,6 +15,12 @@ The 30000 harness example enables candidate learning; the dedicated
 workflow. See [learning configuration and boundaries](docs/PLAYBOOK_LEARNING.md) and
 [validation evidence](docs/PLAYBOOK_VALIDATION.md). MCP now exposes 30 tools.
 
+An opt-in patent collection example uses a Skill/external MCP workflow to preserve
+official CN/US/JP sources, split complete articles and export source-linked JSON
+through deterministic processing workers. The US snapshot is explicitly dated;
+it is not presented as the newest consolidation. See the [tool-versus-workflow
+diagnosis and real-model acceptance](docs/PATENT_LAWS_VALIDATION.md).
+
 Version 0.9 adds bounded HTTP crawling: persistent URL queues, static pagination,
 CSS field extraction, robots rules, shared origin throttling, retry/backoff, immutable
 source records and JSON/JSONL/CSV exports. `web_crawl` can hand its complete dataset

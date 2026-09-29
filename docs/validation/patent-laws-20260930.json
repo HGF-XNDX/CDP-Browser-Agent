@@ -1,0 +1,183 @@
+{
+  "all_passed": true,
+  "checks": {
+    "agent_completed": true,
+    "all_files_source_hash_verified": true,
+    "agent_fetched_all_three": true,
+    "agent_exported_all_three": true,
+    "agent_requested_final_status": true,
+    "no_browser_for_static_sources": true,
+    "source_code_unchanged": true,
+    "CN_every_article_hash": true,
+    "CN_resume_exact_output": true,
+    "US_every_article_hash": true,
+    "US_resume_exact_output": true,
+    "JP_every_article_hash": true,
+    "JP_all_appendix_tables": true,
+    "JP_resume_exact_output": true
+  },
+  "steps": 11,
+  "model_calls": 11,
+  "scope": "Official source snapshots; deterministic structural completeness and copying; not a legal opinion or newest-law guarantee.",
+  "source_sha256": {
+    "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+    "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+    "cdp_browser_agent/browser/agent.py": "ab0eb11c3f57715659a7c2bd26314244f17bac55f425e1c0d441fb356a83f898",
+    "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+    "cdp_browser_agent/browser/controller.py": "71a14953153ae3692f73b8aba7b1caa2ff9d99f6c2854938ba08351ad3e7537d",
+    "cdp_browser_agent/browser/default_config.py": "d8a81633c71b21df1e72ec962ebabe7d53ce91e068cd6337786274ae2b1b6087",
+    "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+    "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+    "cdp_browser_agent/browser/memory.py": "e0cffd6584007600af8fdd2295abd0d1b2b04225737c940e9023b03e095144ca",
+    "cdp_browser_agent/browser/planner.py": "4d4c81e8f66096cd1a983cbf31ef0e42571ae307b97dceb68b0f62f6daba7bc9",
+    "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+    "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+    "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+    "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+    "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+    "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+    "cdp_browser_agent/configuration.py": "92c447492599d901f28c1ef0dafe899f7d3eecd6623c3a341ac4d0f16295e38a",
+    "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+    "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+    "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+    "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+    "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+    "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+    "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+    "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+    "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+    "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+    "cdp_browser_agent/harness/learning.py": "80a480b49970994550f2cbd1a995ab761a24dac10873842fee8993a875ca9e3c",
+    "cdp_browser_agent/harness/playbook.py": "463faca979c788a1db10bbe26ebe1a1dced62c0c036fa579c26d0b079db20593",
+    "cdp_browser_agent/harness/runtime.py": "b0ee5c615773220619791176130a5cd2f95cb28c24601696989c529cb14cf600",
+    "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+    "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+    "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+    "cdp_browser_agent/harness/tools.py": "2d6bd74eb6f3dbf4ef7768c8bd1f4381f7530f66e147efa3002328a96a8aa064",
+    "cdp_browser_agent/harness/verification.py": "78c8e016b88b6c90e844659461c07aca587baa9117457d4b754616cafc555eae",
+    "cdp_browser_agent/mcp_server.py": "e223762d7c17f9eabb1cb8024189ddf4b4f08c7e8f697484e866b40afda66b22",
+    "cdp_browser_agent/model_client.py": "b8236c0be523eb9902b8b532c8fc7311925a157aebe01152be0ee63d77d2aa0f",
+    "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+    "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+    "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+    "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+    "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+    "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+    "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+    "cdp_browser_agent/web/extract.py": "6e936c98f8df9d5590f73cb7d6a3e4711e2efe266421b288d6f9a0ee98566f85",
+    "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+    "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+    "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+    "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+    "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+    "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+    "examples/patent_laws/__init__.py": "32ecc5b16f3f0a5719a4a1ad4657e55aa02f832873abb51db6400cde7fddd492",
+    "examples/patent_laws/collector.py": "8d369e3131f40bada85abf5904f8c3aca35b0918fd71c643c169d269fa136e0f",
+    "scripts/live_patent_laws_eval.py": "6330b0204b9e1b25148d8e9eea8c26eb75764547cfa0306f3abf4956b43cb7fd",
+    "examples/patent_laws/article-copy.json": "3aa42ccdbb95ecf06400ac25324308365a54b391024a96f92a89ca0f1402a4af",
+    "examples/patent-laws-30000.json": "2575ed28d7b902cc51af90569f8fa534a585eac1284611660f0f7ac20d4d576b",
+    "examples/skills/patent-law-collection/SKILL.md": "6d7a37824cc3b03cf770e9fb6dec1963e84395a4f5972eb056c07311ace6008a"
+  },
+  "date": "2026-09-30",
+  "baseline_commit": "0e7d732",
+  "pytest_passed": 166,
+  "pytest_seconds": 81.41,
+  "countries": [
+    {
+      "country": "CN",
+      "title": "中华人民共和国专利法",
+      "source_url": "https://www.cnipa.gov.cn/art/2020/11/23/art_97_155167.html",
+      "version": {
+        "amended": "2020-10-17",
+        "edition": "2020年修正",
+        "source_published": "2020-11-23"
+      },
+      "articles": 82,
+      "status_counts": {
+        "present": 82
+      },
+      "scope_counts": {
+        "main": 82
+      },
+      "appendices": 0,
+      "output_sha256": "1d8ad275de1493b1ad4fa4e2470ace7fd98feeafbd4fc951a4ffad2d45737a4d"
+    },
+    {
+      "country": "US",
+      "title": "United States Code, Title 35 — Patents",
+      "source_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title35/html/USCODE-2024-title35.htm",
+      "version": {
+        "edition": "2024 Main Edition",
+        "laws_enacted_through": "2025-01-06",
+        "latest_available_law_verified": false,
+        "scope_note": "Official 2024 edition; not represented as the latest 2026 consolidation."
+      },
+      "articles": 176,
+      "status_counts": {
+        "present": 168,
+        "renumbered": 1,
+        "repealed": 7
+      },
+      "scope_counts": {
+        "main": 176
+      },
+      "appendices": 0,
+      "output_sha256": "67901736283146e6d614615a3e781abdb4c2cbae5338e43a94d1e2e60c22bd9c"
+    },
+    {
+      "country": "JP",
+      "title": "特許法",
+      "source_url": "https://laws.e-gov.go.jp/api/2/law_data/334AC0000000121?asof=2026-09-30&law_full_text_format=xml",
+      "version": {
+        "as_of": "2026-09-30",
+        "law_info": {
+          "law_type": "Act",
+          "law_id": "334AC0000000121",
+          "law_num": "昭和三十四年法律第百二十一号",
+          "law_num_era": "Showa",
+          "law_num_year": 34,
+          "law_num_type": "Act",
+          "law_num_num": "121",
+          "promulgation_date": "1959-04-13"
+        },
+        "revision_info": {
+          "law_revision_id": "334AC0000000121_20260624_508AC0000000046",
+          "law_type": "Act",
+          "law_title": "特許法",
+          "law_title_kana": "とっきょほう",
+          "abbrev": "",
+          "category": "産業通則",
+          "updated": "2026-06-24T10:34:36+09:00",
+          "amendment_promulgate_date": "2026-06-24",
+          "amendment_enforcement_date": "2026-06-24",
+          "amendment_enforcement_comment": null,
+          "amendment_scheduled_enforcement_date": null,
+          "amendment_law_id": "508AC0000000046",
+          "amendment_law_title": "民法等の一部を改正する法律の施行に伴う関係法律の整備等に関する法律",
+          "amendment_law_title_kana": null,
+          "amendment_law_num": "令和八年法律第四十六号",
+          "amendment_type": "3",
+          "repeal_status": "None",
+          "repeal_date": null,
+          "remain_in_force": false,
+          "mission": "New",
+          "current_revision_status": "CurrentEnforced"
+        },
+        "scope_note": "Main provisions and the supplementary provisions present in this official XML. Extract=true marks abridged amendment supplements."
+      },
+      "articles": 464,
+      "status_counts": {
+        "present": 453,
+        "deleted": 11
+      },
+      "scope_counts": {
+        "main": 302,
+        "supplementary": 162
+      },
+      "appendices": 1,
+      "output_sha256": "8fac9101ceb509092cef044c3fbc1fc98086da8fbc8b721d231aa09fe2451362"
+    }
+  ]
+}

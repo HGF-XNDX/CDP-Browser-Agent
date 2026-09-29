@@ -214,9 +214,18 @@ class WebTools:
                 metadata = {"url": response["url"], "requested_url": current, "accessed_at": accessed,
                             "content_type": content_type, "response_sha256": html_sha, "text_sha256": text_sha,
                             "extraction": page["extraction"], "redirects": response["redirects"], "http_status": code}
+                encoded_paths = []
+                if response.get("content_encoding", "identity") not in {"", "identity"}:
+                    encoded = response["encoded_body"]
+                    encoded_path = directory / "response.encoded.bin"
+                    encoded_path.write_bytes(encoded)
+                    encoded_paths.append(str(encoded_path))
+                    metadata.update(content_encoding=response["content_encoding"],
+                        encoded_sha256=hashlib.sha256(encoded).hexdigest(), encoded_bytes=len(encoded),
+                        decoded_bytes=len(response["body"]), response_representation="decoded_entity_body")
                 receipt = directory / "source.json"
                 receipt.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
-                data = {**metadata, **page, "artifact_paths": [str(text_path), str(raw_path), str(receipt)],
+                data = {**metadata, **page, "artifact_paths": [str(text_path), str(raw_path), str(receipt)] + encoded_paths,
                         "network_route": response["network_route"]}
                 if len(self.cache) >= 16:
                     self.cache.pop(next(iter(self.cache)))

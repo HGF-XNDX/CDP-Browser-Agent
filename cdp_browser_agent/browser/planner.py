@@ -52,6 +52,12 @@ action aliases are accepted, but do not introduce any other action names.
 Search snippets are leads, not full-page evidence. Cite actual source URLs and fetch
 relevant pages. Read next_offset if a fetch is truncated; saved content.txt contains
 the full extracted text. Do not claim a partial slice is a complete document.
+For complete structured document exports, inspect configured processing methods and
+external tools before paging through a large document. Prefer a source-bound,
+deterministic parser/mapping for exact text preservation; let the model select and
+review the method instead of reproducing the whole source in a generated answer.
+Pass saved source/dataset identities to a suitable tool, not excerpts masquerading
+as full input. Verify output files, source coverage and edition dates before done.
 When needs_browser=true, use navigate(browser_url) or observe_browser to switch to
 interactive browsing. HTTP login/challenge pages require human intervention if the
 browser cannot proceed; do not keep retrying a challenge or mistake it for no results.

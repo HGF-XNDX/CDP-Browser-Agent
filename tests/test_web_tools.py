@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import gzip
 import json
 from pathlib import Path
 import socket
@@ -52,9 +53,16 @@ def site(tmp_path):
                 status, text = 429, "Slow down"
             elif self.path == "/json":
                 content_type, text = "application/json", '{"value":42}'
+            elif self.path.startswith("/gzip"):
+                content_type, text = "text/plain", "Source text. " * (1000 if self.path == "/gzip-large" else 5)
+                headers["Content-Encoding"] = "gzip"
             else:
                 text = '<html><title>Fixture</title><body><nav>Unrelated menu</nav><article><h1>Verified article</h1><p>' + "Actual source text. " * 500 + '</p><script>secret-script</script><a href="/json">JSON source</a></article></body></html>'
             body = text.encode()
+            if self.path.startswith("/gzip"):
+                body = gzip.compress(body)
+                if self.path == "/gzip-broken":
+                    body = body[:-8]
             self.send_response(status)
             for name, value in headers.items():
                 self.send_header(name, value)
@@ -102,6 +110,28 @@ async def test_fetch_classifies_blocked_dynamic_and_limits(site):
     rate = await web.fetch(url + "/429")
     assert rate["status"] == "rate_limited" and not rate["needs_browser"]
     assert (await web.fetch(url + "/json"))["text"] == '{"value":42}'
+
+
+async def test_unsolicited_compression_is_bounded_and_preserves_wire_evidence(site):
+    url, settings = site
+    web = WebTools({**settings, "max_response_bytes": 1024})
+    result = await web.fetch(url + "/gzip")
+    assert result["ok"] and result["content_encoding"] == "gzip"
+    _, decoded, receipt, encoded = map(Path, result["artifact_paths"])
+    assert gzip.decompress(encoded.read_bytes()) == decoded.read_bytes()
+    metadata = json.loads(receipt.read_text(encoding="utf-8"))
+    assert hashlib.sha256(encoded.read_bytes()).hexdigest() == metadata["encoded_sha256"]
+    assert hashlib.sha256(decoded.read_bytes()).hexdigest() == metadata["response_sha256"]
+    assert (await web.fetch(url + "/gzip-large"))["status"] == "too_large"
+    assert (await web.fetch(url + "/gzip-broken"))["status"] == "invalid_encoding"
+
+
+def test_compression_formats_and_trailing_data_fail_closed():
+    import zlib
+    assert network.decode_response(zlib.compress(b"exact source"), "deflate", 1024) == b"exact source"
+    for body, encoding in [(b"bad gzip", "gzip"), (gzip.compress(b"first") + gzip.compress(b"second"), "gzip"), (b"br", "br")]:
+        with pytest.raises(WebError):
+            network.decode_response(body, encoding, 1024)
 
 
 async def test_redirect_and_private_targets_are_rejected(site):
