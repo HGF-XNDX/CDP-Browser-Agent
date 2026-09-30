@@ -16,6 +16,7 @@ from .workflows.runner import run_workflow
 from .workflows.spec import WorkflowCatalog
 from .workflows.store import WorkflowStore, WorkflowBusy
 from .web.tools import WebTools, capabilities as web_capabilities
+from .documents.engine import DocumentTools
 from .crawler.engine import Crawler
 from .processing.engine import ProcessingEngine
 from .processing.sessions import ProcessingSessions, WorkerBusy
@@ -37,6 +38,14 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
         "and browser_task for interactive tasks or web-tool fallback. Inspect status: completed means the "
         "planner reported completion; needs_input requires user action. Model/browser/skill/MCP "
         "connections are configured by the server operator, not tool arguments."))
+    if base.get("documents", {}).get("enabled", True):
+        documents = DocumentTools(base, web)
+        for definition in documents.definitions():
+            description = definition.description
+            if definition.name == "document_preview":
+                import json
+                description += " Argument schema: " + json.dumps(definition.input_schema, separators=(",", ":"))
+            server.add_tool(definition.handler, name=definition.name, description=description, structured_output=True)
 
     @server.tool()
     async def browser_capabilities() -> dict[str, Any]:
@@ -49,6 +58,7 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
                 "skills": skills.catalog(), "active_skills": settings.get("active_skills", []),
                 "configured_mcp_servers": list(settings.get("mcp_servers", {})),
                 "web": web_capabilities(base.get("web", {})),
+                "documents": {k: v for k, v in base.get("documents", {}).items() if k != "state_dir"},
                 "crawler": {k: v for k, v in Crawler(base).settings.items() if k != "state_dir"},
                 "processing_profiles": ProcessingEngine(base).catalog.catalog(),
                 "replay_suites": ReplayCatalog(base).catalog(),
@@ -186,12 +196,17 @@ def create_mcp_server(config: dict | None = None) -> MCPServer:
         return await engine.run(profile, records, output)
 
     @server.tool()
-    async def browser_worker_start(profile: str, records: list[dict[str, Any]] | None = None, crawl_id: str | None = None) -> dict[str, Any]:
-        """Process supplied records OR a completed crawl dataset by ID, retaining all records without copying them through caller context."""
-        if (records is None) == (crawl_id is None):
-            raise ValueError("Supply exactly one of records or crawl_id")
+    async def browser_worker_start(profile: str, records: list[dict[str, Any]] | None = None, crawl_id: str | None = None,
+                                   document_job_id: str | None = None) -> dict[str, Any]:
+        """Process supplied records OR a completed crawl OR verified document export by ID. Full records bypass caller context."""
+        if sum(x is not None for x in (records, crawl_id, document_job_id)) != 1:
+            raise ValueError("Supply exactly one of records, crawl_id or document_job_id")
         if crawl_id:
             records = Crawler(base).records(crawl_id)
+        if document_job_id:
+            if not base.get('documents', {}).get('enabled', True):
+                raise ValueError('Document tools are disabled')
+            records = DocumentTools(base).records(document_job_id)
         service = ProcessingSessions(base)
         created = await service.create(profile, records)
         try:

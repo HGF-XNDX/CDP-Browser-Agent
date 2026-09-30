@@ -6,6 +6,7 @@ from typing import Any
 
 
 DEFAULT_BROWSER_AGENT_CONFIG: dict[str, Any] = {
+    "documents": {"enabled": True, "state_dir": "downloads/documents", "max_nodes": 100000, "max_records": 10000, "review_candidates": True},
     "learning": {"enabled": False, "auto_replay": True, "reflect_success": False,
                  "task_type": "general", "replay_paths": [], "ttl_days": 30,
                  "max_entries": 4, "max_context_chars": 6000, "timeout_seconds": 180,

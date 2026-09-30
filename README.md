@@ -13,13 +13,14 @@ and rollback. Browser planners and processing workers can reuse verified lessons
 The 30000 harness example enables candidate learning; the dedicated
 `examples/playbook-30000.json` demonstrates automatic replay and adoption in a registered
 workflow. See [learning configuration and boundaries](docs/PLAYBOOK_LEARNING.md) and
-[validation evidence](docs/PLAYBOOK_VALIDATION.md). MCP now exposes 30 tools.
+[validation evidence](docs/PLAYBOOK_VALIDATION.md). MCP now exposes 36 tools.
 
-An opt-in patent collection example uses a Skill/external MCP workflow to preserve
-official CN/US/JP sources, split complete articles and export source-linked JSON
-through deterministic processing workers. The US snapshot is explicitly dated;
-it is not presented as the newest consolidation. See the [tool-versus-workflow
-diagnosis and real-model acceptance](docs/PATENT_LAWS_VALIDATION.md).
+Full-document transformation uses generic inspection, embedded-document decoding,
+planner-authored CSS/XPath/regex recipes, previews and replay-verified JSON exports.
+No site-specific parser or task-specific Skill is required. All source structure,
+including unselected tables and notes, is retained for review. See the
+[document tools and diagnostic workflow](docs/DOCUMENTS.md) and [live validation boundaries](docs/DOCUMENT_VALIDATION.md). The earlier patent
+adapter was removed because adapter success did not establish autonomous processing.
 
 Version 0.9 adds bounded HTTP crawling: persistent URL queues, static pagination,
 CSS field extraction, robots rules, shared origin throttling, retry/backoff, immutable
@@ -141,7 +142,8 @@ cdp-browser-agent-mcp --config examples/harness.json --transport streamable-http
 Tools include `browser_capabilities()`, `browser_task(task, max_steps?)`, the four workflow
 tools, and `web_search(query, max_results?)` / `web_fetch(url, offset?, max_chars?)`.
 Version 0.6 also exposes `browser_process`, `browser_task_resume`, `browser_task_status`,
-and `browser_task_respond` (12 tools total).
+and `browser_task_respond`; the current MCP server exposes 36 tools across browser,
+web, workflow, crawl, processing, document and learning capabilities.
 Direct web calls require neither a model call nor a running browser.
 The operator owns configuration; callers cannot change file paths, model
 endpoints, subprocess commands or credentials. `max_steps` can only lower the

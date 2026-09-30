@@ -31,6 +31,7 @@ dependencies = [
   "playwright>=1.51.0",
   "beautifulsoup4>=4.12,<5",
   "protego>=0.5,<1",
+  "regex>=2024.11.6,<2027",
 ]
 
 [project.optional-dependencies]

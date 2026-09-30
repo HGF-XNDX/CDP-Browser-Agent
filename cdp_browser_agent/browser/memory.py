@@ -43,6 +43,8 @@ SENSITIVE_FIELD_WORDS = {
     "api_key",
     "apikey",
     "secret",
+    "authorization",
+    "credential",
     "验证码",
     "密码",
     "令牌",
@@ -76,7 +78,65 @@ def redact_action_payload(action: dict | None) -> dict:
         if looks_sensitive_field(key) and isinstance(action.get(key), str):
             action[key] = "[REDACTED]"
             action["redacted"] = True
+    def redact_nested(value):
+        if isinstance(value, dict):
+            return {k: '[REDACTED]' if looks_sensitive_field(k) else redact_nested(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [redact_nested(v) for v in value]
+        return value
+    if isinstance(action.get('arguments'), dict):
+        action['arguments'] = redact_nested(action['arguments'])
     return action
+
+
+def bounded_result_observation(value: object, action_id: str) -> dict:
+    """Retain observed fields, not just a prefix filled by transport metadata."""
+    for text_limit, item_limit, key_limit, depth_limit in (
+        (240, 3, 24, 5), (160, 2, 20, 5), (80, 2, 12, 4), (40, 1, 8, 3)
+    ):
+        truncated, visited = False, 0
+
+        def project(item, depth=0):
+            nonlocal truncated, visited
+            visited += 1
+            if depth > depth_limit or visited > 256:
+                truncated = True
+                return '[view omitted; retrieve full result]'
+            if isinstance(item, str):
+                if len(item) > text_limit:
+                    truncated = True
+                    return item[:text_limit] + '…'
+                return item
+            if isinstance(item, dict):
+                selected = list(item.items())[:key_limit]
+                result = {}
+                for key, child in selected:
+                    if looks_sensitive_field(key):
+                        result[str(key)] = '[REDACTED]'
+                    else:
+                        result[str(key)] = project(child, depth + 1)
+                if len(item) > key_limit:
+                    truncated = True
+                    result['_view_omitted_fields'] = len(item) - key_limit
+                return result
+            if isinstance(item, (list, tuple)):
+                result = [project(child, depth + 1) for child in item[:item_limit]]
+                if len(item) > item_limit:
+                    truncated = True
+                    result.append({'_view_omitted_items': len(item) - item_limit})
+                return result
+            if item is None or isinstance(item, (int, float, bool)):
+                return item
+            return project(str(item), depth)
+
+        view = project(value)
+        if len(json.dumps(view, ensure_ascii=False)) <= 3800:
+            break
+    else:
+        view = {'message': 'Structured result exceeds the memory view budget.'}
+        truncated = True
+    return {'view': view, 'truncated': truncated,
+            'full_result': {'tool': 'history_read', 'arguments': {'action_id': action_id}}}
 
 
 def parse_json_object(text: str) -> dict:
@@ -399,9 +459,10 @@ def fallback_action_memory_fields(entry: dict) -> dict:
     if ok is False:
         progress_delta = "blocked"
     quality = "poor" if ok is False else "good" if action_name in {"download", "save_page"} and ok is True else "neutral"
-    retry_recommendation = "change_strategy" if ok is False else "inspect_more" if action_name in {"download", "save_page"} else "retry"
+    retry_recommendation = "change_strategy" if ok is False else "inspect_result" if action_name == "tool" else "inspect_more" if action_name in {"download", "save_page"} else "retry"
     parts = [
         f"Action {entry.get('actionId', '')}: {action.get('action', 'unknown')}",
+        f"tool={action.get('name')}" if action_name == 'tool' else '',
         f"target={action.get('target_id')}" if action.get("target_id") else "",
         f"url={action.get('url')}" if action.get("url") else "",
         f"reason={action.get('reason')}" if action.get("reason") else "",
@@ -583,11 +644,19 @@ class BrowserAgentMemory:
         return deepcopy({key: getattr(self, key) for key in
             ("raw_archive", "action_summaries", "summary_chunks", "task_state", "_next_chunk_start")})
 
-    def restore(self, snapshot):
+    def restore(self, snapshot, *, history=None):
         for key in ("raw_archive", "action_summaries", "summary_chunks", "task_state", "_next_chunk_start"):
             if key in snapshot:
                 setattr(self, key, deepcopy(snapshot[key]))
         self._trim_archive()
+        # Upgrade older checkpoints from their original evidence, never by guessing
+        # content that was absent from the old text-only projection.
+        originals = {entry.get('actionId'): entry for entry in history or []}
+        for record in self.raw_archive:
+            original = originals.get(record.get('actionId'))
+            if original and record.get('action') == 'tool' and not record.get('resultObservation'):
+                record['resultObservation'] = bounded_result_observation(original.get('result'), record['actionId'])
+                record['result'] = compact_text(record['resultObservation']['view'], 700)
 
     def __post_init__(self) -> None:
         self.refresh_budget()
@@ -639,7 +708,8 @@ class BrowserAgentMemory:
         title = entry.get("title", "")
         snippet = compact_text(entry.get("snippet", ""), 1600)
         action_text = json_preview(action, 1400)
-        result_text = compact_text(result.get("message") or result, 700)
+        result_observation = bounded_result_observation(result, entry.get('actionId', '')) if action.get('action') == 'tool' else None
+        result_text = compact_text(result_observation['view'] if result_observation else result.get("message") or result, 700)
         page_type = entry.get("pageType") or infer_page_type(url, title, snippet)
         success = result.get("ok") if isinstance(result, dict) else None
         summary = memory_fields.get("summary_text") or format_action_memory_summary(memory_fields)
@@ -656,7 +726,7 @@ class BrowserAgentMemory:
             ]
         )
         tags = list(dict.fromkeys([page_type, action.get("action", ""), *semantic_tags(searchable_text), *tokenize(host(url))[:4]]))
-        target = action.get("target_id") or action.get("url") or action.get("key") or action.get("message") or ""
+        target = action.get("target_id") or action.get("url") or action.get("key") or action.get("message") or action.get('name') or ""
         resource_reference = resource_reference_from_action(action)
         return {
             "actionId": entry.get("actionId", ""),
@@ -672,6 +742,7 @@ class BrowserAgentMemory:
             "target": target,
             "reason": action.get("reason", ""),
             "result": result_text,
+            "resultObservation": result_observation,
             "artifact": result.get("artifact") if isinstance(result, dict) else None,
             "success": success,
             "errorType": result.get("errorType", "") if isinstance(result, dict) else "",
@@ -1142,6 +1213,12 @@ class BrowserAgentMemory:
         return selected
 
     def _format_exact_record(self, record: dict) -> dict:
+        action = redact_action_payload(record.get('actionPayload') or {})
+        encoded = json.dumps(action, ensure_ascii=False, default=str)
+        action_view = action if len(encoded) <= 2400 else {
+            'action': action.get('action'), 'name': action.get('name'),
+            'arguments_preview': encoded[:1600], 'truncated': True,
+            'message': 'Use history_read with action_id for the full original call.'}
         return {
             "artifact": record.get("artifact"),
             "action_id": record.get("actionId", ""),
@@ -1151,11 +1228,13 @@ class BrowserAgentMemory:
             "page_type": record.get("pageType", ""),
             "task_phase": record.get("taskPhase", ""),
             "action": record.get("action", ""),
+            "action_payload": action_view,
             "target": record.get("target", ""),
             "success": record.get("success"),
             "error_type": record.get("errorType", ""),
             "error_signature": record.get("errorSignature", ""),
             "result": compact_text(record.get("result", ""), 500),
+            **({'result_observation': deepcopy(record['resultObservation'])} if record.get('resultObservation') else {}),
             "summary": compact_text(record.get("summary", ""), 900),
             "intent": compact_text(record.get("intent", ""), 320),
             "outcome": record.get("outcome", ""),

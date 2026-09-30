@@ -17,6 +17,7 @@ from .skills import SkillCatalog
 from .tools import Tool, ToolRegistry
 from .artifacts import ArtifactStore
 from ..web.tools import WebTools
+from ..documents.engine import DocumentTools
 from ..crawler.engine import Crawler
 from ..processing.engine import ProcessingEngine
 from ..processing.sessions import ProcessingSessions, WorkerBusy
@@ -48,6 +49,52 @@ class ExtensionRuntime:
         self.crawl_allowed_origins = None
         self._register_builtins()
         self.web_tool_names = []
+        self.document_tool_names = []
+        if config.get("documents", {}).get("enabled", True):
+            self.documents = DocumentTools(config, self.web)
+            for tool in self.documents.definitions():
+                async def document_call(_handler=tool.handler, _name=tool.name, **args):
+                    task = self.task_state.get('task')
+                    review_required = bool(task and self.config.get('documents', {}).get('review_candidates', True))
+                    if _name == 'document_preview':
+                        required_key = self.config.get('agent', {}).get('completion_documents', {}).get('collection_key')
+                        if required_key and args['spec'].get('collection_key', 'records') != required_key:
+                            raise ValueError(f'Task output contract requires collection_key={required_key}; correct the recipe')
+                    if _name == 'document_export' and review_required:
+                        from ..documents.review import review_policy_id
+                        reviewed = self.task_state.get('document_reviews', {}).get(args['job_id'], {})
+                        if not reviewed.get('accepted') or reviewed.get('policy_id') != review_policy_id(self.config):
+                            raise ValueError('Candidate has no accepted independent review for this task. Run document_preview and address its review issues before exporting.')
+                    result = await _handler(**args)
+                    if _name == 'document_preview' and review_required and result.get('validation', {}).get('ok'):
+                        from ..documents.review import review_candidate, repair_guidance
+                        review = await review_candidate(self.config, task, self.documents, result['job_id'])
+                        review = {**review, 'repair_options': repair_guidance(review.get('issues', []))}
+                        self.task_state.setdefault('document_reviews', {})[result['job_id']] = review
+                    if _name in {'document_preview', 'document_review'} and review_required and result.get('job_id'):
+                        review = self.task_state.get('document_reviews', {}).get(result['job_id'])
+                        if review:
+                            from ..documents.review import repair_guidance
+                            review = {**review, 'repair_options': repair_guidance(review.get('issues', []))}
+                            result['review'] = review
+                            if not review['accepted']:
+                                result['status'] = review.get('status', 'needs_revision')
+                                result['message'] = review.get('message') or 'This candidate remains rejected. Reading samples does not approve it. Revise document_preview using the cited evidence and generic repair_options before export.'
+                    self.task_state.setdefault("collected_files", []).extend(
+                        p for p in result.get("artifact_paths", []) if p not in self.task_state.get("collected_files", []))
+                    if result.get('ok') and result.get('source_id') and result.get('format') and result.get('artifact_paths'):
+                        self.task_state.setdefault('document_sources', {})[result['source_id']] = {
+                            k: result[k] for k in ('source_id', 'url', 'format', 'bytes', 'parent_source_id') if k in result}
+                    if result.get('job_id') and result.get('coverage'):
+                        candidates = self.task_state.setdefault('document_candidates', {})
+                        candidates[result['job_id']] = {**candidates.get(result['job_id'], {}), **{
+                            k: result[k] for k in ('job_id', 'source_id', 'status', 'record_count', 'validation', 'review') if k in result}}
+                    if result.get("status") == "exported" and result.get("output_path"):
+                        exports = self.task_state.setdefault("document_exports", {})
+                        exports[result["job_id"]] = result
+                    return result
+                self.registry.register(replace(tool, handler=document_call))
+                self.document_tool_names.append(tool.name)
         if config.get("web", {}).get("enabled", True):
             for tool in self.web.definitions():
                 self.registry.register(tool)
@@ -134,9 +181,11 @@ class ExtensionRuntime:
         async def experience_replay(experience_id, suite):
             return await replay_experience(self.config, experience_id, suite)
 
-        async def delegate_processing(profile, crawl_id=None):
+        async def delegate_processing(profile, crawl_id=None, document_job_id=None):
+            if crawl_id and document_job_id:
+                raise ValueError('Choose crawl_id or document_job_id, not both')
             records = []
-            for source in ([] if crawl_id else self.task_state.get("sources", [])):
+            for source in ([] if crawl_id or document_job_id else self.task_state.get("sources", [])):
                 if source.get("kind") == "search_result":
                     continue
                 text = source.get("snippet", "")
@@ -157,6 +206,10 @@ class ExtensionRuntime:
                                 "text": text, "coverage": coverage}})
             if crawl_id:
                 records = self.crawler().records(crawl_id)
+            if document_job_id:
+                if not self.config.get('documents', {}).get('enabled', True):
+                    raise ValueError('Document tools are disabled')
+                records = self.documents.records(document_job_id)
             child = await self.workers.create(profile, records, parent_id=self.task_state.get("run_id"))
             remember_worker(child)
             try:
@@ -214,8 +267,8 @@ class ExtensionRuntime:
             self.registry.register(tool)
         self.processing_tool_names = []
         if self.processing.catalog.profiles:
-            tool = Tool("delegate_processing", "Send collected page evidence, or a completed crawl's full dataset by crawl_id, to a processing worker using an operator profile. No need to copy all records into context.",
-                        object_schema({"profile": {"enum": list(self.processing.catalog.profiles)}, "crawl_id": text}, ["profile"]), delegate_processing)
+            tool = Tool("delegate_processing", "Send page evidence, a completed crawl by crawl_id, OR a verified document export by document_job_id to a processing worker using an operator profile. Full records bypass model context.",
+                        object_schema({"profile": {"enum": list(self.processing.catalog.profiles)}, "crawl_id": text, "document_job_id": text}, ["profile"]), delegate_processing)
             self.registry.register(tool)
             self.processing_tool_names.append(tool.name)
             extra = [
@@ -322,13 +375,51 @@ class ExtensionRuntime:
     def crawler(self):
         return Crawler(self.config, parent_id=self.task_state.get("run_id"), allowed_origins=self.crawl_allowed_origins)
 
+    def _document_review_refresh(self):
+        """Expose policy changes without inventing a replacement extraction recipe."""
+        result = {'actions': [], 'errors': []}
+        if not self.document_tool_names or not self.task_state.get('task') or not self.config.get('documents', {}).get('review_candidates', True):
+            return result
+        from ..documents.review import review_policy_id
+        policy_id = review_policy_id(self.config)
+        result['policy_id'] = policy_id
+        candidates = self.task_state.get('document_candidates', {})
+        reviews = self.task_state.get('document_reviews', {})
+        latest = {c['source_id']: c for c in candidates.values() if c.get('source_id')}
+        for candidate in latest.values():
+            job_id = candidate['job_id']
+            reviewed = reviews.get(job_id)
+            if not reviewed or reviewed.get('policy_id') == policy_id:
+                continue
+            stale = {'accepted': False, 'status': 'review_required', 'policy_id': reviewed.get('policy_id'),
+                'pending_policy_id': policy_id, 'previous_review_id': reviewed.get('review_id') or reviewed.get('previous_review_id'),
+                'semantic_accuracy_verified': False, 'issues': [], 'required_changes': [],
+                'message': 'Review rules or configuration changed since this checkpoint. The previous decision is stale. Refresh the saved preview before treating this source as accepted or blocked.'}
+            reviews[job_id] = stale
+            candidate.update(status='review_required', review=stale)
+            try:
+                _, receipt, _ = self.documents._job(job_id)
+                result['actions'].append({'name': 'document_preview', 'job_id': job_id,
+                    'arguments': {'source_id': receipt['source_id'], 'spec': receipt['spec']}})
+            except Exception as exc:
+                result['errors'].append({'job_id': job_id, 'error': str(exc)[:500]})
+        if result['actions'] or result['errors']:
+            result['message'] = 'Review policy changed. Refresh the listed previews using their exact saved recipes, then act on the new review. These recipes were already generated in this task; they have not been repaired by the host.'
+        return result
+
     def context(self) -> dict:
-        return {"builtin_tools": [self.registry.describe(n) for n in self.builtin_names + self.web_tool_names + self.processing_tool_names],
+        review_refresh = self._document_review_refresh()
+        return {"builtin_tools": [self.registry.describe(n) for n in self.builtin_names + self.web_tool_names + self.processing_tool_names + self.document_tool_names],
+                "document_review_refresh": review_refresh,
+                "document_exports": list(self.task_state.get("document_exports", {}).values()),
+                "document_sources": list(self.task_state.get("document_sources", {}).values())[-20:],
+                "document_candidates": list(self.task_state.get("document_candidates", {}).values())[-20:],
                 "processing_profiles": self.processing.catalog.catalog(),
                 "child_workers": self.workers.list(self.task_state["run_id"]) if self.task_state.get("run_id") else [],
                 "crawls": self.crawler().list() if self.task_state.get("run_id") else [],
                 "completion_processing": self.config.get("agent", {}).get("completion_processing", []),
+                "completion_documents": self.config.get("agent", {}).get("completion_documents", {}),
                 "skills": self.skills.catalog(limit=15),
                 "active_skills": list(self.skills.active.values()),
                 "unavailable_servers": self.unavailable_servers,
-                "external_tool_count": len(self.registry._tools) - len(self.builtin_names) - len(self.web_tool_names) - len(self.processing_tool_names)}
+                "external_tool_count": len(self.registry._tools) - len(self.builtin_names) - len(self.web_tool_names) - len(self.processing_tool_names) - len(self.document_tool_names)}

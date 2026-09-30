@@ -56,3 +56,29 @@ def check_processing(config, state):
             results.append({"ok": False, "error": str(exc)[:1000]})
     return {"ok": bool(checks) and all(r["ok"] for r in results), "basis": "operator_processing_contract",
             "checks": results, "semantic_accuracy_verified": False}
+
+
+def check_documents(config, state):
+    """Check real document deliveries; semantic task coverage is never inferred from counts."""
+    import json
+    from ..documents.engine import DocumentTools, digest
+    requirements = config.get("agent", {}).get("completion_documents", {})
+    minimum = requirements.get("min_sources", 0)
+    if isinstance(minimum, bool) or not isinstance(minimum, int) or minimum < 0:
+        return {"ok": False, "error": "Invalid completion_documents.min_sources"}
+    service, checks, sources = DocumentTools(config), [], set()
+    for job_id, saved in state.get("document_exports", {}).items():
+        try:
+            folder, receipt, candidate = service._job(job_id)
+            raw = (folder / "export.json").read_bytes()
+            if digest(raw) != saved["output_sha256"] or digest(json.loads(raw)) != receipt["candidate_sha256"]:
+                raise ValueError("Document export content/hash changed")
+            if requirements.get("collection_key") and receipt["spec"].get("collection_key", "records") != requirements["collection_key"]:
+                raise ValueError("Document collection key differs from delivery requirement")
+            sources.add(receipt["source_id"])
+            checks.append({"ok": True, "job_id": job_id})
+        except Exception as exc:
+            checks.append({"ok": False, "job_id": job_id, "error": str(exc)[:1000]})
+    return {"ok": len(sources) >= minimum and all(c["ok"] for c in checks),
+            "basis": "document_artifacts_verified", "checks": checks,
+            "distinct_sources": len(sources), "required_sources": minimum, "semantic_accuracy_verified": False}

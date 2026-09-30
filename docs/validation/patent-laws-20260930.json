@@ -1,4 +1,7 @@
 {
+  "acceptance_scope": "Historical configured-adapter checks only; rejected as evidence of autonomous general processing",
+  "autonomous_general_processing_verified": false,
+  "superseded_by": "../DOCUMENTS.md",
   "all_passed": true,
   "checks": {
     "agent_completed": true,
@@ -179,5 +182,15 @@
       "appendices": 1,
       "output_sha256": "8fac9101ceb509092cef044c3fbc1fc98086da8fbc8b721d231aa09fe2451362"
     }
-  ]
+  ],
+  "count_scope_correction": {
+    "JP_source_article_nodes": 464,
+    "JP_combined_ranges": [
+      "55:63",
+      "129:130"
+    ],
+    "JP_numbered_objects_if_expanded": 473,
+    "grouped_ranges_verified_in_original_receipt": false,
+    "note": "Original all_passed describes only its preserved historical assertions, not autonomous discovery or per-number range expansion."
+  }
 }

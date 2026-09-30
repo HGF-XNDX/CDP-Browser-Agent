@@ -11,12 +11,12 @@
 版本、过期、停用和回滚，覆盖浏览器规划器与处理子智能体。30000 通用配置已开启候选学习；
 `examples/playbook-30000.json` 提供注册工作流内的自动回放与采用示例。
 详见 [经验学习配置与实现边界](docs/PLAYBOOK_LEARNING.md)、[验收记录](docs/PLAYBOOK_VALIDATION.md)。
-MCP 共 30 个工具。
+MCP 共 36 个工具。
 
-三国专利法实测示例：通过可选 Skill/外部 MCP 下载官方完整来源，再按条文结构交给
-确定性加工 worker，导出每部法律一个 JSON 对象。已验证中国 82 条、美国 176 条目、
-日本 464 条目及附表；美国采用明确标注日期的官方年度版本。
-详见 [工具与流程诊断、版本范围及复现](docs/PATENT_LAWS_VALIDATION.md)。
+完整文档加工使用通用工具：检查结构、解码嵌入文档、由规划器根据原文生成 CSS/XPath/
+正则规则、预览校验、回放后导出 JSON。未选择的附表、注释及其他结构保留供检查。
+详见 [文档工具与问题诊断流程](docs/DOCUMENTS.md)、[真实执行与验收边界](docs/DOCUMENT_VALIDATION.md)。此前的专利法专用适配器已移除：
+配置好专用方法后成功，不能证明智能体能自主处理新文档。
 
 0.9 加入基础 HTTP 爬虫：批量 URL、站内链接、CSS 字段提取、普通链接翻页、去重、
 限速与退避、robots、暂停和断点恢复，导出 JSON/JSONL/CSV。重复页面采集不逐页调用模型。
@@ -225,7 +225,8 @@ wheel 安装包包含该文件。导出到项目的 Skill 目录：
 运行结束会关闭本次启动的 Chromium；连接已有 CDP 时仅断开连接。
 普通任务已有跨进程状态恢复与浏览器存储快照，不恢复活页 DOM/JS 堆；仍没有多租户浏览器隔离，
 也没有自动执行任意 Skill 脚本的主机沙箱。新增 MCP 工具 `browser_process`、`browser_task_resume`、
-`browser_task_status`、`browser_task_respond`，当前共 12 个工具。
+`browser_task_status`、`browser_task_respond`；当前 MCP 共 36 个工具，覆盖浏览器、网页、
+工作流、爬取、加工、文档和经验学习能力。
 支持原生下拉框、复选框及基本 iframe 的观察与操作；复杂嵌套/跨域 frame、Canvas、文件上传尚未完成专项验证。
 0.3 的内部 `done` 动作必须显式填写 `outcome=completed|incomplete|blocked`；旧自定义规划器需要更新。
 

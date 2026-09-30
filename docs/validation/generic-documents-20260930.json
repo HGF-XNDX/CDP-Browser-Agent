@@ -1,0 +1,494 @@
+{
+  "schema_version": 2,
+  "date": "2026-09-30",
+  "status": "generic_fixes_validated_three_source_autonomy_incomplete",
+  "purpose": "Diagnose and repair general document tools, evidence memory and workflow. Known official URLs are provided; no site recipe is supplied to the planner.",
+  "rejected_autonomy_evidence": {
+    "commit": "46d56a30bd07ec39e2757221d3ddfa8549ef1a5c",
+    "reason": "Country-specific adapters were configured before execution; correct outputs do not establish autonomous method discovery. These adapters, their dedicated skill and configuration are removed."
+  },
+  "model": {
+    "id": "/data1/hgf_model/Qwen3.8-27B-Q5_K_M.gguf",
+    "context_window_tokens": 262144,
+    "endpoint": "http://127.0.0.1:30000/v1",
+    "reviewer": "same model in a separate context",
+    "thinking": false
+  },
+  "runtime": {
+    "task_specific_selectors": false,
+    "task_specific_parsers": false,
+    "arbitrary_generated_code_execution": false,
+    "learning_enabled": false,
+    "special_mcp_or_skill_enabled": false,
+    "mcp_tool_count": 36
+  },
+  "verification": {
+    "pytest": {
+      "passed": 183,
+      "seconds": 84.41
+    },
+    "pip_check": "passed",
+    "skill_validate": "passed",
+    "build": "passed",
+    "twine": "passed",
+    "semantic_accuracy_guarantee": false
+  },
+  "development_runs": [
+    {
+      "receipt_path": "logs/live-generic-documents/20260930-generic-coverage/attempt-3/receipt.json",
+      "receipt_sha256": "5f525fde5ca466fec33cd763172b5ef8797debc2f23ed8927692d9a80735615f",
+      "agent_status": "timeout",
+      "attempt": 3,
+      "all_passed": false,
+      "model_calls": 42,
+      "counts": {
+        "CN": 82
+      },
+      "browser_started": false,
+      "source_code_unchanged": true,
+      "failed_checks": [
+        "agent_completed",
+        "artifact_gate_passed",
+        "US_exported",
+        "JP_exported"
+      ]
+    },
+    {
+      "receipt_path": "logs/live-generic-documents/20260930-generic-evidence/receipt.json",
+      "receipt_sha256": "b7106d5c8b8a99d8d28b5d9764b932d6a4419362850c454364967d6261ae0e44",
+      "agent_status": "completed",
+      "attempt": null,
+      "all_passed": false,
+      "model_calls": 34,
+      "counts": {
+        "CN": 98,
+        "US": 168,
+        "JP": 464
+      },
+      "browser_started": false,
+      "source_code_unchanged": true,
+      "failed_checks": [
+        "CN_all_article_boundaries",
+        "CN_chapter_titles_not_body_paragraphs",
+        "US_all_section_headings",
+        "US_grouped_inactive_sections_separate",
+        "US_note_nodes_not_body"
+      ]
+    },
+    {
+      "receipt_path": "logs/live-generic-documents/20260930-generic-first/receipt.json",
+      "receipt_sha256": "9e02fe9ea65bd4c5916a51066be5eb6362317f03ad82cacec1ee90360915b3e5",
+      "agent_status": "stalled",
+      "attempt": null,
+      "all_passed": false,
+      "model_calls": 18,
+      "counts": {},
+      "browser_started": false,
+      "source_code_unchanged": true,
+      "failed_checks": [
+        "agent_completed",
+        "artifact_gate_passed",
+        "CN_exported",
+        "US_exported",
+        "JP_exported"
+      ]
+    },
+    {
+      "receipt_path": "logs/live-generic-documents/20260930-generic-observation/attempt-2/receipt.json",
+      "receipt_sha256": "7eb21c9b64f83f0613f52549fb5f03589330853d4db9cbee4134830ea1dc53e1",
+      "agent_status": "incomplete",
+      "attempt": 2,
+      "all_passed": false,
+      "model_calls": 1,
+      "counts": {
+        "CN": 82
+      },
+      "browser_started": false,
+      "source_code_unchanged": true,
+      "failed_checks": [
+        "agent_completed",
+        "artifact_gate_passed",
+        "US_exported",
+        "JP_exported"
+      ]
+    },
+    {
+      "receipt_path": "logs/live-generic-documents/20260930-generic-observation/attempt-3/receipt.json",
+      "receipt_sha256": "2468953b8c4844a70cd26858bf3ff77543ef1c97a75090ea42be9555d2905633",
+      "agent_status": "timeout",
+      "attempt": 3,
+      "all_passed": false,
+      "model_calls": 20,
+      "counts": {
+        "CN": 82,
+        "US": 175
+      },
+      "browser_started": false,
+      "source_code_unchanged": true,
+      "failed_checks": [
+        "agent_completed",
+        "artifact_gate_passed",
+        "US_grouped_inactive_sections_separate",
+        "JP_exported"
+      ]
+    },
+    {
+      "receipt_path": "logs/live-generic-documents/20260930-generic-observation/receipt.json",
+      "receipt_sha256": "1190ef6a3798d024bc847407d17a624cbdef1a74d92f10873586d5a0152a3e0f",
+      "agent_status": "incomplete",
+      "attempt": 1,
+      "all_passed": false,
+      "model_calls": 40,
+      "counts": {
+        "CN": 82
+      },
+      "browser_started": false,
+      "source_code_unchanged": true,
+      "failed_checks": [
+        "agent_completed",
+        "artifact_gate_passed",
+        "US_exported",
+        "JP_exported"
+      ]
+    },
+    {
+      "receipt_path": "logs/live-generic-documents/20260930-generic-recovery/receipt.json",
+      "receipt_sha256": "15dc293562c8220cc0fd2c80f7e32e865589e0b9b1bdc221eef045b51d997580",
+      "agent_status": "stalled",
+      "attempt": null,
+      "all_passed": false,
+      "model_calls": 45,
+      "counts": {
+        "CN": 98
+      },
+      "browser_started": false,
+      "source_code_unchanged": false,
+      "failed_checks": [
+        "agent_completed",
+        "artifact_gate_passed",
+        "source_code_unchanged",
+        "CN_all_article_boundaries",
+        "US_exported",
+        "JP_exported"
+      ]
+    },
+    {
+      "receipt_path": "logs/live-generic-documents/20260930-generic-reviewed/receipt.json",
+      "receipt_sha256": "81a6123e57682f3547b32154302d56188ba975b75380c96a962683f9afe9957e",
+      "agent_status": "timeout",
+      "attempt": null,
+      "all_passed": false,
+      "model_calls": 62,
+      "counts": {
+        "CN": 82
+      },
+      "browser_started": false,
+      "source_code_unchanged": true,
+      "failed_checks": [
+        "agent_completed",
+        "artifact_gate_passed",
+        "US_exported",
+        "JP_exported"
+      ]
+    },
+    {
+      "receipt_path": "logs/live-generic-documents/20260930-generic-typed-review/attempt-2/receipt.json",
+      "receipt_sha256": "1ad82a1ccaf5542eaa495ed055073e3715cf3bfea099a83f8530576d1ed032b6",
+      "agent_status": "completed",
+      "attempt": 2,
+      "all_passed": false,
+      "model_calls": 33,
+      "counts": {
+        "JP": 464,
+        "CN": 82,
+        "US": 168
+      },
+      "browser_started": false,
+      "source_code_unchanged": true,
+      "failed_checks": [
+        "CN_chapter_titles_not_body_paragraphs",
+        "CN_body_bound_to_own_article",
+        "US_all_section_headings",
+        "US_grouped_inactive_sections_separate"
+      ]
+    }
+  ],
+  "development_run_caveats": [
+    "These are development diagnosis iterations with code changes between attempts, not independent equal-condition repetitions.",
+    "Some attempts were interrupted for reproduced generic defects; snapshots, interruption audits and checkpoints were preserved.",
+    "Before the coverage series, the evaluation driver added explicit inactive/grouped-record requirements. These details were not individually specified by the user.",
+    "Post-run oracles became stricter for per-record body membership, captions and grouped Japanese ranges. Older receipts retain their original assertion scope.",
+    "No site recipe, expected count or post-run oracle finding was supplied to the planner as a repair.",
+    "Valid evidence quotes and accepted sampled model reviews are not semantic correctness guarantees."
+  ],
+  "final_run": {
+    "receipt_path": "logs/live-generic-documents/20260930-generic-observation/attempt-3/receipt.json",
+    "receipt_sha256": "2468953b8c4844a70cd26858bf3ff77543ef1c97a75090ea42be9555d2905633",
+    "agent_status": "timeout",
+    "attempt": 3,
+    "all_passed": false,
+    "model_calls": 20,
+    "counts": {
+      "CN": 82,
+      "US": 175
+    },
+    "browser_started": false,
+    "source_code_unchanged": true,
+    "failed_checks": [
+      "agent_completed",
+      "artifact_gate_passed",
+      "US_grouped_inactive_sections_separate",
+      "JP_exported"
+    ],
+    "tag": "20260930-generic-observation",
+    "status": "timeout",
+    "series_calls_per_attempt": [
+      40,
+      1,
+      20
+    ],
+    "series_total_model_calls": 61,
+    "completion_claim": "incomplete",
+    "final_code_end_to_end_retested": false
+  },
+  "limitations": [
+    "HTML/XML structured transformation; JSON inspection and embedded-document decoding. PDF/OCR and dynamic DOM import are not implemented here.",
+    "This evaluates processing of supplied sources, not source discovery or guaranteed current law.",
+    "The US source is the GovInfo 2024 edition, with source current-through date 2025-01-06.",
+    "No generalization rate or causal effect of a single fix is established.",
+    "The newest live attempt exported CN 82 and US 175, with US grouping still incorrect; JP was not exported in that attempt.",
+    "A historical JP 464-node export preserved body/captions/appendix but did not expand two grouped ranges; it is not a fully per-number delivery.",
+    "Last generic diagnostics and resource guards have component and offline replay evidence, not a new full live autonomy trial.",
+    "Remaining limits include repeated model actions, sampled-review mistakes and unsupported general range-reconstruction operations."
+  ],
+  "interrupted_attempts": [
+    {
+      "path": "logs/live-generic-documents/20260930-generic-contracts/interrupted-audit.json",
+      "sha256": "c373007c3d04166ea273c76e3e84b2a166d1651d1618b8aa262ff792a48dd478"
+    },
+    {
+      "path": "logs/live-generic-documents/20260930-generic-coverage/attempt-2/interrupted-audit.json",
+      "sha256": "bf7eea03cdb6b5cc76eb45857e71570b09a7b176c7f16bcc3bc43d603842a519"
+    },
+    {
+      "path": "logs/live-generic-documents/20260930-generic-coverage/interrupted-audit.json",
+      "sha256": "634da8380ec09e9b0c60211328e39a9acb95aa3c2e3e8e93bbcdd6da144c38d2"
+    },
+    {
+      "path": "logs/live-generic-documents/20260930-generic-final/interrupted-audit.json",
+      "sha256": "37b6ff9eee80ccb720c34f3c33502a9c80e4c1ea62bd95a05bae27768cd10257"
+    },
+    {
+      "path": "logs/live-generic-documents/20260930-generic-memory/interrupted-audit.json",
+      "sha256": "702f214fe63652294eab4106b965588e4a0c8d9f1ea4045e3e0dfdffe862f619"
+    }
+  ],
+  "postrun_audit": {
+    "path": "logs/live-generic-documents/final-postrun-audit-20260930.json",
+    "sha256": "77339c89449c0775d9ec410d6a705b5672967dc27d8a9eb502144ded8feee16e",
+    "purpose": "Post-run evidence audit, not a new autonomous execution",
+    "all_three_complete": false,
+    "model_calls": 0,
+    "source_files_modified": false,
+    "artifacts": {
+      "CN": {
+        "path": "deliveries/generic-documents/20260930-generic-observation/attempt-3/CN.json",
+        "sha256": "f2a7d275b16dbeded5a1b834cbbb730a1bc964a07dcba66a44947c989197afb9",
+        "run_tag": "20260930-generic-observation",
+        "attempt": "attempt-3",
+        "job_id": "88df7bf5e9d622397a3ddcc43c83ac12a820e8196d366d9a84c4fd32f0f2c24e",
+        "source_id": "3cb708190743a96321672a1ee49a9bdff4f18fda200cd62ef7d262c46016a7c6",
+        "record_count": 82,
+        "checks": {
+          "has_articles": true,
+          "all_text_hashes": true,
+          "unique_record_ids": true,
+          "source_tree_conserved": true,
+          "all_article_boundaries": true,
+          "each_heading_in_distinct_record": true,
+          "all_continuation_paragraphs": true,
+          "chapter_titles_not_body_paragraphs": true,
+          "body_bound_to_own_article": true,
+          "current_engine_replay_matches_saved_candidate": true
+        },
+        "all_checks_passed": true,
+        "failed_checks": [],
+        "key_diagnostics": {
+          "warnings": [],
+          "truncated": false
+        },
+        "review_sample_indexes": [
+          0,
+          41,
+          81
+        ]
+      },
+      "US": {
+        "path": "deliveries/generic-documents/20260930-generic-observation/attempt-3/US.json",
+        "sha256": "9f76345658883c0fe7f1e458707a931686ad1d45cee63f5a9bab24c7a77a1838",
+        "run_tag": "20260930-generic-observation",
+        "attempt": "attempt-3",
+        "job_id": "fb39668c990f0f657e6187d3dca2f5a9cd475680f1ef2d1d45d5b043ba8c5270",
+        "source_id": "557fe4743dd82fe3c04f3f07dcad64ffcc043fc874a22d40c804717d313999f3",
+        "record_count": 175,
+        "checks": {
+          "has_articles": true,
+          "all_text_hashes": true,
+          "unique_record_ids": true,
+          "source_tree_conserved": true,
+          "all_section_headings": true,
+          "grouped_inactive_sections_separate": false,
+          "all_statutory_paragraphs": true,
+          "annotations_not_body": true,
+          "note_nodes_not_body": true,
+          "body_bound_to_own_section": true,
+          "current_engine_replay_matches_saved_candidate": true
+        },
+        "all_checks_passed": false,
+        "failed_checks": [
+          "grouped_inactive_sections_separate"
+        ],
+        "key_diagnostics": {
+          "warnings": [
+            {
+              "record_index": 61,
+              "extracted_key": "155",
+              "unconsumed_suffix": ", 155A. Repealed. Pub. L. 112–29, §20(k), Sept. 16, 2011, 125 Stat. 335]",
+              "message": "key_separator matches just outside the extracted label. It only splits the captured label; inspect whether key_pattern omitted part of a grouped label."
+            }
+          ],
+          "truncated": false
+        },
+        "review_sample_indexes": [
+          0,
+          1,
+          2,
+          25,
+          61,
+          87,
+          174
+        ]
+      },
+      "JP": {
+        "path": "deliveries/generic-documents/20260930-generic-typed-review/attempt-2/JP.json",
+        "sha256": "c1e42cb083f379a7012ce6dfbbc1da8b95ae65b78685395dfa266666a30de0c6",
+        "run_tag": "20260930-generic-typed-review",
+        "attempt": "attempt-2",
+        "job_id": "5a0a650fd45c3f190baf71b6f2f7f94d0f5c35619941ad11b6abba793c21282c",
+        "source_id": "cffb10f8c6d2c1fc4b6b04b3fb84550d98c9ba8d1792563177c8e02284df8f14",
+        "record_count": 464,
+        "checks": {
+          "has_articles": true,
+          "all_text_hashes": true,
+          "unique_record_ids": true,
+          "source_tree_conserved": true,
+          "all_article_nodes": true,
+          "grouped_article_ranges_separate": false,
+          "each_article_source_preserved": true,
+          "all_body_paragraphs": true,
+          "body_bound_to_own_article": true,
+          "captions_in_records": true,
+          "appendix_table_retained": true,
+          "source_revision_retained": true,
+          "current_engine_replay_matches_saved_candidate": true
+        },
+        "all_checks_passed": false,
+        "failed_checks": [
+          "grouped_article_ranges_separate"
+        ],
+        "key_diagnostics": {
+          "warnings": [],
+          "truncated": false
+        },
+        "review_sample_indexes": [
+          0,
+          4,
+          232,
+          463
+        ],
+        "combined_source_ranges": [
+          {
+            "num": "55:63",
+            "title": "第五十五条から第六十三条まで"
+          },
+          {
+            "num": "129:130",
+            "title": "第百二十九条及び第百三十条"
+          }
+        ],
+        "expected_numbered_record_count": 473,
+        "scope_note": "464 source Article nodes retained; two combined ranges 55:63 and 129:130 remain combined. Expanding those ranges would require 473 records, and this output does not do so."
+      }
+    }
+  },
+  "post_live_changes": [
+    "Bounded capture/split diagnostics and priority review sampling, validated on a nonlegal fixture and the unchanged US candidate.",
+    "Explicit distinction between unique record id and potentially repeated display key in review evidence.",
+    "Materialized-text budget for grouped records, validated on a nonlegal expansion fixture.",
+    "A post-run-only assertion for Japanese grouped ranges: 464 source nodes include 55:63 and 129:130, implying 473 objects if expanded."
+  ],
+  "final_source_fingerprint": {
+    "algorithm": "SHA256 of compact sorted-key UTF-8 JSON file-hash mapping",
+    "sha256": "e44c4b2ae934f3be8282758ba22a1b14889a49bcb398041ed7f496a3747c2ebd",
+    "files": {
+      "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+      "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+      "cdp_browser_agent/browser/agent.py": "f90cae7e8f2998076a4a4e1ced414c5527cc90938ff27c09ff53d76209d6bb62",
+      "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+      "cdp_browser_agent/browser/controller.py": "71a14953153ae3692f73b8aba7b1caa2ff9d99f6c2854938ba08351ad3e7537d",
+      "cdp_browser_agent/browser/default_config.py": "c8608edd1f06b7c0a1c1ab3f9115e6f1337e48e11787dadc3af2482df8613bf3",
+      "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+      "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+      "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+      "cdp_browser_agent/browser/planner.py": "41f202f9ea3ef78070984437735a1906d2b6fda768bf448fdb1631400665dc1e",
+      "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+      "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+      "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+      "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+      "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+      "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+      "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+      "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+      "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+      "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+      "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+      "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+      "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+      "cdp_browser_agent/documents/engine.py": "a243b004ee56e60e1ffc8b1444131b08259eef37c248d88373fed72aea6ba796",
+      "cdp_browser_agent/documents/review.py": "cc33391bbdc8f218ba8104ca106207e2737eb99f4103b578449d7ecb550d6e93",
+      "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+      "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+      "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+      "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+      "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+      "cdp_browser_agent/harness/learning.py": "80a480b49970994550f2cbd1a995ab761a24dac10873842fee8993a875ca9e3c",
+      "cdp_browser_agent/harness/playbook.py": "463faca979c788a1db10bbe26ebe1a1dced62c0c036fa579c26d0b079db20593",
+      "cdp_browser_agent/harness/runtime.py": "e441dc521f89e170f2a16043d45b759af1577b553adb6e26e9a777b3dd4a0967",
+      "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+      "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+      "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+      "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+      "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+      "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+      "cdp_browser_agent/model_client.py": "b8236c0be523eb9902b8b532c8fc7311925a157aebe01152be0ee63d77d2aa0f",
+      "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+      "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+      "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+      "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+      "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+      "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+      "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+      "cdp_browser_agent/web/extract.py": "6e936c98f8df9d5590f73cb7d6a3e4711e2efe266421b288d6f9a0ee98566f85",
+      "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+      "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+      "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+      "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+      "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+      "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+      "scripts/live_patent_laws_eval.py": "5ec04b3dc0f0278b992290464de28e108db5a6baf9e0f9bc8a545389d33eef67",
+      "examples/documents-30000.json": "8c9654272acc328095f0db1f96fd2f49630fff9132513aef3e2374a3ddcd85a3"
+    }
+  }
+}

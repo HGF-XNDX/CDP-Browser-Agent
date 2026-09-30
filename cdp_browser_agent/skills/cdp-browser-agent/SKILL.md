@@ -1,6 +1,6 @@
 ---
 name: cdp-browser-agent
-description: Search and fetch webpages, batch crawl static sites, delegate interactive browser tasks, or process collected evidence into structured files through CDP Browser Agent CLI or MCP tools.
+description: Search and fetch webpages, crawl static sites, inspect and transform full documents, delegate interactive browser tasks, or process collected evidence through CDP Browser Agent CLI or MCP tools.
 ---
 
 Requires cdp-browser-agent 0.10 or later. Direct web_search/web_fetch/web_crawl need no model/browser.
@@ -26,7 +26,11 @@ For batch static pages, link pagination or CSS field extraction, read
 [HTTP crawling](references/crawling.md). Prefer `web_crawl` to per-page agent turns;
 keep the crawl ID for resume and send it directly to a processing worker.
 The generic `browser_task` result remains model-reported unless an explicit host verifier is supplied.
-For data transformation, use an operator-registered processing profile from capabilities.
+For exact full-document splitting/export, read [document processing](references/documents.md).
+Use document_open/inspect to infer a recipe, document_preview/review to test it, then
+document_export to replay and save it. A task-specific profile is not required for
+these generic transformations. Source-tree conservation does not prove correct boundaries.
+For semantic data transformation, use an operator-registered processing profile from capabilities.
 `browser_process(profile, records)` processes supplied `{data, source_url}` records;
 inside a task, `delegate_processing` hands collected evidence to the configured worker.
 Inspect validated_count, failed_count and actual export files; schema and exact-quote

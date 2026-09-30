@@ -141,6 +141,24 @@ def test_progress_detects_same_page_changes():
     assert agent.progress_signature(a, {}, {}) == agent.progress_signature(a, {}, {})
 
 
+async def test_repeated_tool_result_gets_recovery_feedback_before_stall(setup_run, monkeypatch):
+    config, _ = setup_run
+    config['web']['prefer_fast_path'] = True
+    calls = []
+    async def planner(request):
+        calls.append(deepcopy(request['extensions'].get('progress_recovery')))
+        if len(calls) <= 2:
+            return {'action': {'action': 'tool', 'name': 'tool_list', 'arguments': {'query': 'no-such-capability'}}}
+        recovery = request['extensions']['progress_recovery']
+        assert recovery['repeat_count'] == 2
+        assert recovery['evidence_action_ids'] == ['A0001', 'A0002']
+        return {'action': {'action': 'done', 'outcome': 'incomplete', 'answer': 'Required capability is absent.'}}
+    monkeypatch.setattr(agent, 'plan_next_action', planner)
+    result = await run_browser_agent('Inspect missing capability', config)
+    assert result['status'] == 'incomplete'
+    assert calls[:2] == [None, None]
+
+
 async def test_host_verifier_rejects_premature_done(setup_run, monkeypatch):
     config, _ = setup_run
     planner = AsyncMock(return_value={"action": {"action": "done", "outcome": "completed", "answer": "Finished"}})

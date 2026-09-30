@@ -97,7 +97,7 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
     runtime.registry.artifacts = ArtifactStore(session.directory / "artifacts")
     compactor = ContextCompactor(runtime.registry.artifacts, session.directory / "compactions", recorder)
     memory = BrowserAgentMemory(agent_settings=settings, model_settings=model_settings)
-    memory.restore(state.get("memory_snapshot", {}))
+    memory.restore(state.get("memory_snapshot", {}), history=state.get('history', []))
     experience = ExperienceStore(config)
     learning_enabled = learning_settings(config)["enabled"]
     learning_method = None
@@ -143,6 +143,10 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                 break
             recorder.write("observe", {"step": step, "observation": compact_observation(observation)})
             extensions = runtime.context()
+            if seen_progress[signature] >= 2:
+                extensions["progress_recovery"] = {"repeat_count": seen_progress[signature],
+                    "last_action": previous_action, "evidence_action_ids": [h["actionId"] for h in state["history"][-3:]],
+                    "message": "The same action/result has repeated without new evidence. Diagnose transport, representation, selection or missing capability. Use reflect with actual action IDs and change the query/method, complete other pending work, or report a precise limitation. Do not repeat the unchanged action."}
             base = {"task": task, "observation": compact_observation(observation),
                     "last_result": state["last_result"], "extensions": extensions}
             memory_context = memory.build_context(task, observation, state["last_result"], state["sources"], base)
@@ -209,13 +213,17 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
             log.info("run=%s step=%s action=%s", recorder.run_id, step, action["action"])
             if action["action"] == "done":
                 processing_checks = config.get("agent", {}).get("completion_processing")
-                if action["outcome"] == "completed" and (completion_check or processing_checks):
+                document_checks = bool(config.get("agent", {}).get("completion_documents") or state.get("document_exports"))
+                if action["outcome"] == "completed" and (completion_check or processing_checks or document_checks):
                     try:
                         reports = []
                         if completion_check:
                             reports.append(await completion_check(controller, state))
                         if processing_checks:
                             reports.append(check_processing(config, state))
+                        if document_checks:
+                            from ..harness.verification import check_documents
+                            reports.append(check_documents(config, state))
                         verification = {"ok": all(r.get("ok") is True for r in reports), "checks": reports}
                     except Exception as exc:
                         verification = {"ok": False, "error": str(exc)[:1000]}
@@ -228,6 +236,8 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                 state.update(status=action["outcome"], stopped_reason="done", answer=action["answer"], completion_basis="model_reported")
                 if (completion_check or processing_checks) and action["outcome"] == "completed":
                     state["completion_basis"] = "host_verified"
+                elif document_checks and action["outcome"] == "completed":
+                    state["completion_basis"] = "artifacts_verified_semantics_model_reported"
                 if site_memory and state["status"] == "completed":
                     site_memory.record_successful_workflow(task, state["history"])
                 break

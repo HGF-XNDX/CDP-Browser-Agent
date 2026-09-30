@@ -1,0 +1,9 @@
+{
+  "model": {"provider": "llama.cpp", "baseUrl": "http://127.0.0.1:30000/v1", "model": "", "maxTokens": 2048, "apiTimeout": 90, "maxRetries": 0, "enableThinking": false},
+  "browser": {"headless": true, "focus_page": false},
+  "agent": {"max_steps": 60},
+  "learning": {"enabled": false},
+  "harness": {"run_timeout_seconds": 1200, "tool_timeout_seconds": 60, "skill_paths": [], "active_skills": [], "mcp_servers": {}},
+  "documents": {"enabled": true, "state_dir": "../downloads/documents"},
+  "web": {"enabled": true, "proxy": "auto", "prefer_fast_path": true, "max_response_bytes": 4000000}
+}

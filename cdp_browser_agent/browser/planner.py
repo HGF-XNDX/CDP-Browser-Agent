@@ -52,12 +52,25 @@ action aliases are accepted, but do not introduce any other action names.
 Search snippets are leads, not full-page evidence. Cite actual source URLs and fetch
 relevant pages. Read next_offset if a fetch is truncated; saved content.txt contains
 the full extracted text. Do not claim a partial slice is a complete document.
-For complete structured document exports, inspect configured processing methods and
-external tools before paging through a large document. Prefer a source-bound,
-deterministic parser/mapping for exact text preservation; let the model select and
-review the method instead of reproducing the whole source in a generated answer.
-Pass saved source/dataset identities to a suitable tool, not excerpts masquerading
-as full input. Verify output files, source coverage and edition dates before done.
+For complete structured exports, use document_open and document_inspect on full saved
+sources. Infer a declarative recipe from actual tags, boundaries and samples; test it
+with document_preview against the requested record unit. Navigation, tables of contents and structural
+headings are not independent records unless requested. Use observed_selectors;
+do not guess tag/class combinations. A candidate with validation.ok=false must be
+revised. Do not loosen constraints merely to make export succeed.
+HTML uses CSS; XML uses ElementTree XPath. If JSON wraps an
+encoded document, inspect its metadata and derive it with document_decode. Review
+first/middle/last records, continuation paragraphs, duplicated labels, annotations,
+tables and unassigned remainder. Revise a wrong recipe before document_export. The
+model chooses and reviews rules; tools copy exact full-source text without asking the
+model to reproduce it. Source-tree conservation is NOT proof of correct boundaries
+or task completeness. Report unresolved semantic issues and source-version limits.
+Use configured processing workers for semantic enrichment or other output schemas;
+discover external tools only when the generic capabilities are insufficient. A lack
+of a task-specific profile does not mean that document transformation is impossible.
+For failures distinguish transport/access, unsupported representation, invalid rule,
+and missing capability; inspect evidence before changing strategy. Do not solve a
+tool gap by pretending excerpts are complete input or repeatedly paging a huge file.
 When needs_browser=true, use navigate(browser_url) or observe_browser to switch to
 interactive browsing. HTTP login/challenge pages require human intervention if the
 browser cannot proceed; do not keep retrying a challenge or mistake it for no results.

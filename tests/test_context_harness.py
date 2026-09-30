@@ -17,6 +17,58 @@ from cdp_browser_agent.harness.runtime import ExtensionRuntime
 from cdp_browser_agent.harness.tools import Tool, ToolRegistry
 
 
+def test_recent_exact_memory_keeps_tool_call_and_does_not_recommend_retry():
+    from cdp_browser_agent.browser.memory import fallback_action_memory_fields, redact_action_payload
+    memory = BrowserAgentMemory(agent_settings={}, model_settings={})
+    entry = {'actionId': 'A0001', 'step': 1, 'url': 'about:blank',
+        'action': {'action': 'tool', 'name': 'document_inspect', 'arguments': {'source_id': 'a' * 64,
+            'selector': '.entry p', 'offset': 10, 'limit': 5, 'headers': {'authorization': 'secret-value'}}},
+        'result': {'ok': True, 'total': 40, 'next_offset': 15}}
+    fields = fallback_action_memory_fields(entry)
+    record = memory._make_record(entry, fields)
+    view = memory._format_exact_record(record)
+    assert view['action_payload']['name'] == 'document_inspect'
+    assert view['action_payload']['arguments']['selector'] == '.entry p'
+    assert view['action_payload']['arguments']['offset'] == 10
+    assert view['target'] == 'document_inspect'
+    assert view['retry_recommendation'] == 'inspect_result'
+    assert 'secret-value' not in json.dumps(view)
+    assert entry['action']['arguments']['headers']['authorization'] == 'secret-value'
+    action = {'action': 'tool', 'name': 'format', 'arguments': {'text': 'x' * 10000}}
+    record['actionPayload'] = action
+    assert memory._format_exact_record(record)['action_payload']['truncated']
+
+
+def test_tool_result_memory_preserves_observed_samples_after_long_metadata():
+    from cdp_browser_agent.browser.memory import fallback_action_memory_fields
+    memory = BrowserAgentMemory(agent_settings={}, model_settings={})
+    entry = {'actionId': 'A0092', 'step': 92, 'url': 'about:blank',
+        'action': {'action': 'tool', 'name': 'catalog_read', 'arguments': {'offset': 10}},
+        'result': {'ok': True, 'source': {'url': 'https://example.test/' + 'x' * 1200,
+            'license': 'long source metadata ' * 100, 'headers': {'authorization': 'private-value'}},
+            'total': 15, 'samples': [{'title': 'Rotor assembly', 'text': 'Disconnect power before servicing.'},
+                {'title': 'Drive belt', 'text': 'Inspect tension after installation.'}], 'next_offset': None}}
+    record = memory._make_record(entry, fallback_action_memory_fields(entry))
+    formatted = memory._format_exact_record(record)
+    assert 'Rotor assembly' in json.dumps(formatted) and 'Drive belt' in json.dumps(formatted)
+    view = formatted['result_observation']
+    encoded = json.dumps(view, ensure_ascii=False)
+    assert 'Rotor assembly' in encoded and 'Drive belt' in encoded
+    assert 'Disconnect power' in encoded and view['view']['total'] == 15
+    assert view['truncated'] and len(encoded) <= 4200
+    assert view['full_result']['arguments'] == {'action_id': 'A0092'}
+    assert 'private-value' not in encoded
+    assert entry['result']['source']['headers']['authorization'] == 'private-value'
+    restored = BrowserAgentMemory(agent_settings={}, model_settings={})
+    memory.raw_archive.append(record)
+    restored.restore(memory.snapshot())
+    assert restored._format_exact_record(restored.raw_archive[0])['result_observation'] == view
+    legacy = memory.snapshot()
+    legacy['raw_archive'][0].pop('resultObservation')
+    restored.restore(legacy, history=[entry])
+    assert restored._format_exact_record(restored.raw_archive[0])['result_observation'] == view
+
+
 @pytest.fixture
 def server(monkeypatch):
     model_client._capability_cache.clear()
