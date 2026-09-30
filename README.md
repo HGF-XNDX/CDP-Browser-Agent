@@ -20,6 +20,13 @@ The 30000 harness example enables candidate learning; the dedicated
 workflow. See [learning configuration and boundaries](docs/PLAYBOOK_LEARNING.md) and
 [validation evidence](docs/PLAYBOOK_VALIDATION.md). MCP now exposes 36 tools.
 
+For learning during document repair, use
+[documents-ace-gpt-6-luna.json](examples/documents-ace-gpt-6-luna.json).
+Source-specific Reflector advice reaches the next planner turn; Curator candidates
+still require independent paired replay before later tasks can recall them.
+Executed document-recipe replay and bounded retries of inconclusive reviews are
+described in [ACE document learning](docs/ACE_DOCUMENT_LEARNING.md).
+
 Full-document transformation uses generic inspection, embedded-document decoding,
 planner-authored CSS/XPath/regex recipes, previews and replay-verified JSON exports.
 No site-specific parser or task-specific Skill is required. All source structure,

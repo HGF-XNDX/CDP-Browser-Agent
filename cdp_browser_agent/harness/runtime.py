@@ -121,6 +121,31 @@ class ExtensionRuntime:
                     return result
                 self.registry.register(replace(tool, handler=document_call))
                 self.document_tool_names.append(tool.name)
+            async def retry_review(job_id, expected_review_id):
+                from ..documents.review import review_candidate, repair_guidance
+                task = self.task_state.get('task')
+                if not task:
+                    raise ValueError('Review retry requires a running task with its original request')
+                recovery = self.document_recovery()
+                blocked = recovery.before('document_review_retry', {'job_id': job_id})
+                if blocked:
+                    return blocked
+                review = await review_candidate(self.config, task, self.documents, job_id,
+                    retry_inconclusive=True, expected_review_id=expected_review_id)
+                review = {**review, 'repair_options': repair_guidance(review.get('issues', []))}
+                self.task_state.setdefault('document_reviews', {})[job_id] = review
+                source_id = recovery.source_for({'job_id': job_id})
+                result = {'ok': True, 'job_id': job_id, 'source_id': source_id, 'review': review,
+                          'status': 'reviewed' if review.get('accepted') else review.get('status', 'needs_revision')}
+                self.task_state['document_candidates'][job_id].update(status=result['status'], review=review)
+                recovery.decision(job_id, review)
+                recovery.after('document_review_retry', {'job_id': job_id}, result)
+                return result
+            identity = {'type': 'string', 'pattern': '^[0-9a-f]{64}$'}
+            self.registry.register(Tool('document_review_retry',
+                'Retry a saved inconclusive transient model review with job_id and its current expected_review_id. Uses the unchanged source/candidate, preserves prior attempts, and has a per-candidate attempt limit. Reading document_review only reads samples. A cited semantic rejection requires a recipe repair, not this retry.',
+                object_schema({'job_id': identity, 'expected_review_id': identity}, ['job_id', 'expected_review_id']), retry_review))
+            self.document_tool_names.append('document_review_retry')
         if config.get("web", {}).get("enabled", True):
             for tool in self.web.definitions():
                 self.registry.register(tool)
@@ -450,7 +475,7 @@ class ExtensionRuntime:
             recipe = self.documents._job(focused['job_id'])[1]['spec']
             review = focused.get('review')
             if review:
-                focused = {**focused, 'review': {k: review[k] for k in ('accepted', 'status', 'issues', 'required_changes', 'repair_options', 'message', 'semantic_accuracy_verified') if k in review}}
+                focused = {**focused, 'review': {k: review[k] for k in ('accepted', 'status', 'issues', 'required_changes', 'repair_options', 'message', 'semantic_accuracy_verified', 'review_id', 'retryable', 'review_attempt', 'max_review_attempts') if k in review}}
         focus = {'active_source_id': active, 'active_candidate': focused, 'recipe': recipe,
             'pending_url': self.task_state.get('pending_document_url'),
             'retrieval': self.document_recovery().target(self.task_state['pending_document_url']) if self.task_state.get('pending_document_url') else None,

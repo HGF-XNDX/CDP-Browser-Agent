@@ -13,6 +13,28 @@ def project_context(payload, artifacts, settings, execution_budget):
     archive = artifacts.save(payload)
     view = deepcopy(payload)
     latest_job = (focus.get('active_candidate') or {}).get('job_id')
+    current_review = (focus.get('active_candidate') or {}).get('review')
+    if current_review and latest_job:
+        reference = {'field': 'extensions.document_focus.active_candidate.review', 'job_id': latest_job,
+                     'original_context_artifact_id': archive['artifact_id']}
+        # Keep the exact current verdict/quotes once. Repeated copies consume
+        # the same required prompt budget as a new reflection would otherwise use.
+        last = view.get('last_result') or {}
+        if last.get('job_id') == latest_job and last.get('review'):
+            last.pop('review')
+            last['review_reference'] = reference
+            for key in ('preview', 'samples', 'source_unit_mapping', 'evidence', 'recovery'):
+                last.pop(key, None)
+            last['full_result_reference'] = {'artifact_id': archive['artifact_id'], 'field': 'last_result'}
+        for candidate in view.get('extensions', {}).get('document_candidates', []):
+            if candidate.get('job_id') == latest_job and candidate.get('review'):
+                candidate.pop('review')
+                candidate['review_reference'] = reference
+        recovery = view.get('extensions', {}).get('document_focus', {}).get('recovery') or {}
+        for key in ('issues', 'required_changes'):
+            if recovery.get(key) == current_review.get(key):
+                recovery.pop(key, None)
+                recovery['review_reference'] = reference
     identities = [active or focus['pending_url']] + ([latest_job] if latest_job else [])
     history = payload.get('recent_history', []) + payload.get('recalled_relevant_history', [])
     selected, seen = [], set()

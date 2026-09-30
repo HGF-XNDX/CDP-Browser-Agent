@@ -6,6 +6,7 @@ from collections import Counter, defaultdict
 import json
 import math
 import time
+import httpx
 
 from ..common.json_utils import extract_json_object
 from ..model_client import chat_completion
@@ -362,24 +363,41 @@ def validate_decision(response, evidence):
 
 
 def review_policy_id(config):
-    return digest({'protocol_version': 4, 'system': SYSTEM, 'model': config.get('model', {}),
+    return digest({'protocol_version': 5, 'system': SYSTEM, 'model': config.get('model', {}),
                    'contract': config.get('agent', {}).get('completion_documents', {})})
 
 
-async def review_candidate(config, task, service, job_id):
+async def review_candidate(config, task, service, job_id, *, retry_inconclusive=False, expected_review_id=None):
     folder, receipt, candidate = service._job(job_id)
     contract = config.get('agent', {}).get('completion_documents', {})
     projection = await asyncio.to_thread(build_evidence, service, receipt, candidate)
     policy_id = review_policy_id(config)
-    review_id = digest({'task': task, 'candidate': receipt['candidate_sha256'],
+    review_key = digest({'task': task, 'candidate': receipt['candidate_sha256'],
                         'policy_id': policy_id, 'projection': digest(projection)})
-    # Keep paths below common Windows filename limits; check the full identity.
-    path = folder / 'reviews' / (review_id[:32] + '.json')
-    if path.exists():
+    max_attempts = config.get('documents', {}).get('max_review_attempts', 2)
+    if type(max_attempts) is not int or not 1 <= max_attempts <= 3:
+        raise ValueError('max_review_attempts must be an integer in 1..3')
+    cached, attempt = None, 1
+    for n in range(1, max_attempts + 1):
+        identity = review_key if n == 1 else digest({'review_key': review_key, 'attempt': n})
+        path = folder / 'reviews' / (identity[:32] + '.json')
+        if not path.exists():
+            break
         cached = json.loads(path.read_text(encoding='utf-8'))
-        if cached.get('review_id') != review_id:
+        if cached.get('review_id') != identity:
             raise ValueError('Review cache identity differs')
+        attempt = n + 1
+    if retry_inconclusive:
+        if not cached or cached.get('review_id') != expected_review_id:
+            raise ValueError('Stale/missing review ID; inspect the current saved review before retrying')
+        if cached.get('status') != 'review_inconclusive' or not cached.get('retryable'):
+            raise ValueError('Only an inconclusive transient review can be retried; a semantic rejection requires a recipe repair')
+        if attempt > max_attempts:
+            raise ValueError('The candidate exhausted its bounded review attempt budget')
+    elif cached:
         return cached
+    review_id = review_key if attempt == 1 else digest({'review_key': review_key, 'attempt': attempt})
+    path = folder / 'reviews' / (review_id[:32] + '.json')
     payload = {'user_request': task, 'output_contract': contract,
         'source_overview': await service.inspect(receipt['source_id']), 'recipe': receipt['spec'],
         'coverage': candidate['coverage'], **projection}
@@ -387,6 +405,7 @@ async def review_candidate(config, task, service, job_id):
                '_agent_context': config.get('agent', {})}
     messages = [{'role': 'system', 'content': SYSTEM}, {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False)}]
     attempts = []
+    retryable = False
     review_seconds = min(float(config.get('documents', {}).get('review_timeout_seconds', 54)),
         max(.1, .9 * float(config.get('harness', {}).get('tool_timeout_seconds', 60))))
     if not math.isfinite(review_seconds) or review_seconds <= 0:
@@ -399,9 +418,18 @@ async def review_candidate(config, task, service, job_id):
                 raise asyncio.TimeoutError
             response = await asyncio.wait_for(chat_completion(messages, options), remaining)
         except asyncio.TimeoutError:
+            retryable = True
             attempts.append({'valid': False, 'error': 'review_timeout', 'time_budget_seconds': review_seconds})
             value = {'accepted': False, 'issues': [], 'required_changes': [], 'status': 'review_inconclusive',
                 'message': 'The bounded review time budget expired. No semantic defect was established; the saved candidate is unapproved.'}
+            break
+        except (httpx.HTTPStatusError, httpx.RequestError) as exc:
+            http_status = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None
+            retryable = http_status is None or http_status in {408, 429} or http_status >= 500
+            attempts.append({'valid': False, 'error': type(exc).__name__, 'http_status': http_status,
+                             'message': str(exc)[:1500]})
+            value = {'accepted': False, 'issues': [], 'required_changes': [], 'status': 'review_inconclusive',
+                'message': 'The review request failed before a valid verdict. No semantic defect was established; the saved candidate is unapproved.'}
             break
         try:
             value = validate_decision(response, projection['evidence'])
@@ -416,7 +444,10 @@ async def review_candidate(config, task, service, job_id):
                  'message': 'Reviewer could not support its decision with valid evidence. No candidate defect was established.'}
     result = {**value, 'kind': 'independent_context_model_review', 'candidate_sha256': receipt['candidate_sha256'],
               'review_id': review_id, 'policy_id': policy_id, 'semantic_accuracy_verified': False,
-              'evidence_quotes_verified': all(a['valid'] for a in attempts[-1:])}
+              'evidence_quotes_verified': all(a['valid'] for a in attempts[-1:]),
+              'review_key': review_key, 'review_attempt': attempt, 'max_review_attempts': max_attempts,
+              'retryable': retryable and attempt < max_attempts,
+              'previous_review_id': cached.get('review_id') if cached else None}
     path.parent.mkdir(parents=True, exist_ok=True)
     atomic_json(path.with_suffix('.evidence.json'), {'input': payload, 'attempts': attempts})
     atomic_json(path, result)

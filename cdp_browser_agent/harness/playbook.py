@@ -35,13 +35,16 @@ def settings(config):
     value = {"enabled": False, "auto_replay": True, "reflect_success": False,
              "task_type": "general", "replay_paths": [], "ttl_days": 30,
              "max_entries": 4, "max_context_chars": 6000, "timeout_seconds": 180,
-             "max_candidates": 2, **config.get("learning", {})}
+             "max_candidates": 2, "online_reflection": True,
+             "max_online_reflections": 3, "max_source_reflections": 2,
+             "reflection_timeout_seconds": 60, **config.get("learning", {})}
     for key, lo, hi in (("ttl_days", 1, 365), ("max_entries", 1, 12),
                         ("max_context_chars", 500, 20000), ("timeout_seconds", 10, 600),
-                        ("max_candidates", 1, 2)):
+                        ("max_candidates", 1, 2), ("max_online_reflections", 1, 10),
+                        ("max_source_reflections", 1, 4), ("reflection_timeout_seconds", 10, 180)):
         if type(value[key]) is not int or not lo <= value[key] <= hi:
             raise ValueError(f"learning.{key} must be an integer in {lo}..{hi}")
-    for key in ("enabled", "auto_replay", "reflect_success"):
+    for key in ("enabled", "auto_replay", "reflect_success", "online_reflection"):
         if type(value[key]) is not bool:
             raise ValueError(f"learning.{key} must be boolean")
     if not isinstance(value["task_type"], str) or not re.fullmatch(r"[\w-]{1,64}", value["task_type"]):

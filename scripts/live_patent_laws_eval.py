@@ -159,6 +159,7 @@ async def evaluate(tag, resume=False, config_path=None):
         config['harness'].update(state_dir=str(log / 'state'), artifact_dir=str(log / 'artifacts'))
         config['web']['artifact_dir'] = str(log / 'web')
         config['documents']['state_dir'] = str(output / 'workspace')
+        config['learning']['state_dir'] = str(log / 'playbook')
     log.mkdir(parents=True, exist_ok=False)
     output.mkdir(parents=True, exist_ok=False)
     atomic_json(log / 'config.json', config)

@@ -4,6 +4,12 @@ This release adds an ACE-inspired learning layer to the existing harness. It ada
 procedural context, not model weights, source code, skills or permissions. The browser
 planner and processing workers share a versioned store, while keeping separate scopes.
 
+The document extension also supports temporary reflection inside the current task,
+source-specific terminal evidence, executed document-recipe replay and bounded review
+retries. See [ACE document learning](ACE_DOCUMENT_LEARNING.md) and its dedicated
+`examples/documents-ace-gpt-6-luna.json` configuration. Temporary `repair_advice` never
+becomes active retained advice merely because one repair succeeded.
+
 ## Enable and run
 
 `examples/playbook-30000.json` enables the full learning pipeline against the existing

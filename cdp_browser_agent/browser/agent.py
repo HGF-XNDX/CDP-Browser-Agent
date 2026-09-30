@@ -25,6 +25,7 @@ from ..harness.artifacts import ArtifactStore
 from ..harness.compaction import ContextCompactor
 from ..harness.playbook import PlaybookStore, host_of, planner_method, scope, settings as learning_settings
 from ..harness.learning import LearningService, run_evidence
+from ..harness.repair import document_evidence, reflection_trigger, temporary_advice, record_repair_use
 from ..model_client import prepare_model_options
 from ..context_budget import ContextBudget, ContextBudgetExceeded, ContextWindowExceeded
 
@@ -88,6 +89,16 @@ def is_background_wait(action, result, state):
     return False
 
 
+def planner_host(state, observation, task):
+    active = state.get('active_document_source_id')
+    current = state.get('document_sources', {}).get(active, {})
+    urls = [state.get('pending_document_url'), current.get('url'), observation.get('url'),
+            (state.get('last_result') or {}).get('url')]
+    urls += [s.get('url') for s in reversed(state.get('sources', []))]
+    urls += re.findall(r"https?://[^\s<>\"']+", task)
+    return next((host_of(u) for u in urls if host_of(u)), '')
+
+
 async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = None, *, session: RunSession | None = None,
                     controller: BrowserController | None = None, completion_check=None, action_guard=None) -> dict:
     if runtime is None:
@@ -113,6 +124,7 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
     experience = ExperienceStore(config)
     learning_enabled = learning_settings(config)["enabled"]
     learning_method = None
+    repair_selections = []
     max_steps = int(settings.get("max_steps", 40))
     seen_progress: dict[str, int] = {}
     no_progress_limit = max(2, int(settings.get("browser_no_progress_hard", 8)))
@@ -174,14 +186,14 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
             memory_context["verified_experience"] = experience.recall(observation.get("url") if controller else (state["last_result"] or {}).get("url", ""))
             if learning_enabled:
                 learning_method = planner_method(config, runtime, model_settings)
-                urls = [observation.get("url"), (state["last_result"] or {}).get("url")]
-                urls += [s.get("url") for s in reversed(state["sources"])]
-                urls += re.findall(r"https?://[^\s<>\"']+", task)
-                host = next((host_of(u) for u in urls if host_of(u)), "")
+                host = planner_host(state, observation, task)
                 with PlaybookStore(config) as playbook:
                     recalled = playbook.recall(scope(config, "planner", learning_method, host), task)
                 memory_context["playbook_advice"] = recalled
-                state.setdefault("playbook_selections", []).append({"step": step, "entries": [
+                repair_selections = temporary_advice(config, state, learning_method)
+                memory_context["repair_advice"] = repair_selections
+                state.setdefault("playbook_selections", []).append({"step": step, "host": host,
+                    "source_id": state.get('active_document_source_id'), "entries": [
                     {"id": e["id"], "version": e["version"]} for e in recalled]})
             memory_context["run_notes"] = {"plan": state.get("plan", []), "decisions": state.get("decisions", [])[-4:],
                                            "reflections": state.get("reflections", [])[-2:]}
@@ -323,6 +335,7 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                      "action": action, "targetElement": target_element(observation, action),
                      "result": result, "strategyReviews": reviews, "sourceCount": len(state["sources"])}
             state["history"].append(entry)
+            record_repair_use(state, repair_selections, entry)
             state["last_result"] = result
             if runtime.document_tool_names and action['action'] == 'tool':
                 runtime.document_recovery().auxiliary(action)
@@ -331,6 +344,25 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
             previous_action = action
             recorder.write("action_result", {"step": step, "action": action, "result": result})
             session.checkpoint()
+            trigger = reflection_trigger(config, state) if learning_enabled and learning_method else None
+            if trigger:
+                # Reserve the trigger durably before any extra model call. Resume
+                # cannot repeatedly spend the reflection budget on unchanged output.
+                item = {**trigger, "method_hash": learning_method, "step": step, "status": "running"}
+                state.setdefault("repair_reflections", []).append(item)
+                session.checkpoint()
+                try:
+                    evidence = document_evidence(config, state, learning_method, runtime.documents, trigger["source_id"], runtime.registry.artifacts)
+                    reflected = await LearningService(config).reflect(evidence)
+                    item.update({k: v for k, v in reflected.items() if k != "source_id"})
+                    item["evidence_id"] = reflected.get("source_id")
+                except asyncio.CancelledError:
+                    item["status"] = "interrupted"
+                    raise
+                except Exception as exc:
+                    item.update(status="failed", error=type(exc).__name__ + ": " + str(exc)[:500])
+                recorder.write("repair_reflection", item)
+                session.checkpoint()
             await memory.add_entry(entry, task, model_settings)
             state["memory_snapshot"] = memory.snapshot()
             if site_memory:
@@ -386,8 +418,25 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
             finally:
                 await controller.close()
         try:
-            if learning_enabled and learning_method and state["status"] not in {"cancelled", "timeout"}:
-                state["playbook_learning"] = await LearningService(config).learn(run_evidence(config, state, learning_method), runtime=runtime)
+            if learning_enabled and learning_method and state["status"] not in {"cancelled", "timeout", "needs_input", "running"}:
+                source_ids = []
+                for source_id in state.get("document_recovery", {}):
+                    histories = [h for h in state["history"] if
+                        h.get("result", {}).get("source_id") == source_id]
+                    if learning_settings(config)["reflect_success"] or any(h.get("result", {}).get("review", {}).get("issues") for h in histories) or any(r['source_id'] == source_id for r in state.get('repair_reflections', [])):
+                        source_ids.append(source_id)
+                if source_ids:
+                    learned = []
+                    for source_id in source_ids:
+                        try:
+                            evidence = document_evidence(config, state, learning_method, runtime.documents, source_id, runtime.registry.artifacts)
+                            result = await LearningService(config).learn(evidence, runtime=runtime)
+                        except Exception as exc:
+                            result = {"status": "failed", "error": type(exc).__name__ + ': ' + str(exc)[:500]}
+                        learned.append({"document_source_id": source_id, **result})
+                    state["playbook_learning"] = {"status": "partial" if any(r['status'] in {'failed', 'deferred', 'interrupted'} for r in learned) else "completed", "sources": learned}
+                else:
+                    state["playbook_learning"] = await LearningService(config).learn(run_evidence(config, state, learning_method), runtime=runtime)
                 recorder.write("playbook_learning", state["playbook_learning"])
                 session.checkpoint()
         finally:

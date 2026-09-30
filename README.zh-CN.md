@@ -20,6 +20,12 @@ Cockpit 的请求级图片工具关闭、单步规划响应及后续实测见
 详见 [经验学习配置与实现边界](docs/PLAYBOOK_LEARNING.md)、[验收记录](docs/PLAYBOOK_VALIDATION.md)。
 MCP 共 36 个工具。
 
+需要在文档修复过程中启用 ACE 学习时，使用
+[documents-ace-gpt-6-luna.json](examples/documents-ace-gpt-6-luna.json)。独立 Reflector
+根据当前来源的真实失败提出建议，下一轮规划实际接收；Curator 生成的长期经验仍须
+通过独立对照回放后才能供后续任务召回。新增的回放会执行配方并检查输出，评审临时
+失败也有保留旧记录的有界重试入口。见 [ACE 文档学习说明](docs/ACE_DOCUMENT_LEARNING.md)。
+
 完整文档加工使用通用工具：检查结构、解码嵌入文档、由规划器根据原文生成 CSS/XPath/
 正则规则、预览校验、回放后导出 JSON。未选择的附表、注释及其他结构保留供检查。
 详见 [文档工具与问题诊断流程](docs/DOCUMENTS.md)、[真实执行与验收边界](docs/DOCUMENT_VALIDATION.md)。此前的专利法专用适配器已移除：

@@ -29,7 +29,12 @@ def trace_model(log, config):
         started = time.monotonic()
         payload = json.loads(request.content)
         instruction = payload.get('instructions') or (payload.get('messages') or [{}])[0].get('content') or ''
-        role = 'review' if isinstance(instruction, str) and instruction.startswith('Review ONE') else 'planner'
+        role = 'planner'
+        for prefix, name in (('Review ONE', 'review'), ('You are the procedural learning Reflector', 'reflector'),
+                             ('You are the procedural learning Curator', 'curator')):
+            if isinstance(instruction, str) and instruction.startswith(prefix):
+                role = name
+                break
         record = {'request': payload, 'role': role}
         try:
             response = await original(client, request, **kwargs)
@@ -58,12 +63,13 @@ def trace_model(log, config):
 
 def model_costs(wire):
     result = {}
-    for role in ('planner', 'review'):
+    for role in ('planner', 'review', 'reflector', 'curator'):
         records = [r for r in wire if r['role'] == role]
         tokens = [r.get('response', {}).get('usage', {}).get('prompt_tokens',
             r.get('response', {}).get('usage', {}).get('input_tokens')) for r in records]
         known = [v for v in tokens if isinstance(v, int)]
         result[role] = {'requests': len(records), 'failed_requests': sum(r['outcome'] == 'request_failed' for r in records),
+            'http_error_requests': sum(r.get('status_code', 0) >= 400 for r in records),
             'usage_known_requests': len(known), 'usage_missing_requests': len(records) - len(known),
             'input_tokens_total': sum(known) if known else None, 'input_tokens_max': max(known) if known else None,
             'input_tokens_mean': round(sum(known) / len(known), 1) if known else None,

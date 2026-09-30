@@ -1,0 +1,2797 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-01",
+  "implementation": "ACE-style source-bound document learning",
+  "reference": {
+    "paper": "https://arxiv.org/abs/2510.04618",
+    "author_code_commit": "82709de050e1db6e6ef2f07bcb0393560b94992a"
+  },
+  "service": {
+    "base_url": "http://localhost:15536/v1",
+    "model": "gpt-6-luna",
+    "endpoint": "/responses",
+    "credential": "environment-only"
+  },
+  "local_checks": {
+    "pytest_passed": 229,
+    "pytest_seconds": 91.21,
+    "pytest_exit_code": 0,
+    "pip_check": "No broken requirements found."
+  },
+  "preflight_regression": {
+    "budget": {
+      "model_capacity_tokens": null,
+      "context_window_tokens": 32768,
+      "reserved_output_tokens": 2048,
+      "prompt_budget_ratio": 0.85,
+      "available_prompt_tokens": 26112,
+      "chars_per_token": 2.6184316395370426,
+      "capacity_source": "fallback_32768",
+      "route": "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c"
+    },
+    "source_context_artifact": "59347ea6fe31eb8b39ed2cda2fd2b9ce71fdc705365123bd8da263893131516d.json",
+    "provider_calls": 0,
+    "review_preserved": true,
+    "repair_advice_preserved": true,
+    "before": {
+      "estimated_tokens": 26223,
+      "status": "failed",
+      "error": "Required task, plan, skill and tool context exceeds prompt budget; increase a supported soft limit or reduce tool/skill scope before resuming"
+    },
+    "after": {
+      "estimated_tokens": 22265,
+      "status": "committed",
+      "prepared_tokens": 17834
+    },
+    "evidence": {
+      "path": "logs/ace-diagnostics-20261001/frozen-preflight-check.json",
+      "bytes": 912,
+      "sha256": "7ec8a638fa8924d9b01f30569e3f18e3e83198e4e9caff4111a53bb5a28a3e38"
+    },
+    "meaning": "Exact frozen failed context and calibrated budget; no provider call; does not establish task success."
+  },
+  "soft_target_regression": {
+    "source_context_artifact": "29d3136f6063be49ac85c74589f66bfbac6c291909cb15bb98d97092f2cfb39f.json",
+    "budget": {
+      "model_capacity_tokens": null,
+      "context_window_tokens": 32768,
+      "reserved_output_tokens": 2048,
+      "prompt_budget_ratio": 0.85,
+      "available_prompt_tokens": 26112,
+      "chars_per_token": 2.6172953648915187,
+      "capacity_source": "fallback_32768",
+      "route": "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c"
+    },
+    "provider_calls": 0,
+    "performance_target_tokens": 18000,
+    "before": {
+      "status": "failed",
+      "error": "Required task, plan, skill and tool context exceeds prompt budget; increase a supported soft limit or reduce tool/skill scope before resuming"
+    },
+    "after": {
+      "status": "unchanged",
+      "estimated_tokens": 22356,
+      "actual_budget_tokens": 26112
+    },
+    "review_preserved": true,
+    "repair_advice_preserved": true,
+    "tool_schemas_preserved": true,
+    "evidence": {
+      "path": "logs/ace-diagnostics-20261001/soft-target-preflight-check.json",
+      "bytes": 961,
+      "sha256": "cc6678b5d380e5e154c0cbbf4639d3b3fd05c491182c65771af22b2dec847acc"
+    },
+    "meaning": "Exact second failed payload. Existing actual model budget can admit it; no capacity/reserve/ratio increase and no provider calls in the offline check."
+  },
+  "runs": [
+    {
+      "name": "controlled_before_json_cue",
+      "kind": "controlled_fixture",
+      "log_dir": "logs/live-ace-documents/20261001-ace-v1",
+      "delivery_dir": "deliveries/ace-documents/20261001-ace-v1",
+      "status": "completed",
+      "steps": 2,
+      "checks": {
+        "quoted_negative_review": true,
+        "separate_online_reflector": true,
+        "actual_repair_correct": true,
+        "effective_output_change": true,
+        "curator_created_candidate": true,
+        "source_bytes_unchanged": true,
+        "replay_admission_consistent": true
+      },
+      "all_scope_checks_passed": true,
+      "frozen_runtime_unchanged_at_completion": true,
+      "snapshot_matches_current_runtime": false,
+      "runtime_source_sha256": {
+        "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+        "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+        "cdp_browser_agent/browser/agent.py": "b9d3e05ab7616daef259f531b46e21578729a093fec037ec2fc428080d2653e8",
+        "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+        "cdp_browser_agent/browser/controller.py": "da0a1e8f79eeb802dfd8a08e668fb6a290c0484b53aaff9f5665a3c8d656baed",
+        "cdp_browser_agent/browser/default_config.py": "46054202efc4f7e41931dcce778f100797b4baef3031bc6047169f834205b43d",
+        "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+        "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+        "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+        "cdp_browser_agent/browser/planner.py": "e2a8624e24282fae35f6eea766dc85d03e0551948d05e62170b5d27b455a2434",
+        "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+        "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+        "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+        "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+        "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+        "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+        "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+        "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+        "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+        "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+        "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+        "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+        "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+        "cdp_browser_agent/documents/context.py": "cf1de2ddf613130a7c25a3ed42a326e0d7fedb2577b32ce5951961129e16cb53",
+        "cdp_browser_agent/documents/engine.py": "de4a01c03e1c77431a3f4260297336df165efda27fc057d83fa09528996ad1ad",
+        "cdp_browser_agent/documents/labels.py": "9d738c3c9a245440404ff8d7727e6a50958c1b35eeb128bb9c649135d30df667",
+        "cdp_browser_agent/documents/recovery.py": "88b3a020bcde80da71241ed5360ccc71633aeebddadbfd7363966b2094d61591",
+        "cdp_browser_agent/documents/review.py": "64282f742a1e09099e42b9dc7b4686ebefee76fb6f1cd0f8b2d6a59f8676bc51",
+        "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+        "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+        "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+        "cdp_browser_agent/harness/document_replay.py": "232a9eace3c9f29239d3c75b91cd9f36c0a35e556d3052f9ce48ffb922fae02b",
+        "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+        "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+        "cdp_browser_agent/harness/learning.py": "0b8ecfa5feb61ff1f05728b896893a24766abe6bf9f5f97f3faa8df004caa0d9",
+        "cdp_browser_agent/harness/playbook.py": "9cb11012b8cf2f5defe637dc283fb51cda144c1745f150bf703defc04b0193bc",
+        "cdp_browser_agent/harness/repair.py": "8ffc5f9adb6359d1a14de14942007491df09a3414c9b4a6089ec1a2a707d4015",
+        "cdp_browser_agent/harness/runtime.py": "905bf159df2187cf77aea060705c49f09cfedf27c17dd64b5c549d443253345b",
+        "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+        "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+        "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+        "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+        "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+        "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+        "cdp_browser_agent/model_client.py": "6d8780db9d30df03941f2938fca53691ebb4c1df41bc898a893b73cbf1998c80",
+        "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+        "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+        "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+        "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+        "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+        "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+        "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+        "cdp_browser_agent/web/extract.py": "c27d80667da4254e59814eea11784c9f53fd7f1e4dcbab3551ac303615d59a79",
+        "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+        "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+        "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+        "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+        "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+        "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+        "examples/documents-ace-gpt-6-luna.json": "d7d4b1d1140c2518a02909042cc5a91bb1c74b7d4d348709c5e8f09722776a20",
+        "scripts/live_ace_document_eval.py": "d4e1794284265c5f1922f8773a8be037f6c20baec00851b871e178d32f3d8985",
+        "scripts/live_document_eval_support.py": "b40a46a3367373e2c88b6d8b18b48122c3f09ea9867df433a31a8e6aba134b76"
+      },
+      "model_costs": {
+        "planner": {
+          "requests": 7,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 7,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 85165,
+          "input_tokens_max": 13747,
+          "input_tokens_mean": 12166.4,
+          "elapsed_seconds_total": 34.938,
+          "elapsed_seconds_mean": 4.991
+        },
+        "review": {
+          "requests": 20,
+          "failed_requests": 0,
+          "http_error_requests": 10,
+          "usage_known_requests": 10,
+          "usage_missing_requests": 10,
+          "input_tokens_total": 34534,
+          "input_tokens_max": 3640,
+          "input_tokens_mean": 3453.4,
+          "elapsed_seconds_total": 108.124,
+          "elapsed_seconds_mean": 5.406
+        },
+        "reflector": {
+          "requests": 2,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 2,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 6126,
+          "input_tokens_max": 3573,
+          "input_tokens_mean": 3063.0,
+          "elapsed_seconds_total": 9.672,
+          "elapsed_seconds_mean": 4.836
+        },
+        "curator": {
+          "requests": 2,
+          "failed_requests": 0,
+          "http_error_requests": 1,
+          "usage_known_requests": 1,
+          "usage_missing_requests": 1,
+          "input_tokens_total": 525,
+          "input_tokens_max": 525,
+          "input_tokens_mean": 525.0,
+          "elapsed_seconds_total": 7.157,
+          "elapsed_seconds_mean": 3.579
+        }
+      },
+      "cost_totals": {
+        "wire_requests": 31,
+        "http_status_counts": {
+          "400": 11,
+          "200": 20
+        },
+        "usage_known_requests": 20,
+        "usage_missing_requests": 11,
+        "known_input_tokens": 126350,
+        "known_output_tokens": 4866,
+        "wire_elapsed_seconds": 159.891,
+        "meaning": "Wire requests include failed HTTP responses. Unknown usage is missing, never zero. Elapsed sum is provider-call time, not task wall time or money."
+      },
+      "run_metrics": {
+        "model_calls": 20,
+        "model_seconds": 162.235,
+        "input_tokens": 126350,
+        "output_tokens": 4866,
+        "model_routes": {
+          "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c": {
+            "observed_chars_per_token": 3.1167086481947943,
+            "prompt_tokens": 3580
+          }
+        }
+      },
+      "online_reflections": [
+        {
+          "source_id": "f9f47ac3a10333d228f04d10509637e68cd1b723fd833edeb2c0932971ee4c95",
+          "job_id": "47a03291faba2ac649d6e0a43b8cdda67162bf1b91b9231cfe6b1dce309e5be4",
+          "status": "completed"
+        }
+      ],
+      "planner_decisions_with_temporary_advice": 1,
+      "actual_output_changes_after_advice": [
+        {
+          "step": 2,
+          "action_id": "A0002",
+          "effective_change": true,
+          "changed_spec_fields": [
+            "key_transforms"
+          ],
+          "changed_record_fields": [
+            "key"
+          ],
+          "review_accepted": true
+        }
+      ],
+      "evidence_files": [
+        {
+          "path": "logs/live-ace-documents/20261001-ace-v1/receipt.json",
+          "bytes": 20882,
+          "sha256": "6607be048f38732a5059de5b257039ebd655ab154ff80aa95805a692bd6110ae"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-v1/config.json",
+          "bytes": 5544,
+          "sha256": "7f3ac6d5cf75395cfedbe821c4f94d40558999be0f83440cbc9249717a21d998"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-v1/source-snapshot.zip",
+          "bytes": 222213,
+          "sha256": "3bcd64550c1d43d515c7189b815acc74c138ec6e08ade27b47a7d2171c6bb6f3"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-v1/model-wire.jsonl",
+          "bytes": 947941,
+          "sha256": "547ac2a8f338a0cf223bf2c93c65d70ed889919810fcf7d24e051ac3588274c8"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-v1/training-state.json",
+          "bytes": 38839,
+          "sha256": "adbe719ec635c80b8ede8851c3aeb80a4ebc006b64d324b2aacc94d1bcfaec10"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-v1/protocol.json",
+          "bytes": 1044,
+          "sha256": "ef2a246ea3de8dcc5fdaf58b04274ee96248d06e7808cdd982ab14786ed7daa4"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-v1/operator-replay-suite.json",
+          "bytes": 2422,
+          "sha256": "f6d163ce5886ad5e8daf471a667bf933438b2c4375f785fe1204682eb2ecd98b"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-v1/fresh-state.json",
+          "bytes": 24141,
+          "sha256": "daedba7f555684e7b9ac7f3cd728e935bdae375a69eff7ea1fec1d6153f53b3b"
+        }
+      ],
+      "exports": [],
+      "attempt": 1,
+      "resume_run_id": null,
+      "state_record_scope": "This standalone trial.",
+      "final_observed_action": {
+        "action": "tool",
+        "name": "document_preview",
+        "arguments": {
+          "source_id": "f9f47ac3a10333d228f04d10509637e68cd1b723fd833edeb2c0932971ee4c95",
+          "spec": {
+            "mode": "elements",
+            "selector": ".//Unit",
+            "title_selector": "Name",
+            "key_source": {
+              "attribute": "Code"
+            },
+            "key_transforms": [
+              {
+                "operation": "split",
+                "pattern": ","
+              }
+            ]
+          }
+        }
+      },
+      "termination_observation": null,
+      "saved_stop_reason_is_inherited": false,
+      "training_output": {
+        "passed": true,
+        "keys": [
+          "4",
+          "4A"
+        ],
+        "recipe": {
+          "mode": "elements",
+          "selector": ".//Unit",
+          "title_selector": "Name",
+          "key_source": {
+            "attribute": "Code"
+          },
+          "key_transforms": [
+            {
+              "operation": "split",
+              "pattern": ","
+            }
+          ]
+        },
+        "job_id": "fce9f9a1f0d0b7ceffa55109ab137d4147bfc563de3a779f2588722493f925dc",
+        "candidate_sha256": "15eaabbcdcd7f0e8da5f5ed540e45498836dbbc54ea4545e7da469baba66cc9b"
+      },
+      "fresh_output": {
+        "passed": true,
+        "keys": [
+          "39",
+          "39D"
+        ],
+        "recipe": {
+          "mode": "elements",
+          "selector": ".//Unit",
+          "key_source": {
+            "attribute": "Code"
+          },
+          "key_transforms": [
+            {
+              "operation": "split",
+              "pattern": ","
+            }
+          ],
+          "collection_key": "delta_equipment"
+        },
+        "job_id": "919cc19f1b7c46f1786497eca768e92b70bb064b959174741fd7d10ad755cb89",
+        "candidate_sha256": "ed7c30ac9af54346f72a6873dc490af760856c0a836c0f1d8ecb067df1fda3e0"
+      },
+      "promoted": false,
+      "fresh_task_adoption": false,
+      "fresh_advice_ids": [],
+      "replay_reports": [
+        {
+          "replay_id": "4e605ad4cfe24a25bdc36bfe2926cbdb",
+          "promoted": false,
+          "candidate_all_passed": true,
+          "cases": [
+            {
+              "input_sha256": "92ebd0543820b9b137b841a9aee7b3ebbbdb9090a7047ae80d28672bd111657a",
+              "baseline": {
+                "passed": true,
+                "initial_job_id": "2d05313d7a01e6c136c3cbe36fc45fa5b61183024761943005c85ba0ddfa69dc",
+                "checks": {
+                  "recipe_valid": true,
+                  "tree_conserved": true,
+                  "review_accepted": true,
+                  "keys_match": true,
+                  "bodies_match": true
+                },
+                "job_id": "fb6e2dc6526cd1410d9d30c09280bb82854b03fd6f3039602f493ee9b48f36be",
+                "candidate_sha256": "db37579a8ed69955298b234ec52bfe31bbe984200b3a66731e30b595da52770b",
+                "recipe": {
+                  "mode": "elements",
+                  "selector": ".//Unit",
+                  "title_selector": "Name",
+                  "key_source": {
+                    "attribute": "Code"
+                  },
+                  "key_transforms": [
+                    {
+                      "operation": "capture",
+                      "pattern": "^(.+)$"
+                    },
+                    {
+                      "operation": "split",
+                      "pattern": ","
+                    }
+                  ]
+                },
+                "keys": [
+                  "17",
+                  "17B"
+                ],
+                "source_unchanged": true,
+                "decision_count": 1,
+                "meaning": "Executed recipe repair on an operator fixture; not a full independent browser task. Baseline and candidate differ only in retained playbook context."
+              },
+              "candidate": {
+                "passed": true,
+                "initial_job_id": "2d05313d7a01e6c136c3cbe36fc45fa5b61183024761943005c85ba0ddfa69dc",
+                "checks": {
+                  "recipe_valid": true,
+                  "tree_conserved": true,
+                  "review_accepted": true,
+                  "keys_match": true,
+                  "bodies_match": true
+                },
+                "job_id": "9c492269d95fecd72606af666611d464c6b7665422560b17557a07b1eb5ea85f",
+                "candidate_sha256": "a4e51bc2d4e7c8f375266689a8b40608af02e1f7d7a596bb720cd16983abc37a",
+                "recipe": {
+                  "mode": "elements",
+                  "selector": ".//Unit",
+                  "title_selector": "Name",
+                  "key_source": {
+                    "attribute": "Code"
+                  },
+                  "key_transforms": [
+                    {
+                      "operation": "split",
+                      "pattern": ","
+                    }
+                  ]
+                },
+                "keys": [
+                  "17",
+                  "17B"
+                ],
+                "source_unchanged": true,
+                "decision_count": 1,
+                "meaning": "Executed recipe repair on an operator fixture; not a full independent browser task. Baseline and candidate differ only in retained playbook context."
+              }
+            },
+            {
+              "input_sha256": "6f90ec2b0d191b33ad4a1ded8292c4a7136fdcc87cf9680582b8db87bb6c8f55",
+              "baseline": {
+                "passed": true,
+                "initial_job_id": "98971cf65fbc8ff766e137d38d2ddc9c6cef7d376cf1465dfbf25f11dd3ba6be",
+                "checks": {
+                  "recipe_valid": true,
+                  "tree_conserved": true,
+                  "review_accepted": true,
+                  "keys_match": true,
+                  "bodies_match": true
+                },
+                "job_id": "89d387272baa88ce0d62d1f55a1466020c5057f354d66690a8849213d31c3155",
+                "candidate_sha256": "bf9929d1d165bbafecf0e5c11e16f533a83b91789fac85f7fd79f6be7087d246",
+                "recipe": {
+                  "mode": "elements",
+                  "selector": ".//Unit",
+                  "title_selector": "Name",
+                  "key_source": {
+                    "attribute": "Code"
+                  },
+                  "key_transforms": [
+                    {
+                      "operation": "split",
+                      "pattern": ","
+                    }
+                  ]
+                },
+                "keys": [
+                  "28",
+                  "28C"
+                ],
+                "source_unchanged": true,
+                "decision_count": 1,
+                "meaning": "Executed recipe repair on an operator fixture; not a full independent browser task. Baseline and candidate differ only in retained playbook context."
+              },
+              "candidate": {
+                "passed": true,
+                "initial_job_id": "98971cf65fbc8ff766e137d38d2ddc9c6cef7d376cf1465dfbf25f11dd3ba6be",
+                "checks": {
+                  "recipe_valid": true,
+                  "tree_conserved": true,
+                  "review_accepted": true,
+                  "keys_match": true,
+                  "bodies_match": true
+                },
+                "job_id": "89d387272baa88ce0d62d1f55a1466020c5057f354d66690a8849213d31c3155",
+                "candidate_sha256": "bf9929d1d165bbafecf0e5c11e16f533a83b91789fac85f7fd79f6be7087d246",
+                "recipe": {
+                  "mode": "elements",
+                  "selector": ".//Unit",
+                  "title_selector": "Name",
+                  "key_source": {
+                    "attribute": "Code"
+                  },
+                  "key_transforms": [
+                    {
+                      "operation": "split",
+                      "pattern": ","
+                    }
+                  ]
+                },
+                "keys": [
+                  "28",
+                  "28C"
+                ],
+                "source_unchanged": true,
+                "decision_count": 1,
+                "meaning": "Executed recipe repair on an operator fixture; not a full independent browser task. Baseline and candidate differ only in retained playbook context."
+              }
+            }
+          ]
+        }
+      ],
+      "entries_created": 1,
+      "interpretation": "Controlled initial failure repaired after temporary reflection; both paired replay variants pass, so no persistent admission or fresh-task adoption was established."
+    },
+    {
+      "name": "controlled_after_json_cue",
+      "kind": "controlled_fixture",
+      "log_dir": "logs/live-ace-documents/20261001-ace-final",
+      "delivery_dir": "deliveries/ace-documents/20261001-ace-final",
+      "status": "completed",
+      "steps": 2,
+      "checks": {
+        "quoted_negative_review": true,
+        "separate_online_reflector": true,
+        "actual_repair_correct": true,
+        "effective_output_change": true,
+        "curator_created_candidate": true,
+        "source_bytes_unchanged": true,
+        "replay_admission_consistent": true
+      },
+      "all_scope_checks_passed": true,
+      "frozen_runtime_unchanged_at_completion": true,
+      "snapshot_matches_current_runtime": false,
+      "runtime_source_sha256": {
+        "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+        "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+        "cdp_browser_agent/browser/agent.py": "10bf0fb0af0080d39550c55ccda7ec08295bb247b9e080a3f85e646f43c07813",
+        "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+        "cdp_browser_agent/browser/controller.py": "da0a1e8f79eeb802dfd8a08e668fb6a290c0484b53aaff9f5665a3c8d656baed",
+        "cdp_browser_agent/browser/default_config.py": "46054202efc4f7e41931dcce778f100797b4baef3031bc6047169f834205b43d",
+        "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+        "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+        "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+        "cdp_browser_agent/browser/planner.py": "e2a8624e24282fae35f6eea766dc85d03e0551948d05e62170b5d27b455a2434",
+        "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+        "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+        "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+        "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+        "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+        "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+        "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+        "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+        "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+        "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+        "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+        "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+        "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+        "cdp_browser_agent/documents/context.py": "cf1de2ddf613130a7c25a3ed42a326e0d7fedb2577b32ce5951961129e16cb53",
+        "cdp_browser_agent/documents/engine.py": "de4a01c03e1c77431a3f4260297336df165efda27fc057d83fa09528996ad1ad",
+        "cdp_browser_agent/documents/labels.py": "9d738c3c9a245440404ff8d7727e6a50958c1b35eeb128bb9c649135d30df667",
+        "cdp_browser_agent/documents/recovery.py": "88b3a020bcde80da71241ed5360ccc71633aeebddadbfd7363966b2094d61591",
+        "cdp_browser_agent/documents/review.py": "64282f742a1e09099e42b9dc7b4686ebefee76fb6f1cd0f8b2d6a59f8676bc51",
+        "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+        "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+        "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+        "cdp_browser_agent/harness/document_replay.py": "232a9eace3c9f29239d3c75b91cd9f36c0a35e556d3052f9ce48ffb922fae02b",
+        "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+        "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+        "cdp_browser_agent/harness/learning.py": "0b8ecfa5feb61ff1f05728b896893a24766abe6bf9f5f97f3faa8df004caa0d9",
+        "cdp_browser_agent/harness/playbook.py": "9cb11012b8cf2f5defe637dc283fb51cda144c1745f150bf703defc04b0193bc",
+        "cdp_browser_agent/harness/repair.py": "dde6200bf13ec41662e7fb1aa96a686bc854da4a7f35f970108106ded9cc9f25",
+        "cdp_browser_agent/harness/runtime.py": "905bf159df2187cf77aea060705c49f09cfedf27c17dd64b5c549d443253345b",
+        "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+        "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+        "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+        "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+        "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+        "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+        "cdp_browser_agent/model_client.py": "0554ef3f8238e16c2f04c6f1462fbc4d3ac498661b8882a10f5834f9ff325dc5",
+        "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+        "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+        "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+        "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+        "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+        "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+        "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+        "cdp_browser_agent/web/extract.py": "c27d80667da4254e59814eea11784c9f53fd7f1e4dcbab3551ac303615d59a79",
+        "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+        "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+        "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+        "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+        "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+        "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+        "examples/documents-ace-gpt-6-luna.json": "d7d4b1d1140c2518a02909042cc5a91bb1c74b7d4d348709c5e8f09722776a20",
+        "scripts/live_ace_document_eval.py": "d4e1794284265c5f1922f8773a8be037f6c20baec00851b871e178d32f3d8985",
+        "scripts/live_document_eval_support.py": "b40a46a3367373e2c88b6d8b18b48122c3f09ea9867df433a31a8e6aba134b76"
+      },
+      "model_costs": {
+        "planner": {
+          "requests": 7,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 7,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 85234,
+          "input_tokens_max": 13861,
+          "input_tokens_mean": 12176.3,
+          "elapsed_seconds_total": 50.171,
+          "elapsed_seconds_mean": 7.167
+        },
+        "review": {
+          "requests": 10,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 10,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 34599,
+          "input_tokens_max": 3644,
+          "input_tokens_mean": 3459.9,
+          "elapsed_seconds_total": 86.392,
+          "elapsed_seconds_mean": 8.639
+        },
+        "reflector": {
+          "requests": 2,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 2,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 6417,
+          "input_tokens_max": 3611,
+          "input_tokens_mean": 3208.5,
+          "elapsed_seconds_total": 11.937,
+          "elapsed_seconds_mean": 5.969
+        },
+        "curator": {
+          "requests": 1,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 1,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 554,
+          "input_tokens_max": 554,
+          "input_tokens_mean": 554.0,
+          "elapsed_seconds_total": 13.328,
+          "elapsed_seconds_mean": 13.328
+        }
+      },
+      "cost_totals": {
+        "wire_requests": 20,
+        "http_status_counts": {
+          "200": 20
+        },
+        "usage_known_requests": 20,
+        "usage_missing_requests": 0,
+        "known_input_tokens": 126804,
+        "known_output_tokens": 5324,
+        "wire_elapsed_seconds": 161.828,
+        "meaning": "Wire requests include failed HTTP responses. Unknown usage is missing, never zero. Elapsed sum is provider-call time, not task wall time or money."
+      },
+      "run_metrics": {
+        "model_calls": 20,
+        "model_seconds": 164.704,
+        "input_tokens": 126804,
+        "output_tokens": 5324,
+        "model_routes": {
+          "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c": {
+            "observed_chars_per_token": 3.2065909720299084,
+            "prompt_tokens": 3565
+          }
+        }
+      },
+      "online_reflections": [
+        {
+          "source_id": "f9f47ac3a10333d228f04d10509637e68cd1b723fd833edeb2c0932971ee4c95",
+          "job_id": "47a03291faba2ac649d6e0a43b8cdda67162bf1b91b9231cfe6b1dce309e5be4",
+          "status": "completed"
+        }
+      ],
+      "planner_decisions_with_temporary_advice": 1,
+      "actual_output_changes_after_advice": [
+        {
+          "step": 2,
+          "action_id": "A0002",
+          "effective_change": true,
+          "changed_spec_fields": [
+            "key_transforms"
+          ],
+          "changed_record_fields": [
+            "key"
+          ],
+          "review_accepted": true
+        }
+      ],
+      "evidence_files": [
+        {
+          "path": "logs/live-ace-documents/20261001-ace-final/receipt.json",
+          "bytes": 21545,
+          "sha256": "a9c27871dffa248088c336088835534be757006cba1dc1565362f077996c0cd1"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-final/config.json",
+          "bytes": 5565,
+          "sha256": "3b99621e1e63e8154a227e918217189680b1c364db2977ffb39e3d2c4be8d9d1"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-final/source-snapshot.zip",
+          "bytes": 222749,
+          "sha256": "776297bbe7574c319fe1ce5df03be5b7441bf088e3b11f7c4e341e9eba76cd97"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-final/model-wire.jsonl",
+          "bytes": 798593,
+          "sha256": "92b023deaa24e7e19f76cb6ae4ac6051b9acafdd96d06c80a10ff20ce6b7e5d2"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-final/training-state.json",
+          "bytes": 39587,
+          "sha256": "0475c75f5109f1f8f73c0071844090da95a5e3bc858d8e4c7f84442738437d25"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-final/protocol.json",
+          "bytes": 1044,
+          "sha256": "ef2a246ea3de8dcc5fdaf58b04274ee96248d06e7808cdd982ab14786ed7daa4"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-final/operator-replay-suite.json",
+          "bytes": 2422,
+          "sha256": "f6d163ce5886ad5e8daf471a667bf933438b2c4375f785fe1204682eb2ecd98b"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-final/fresh-state.json",
+          "bytes": 23922,
+          "sha256": "bb5e035a767bca404044b136aa407f54a7ec573401ebec23d9a6f0a17d6f8a6c"
+        }
+      ],
+      "exports": [],
+      "attempt": 1,
+      "resume_run_id": null,
+      "state_record_scope": "This standalone trial.",
+      "final_observed_action": {
+        "action": "tool",
+        "name": "document_preview",
+        "arguments": {
+          "source_id": "f9f47ac3a10333d228f04d10509637e68cd1b723fd833edeb2c0932971ee4c95",
+          "spec": {
+            "mode": "elements",
+            "selector": ".//Unit",
+            "title_selector": "Name",
+            "key_source": {
+              "attribute": "Code"
+            },
+            "key_transforms": [
+              {
+                "operation": "split",
+                "pattern": ","
+              }
+            ]
+          }
+        }
+      },
+      "termination_observation": null,
+      "saved_stop_reason_is_inherited": false,
+      "training_output": {
+        "passed": true,
+        "keys": [
+          "4",
+          "4A"
+        ],
+        "recipe": {
+          "mode": "elements",
+          "selector": ".//Unit",
+          "title_selector": "Name",
+          "key_source": {
+            "attribute": "Code"
+          },
+          "key_transforms": [
+            {
+              "operation": "split",
+              "pattern": ","
+            }
+          ]
+        },
+        "job_id": "fce9f9a1f0d0b7ceffa55109ab137d4147bfc563de3a779f2588722493f925dc",
+        "candidate_sha256": "15eaabbcdcd7f0e8da5f5ed540e45498836dbbc54ea4545e7da469baba66cc9b"
+      },
+      "fresh_output": {
+        "passed": true,
+        "keys": [
+          "39",
+          "39D"
+        ],
+        "recipe": {
+          "mode": "elements",
+          "selector": ".//Unit",
+          "key_source": {
+            "attribute": "Code"
+          },
+          "key_transforms": [
+            {
+              "operation": "split",
+              "pattern": ","
+            }
+          ],
+          "title_selector": "Name",
+          "body_selector": "Body",
+          "collection_key": "directory_units"
+        },
+        "job_id": "61d8ec77b73ed6b2aaf88ea321d36f597e074895245b6ce82d24cc1b89c5786a",
+        "candidate_sha256": "10f3b20889464008bdc40e2f26fb2accabc8e16f0bb9baa31bcb0b85a81cda96"
+      },
+      "promoted": false,
+      "fresh_task_adoption": false,
+      "fresh_advice_ids": [],
+      "replay_reports": [
+        {
+          "replay_id": "a4c55f03a747437aaa46dbebf7bc1ee0",
+          "promoted": false,
+          "candidate_all_passed": true,
+          "cases": [
+            {
+              "input_sha256": "92ebd0543820b9b137b841a9aee7b3ebbbdb9090a7047ae80d28672bd111657a",
+              "baseline": {
+                "passed": true,
+                "initial_job_id": "2d05313d7a01e6c136c3cbe36fc45fa5b61183024761943005c85ba0ddfa69dc",
+                "checks": {
+                  "recipe_valid": true,
+                  "tree_conserved": true,
+                  "review_accepted": true,
+                  "keys_match": true,
+                  "bodies_match": true
+                },
+                "job_id": "9c492269d95fecd72606af666611d464c6b7665422560b17557a07b1eb5ea85f",
+                "candidate_sha256": "a4e51bc2d4e7c8f375266689a8b40608af02e1f7d7a596bb720cd16983abc37a",
+                "recipe": {
+                  "mode": "elements",
+                  "selector": ".//Unit",
+                  "title_selector": "Name",
+                  "key_source": {
+                    "attribute": "Code"
+                  },
+                  "key_transforms": [
+                    {
+                      "operation": "split",
+                      "pattern": ","
+                    }
+                  ]
+                },
+                "keys": [
+                  "17",
+                  "17B"
+                ],
+                "source_unchanged": true,
+                "decision_count": 1,
+                "meaning": "Executed recipe repair on an operator fixture; not a full independent browser task. Baseline and candidate differ only in retained playbook context."
+              },
+              "candidate": {
+                "passed": true,
+                "initial_job_id": "2d05313d7a01e6c136c3cbe36fc45fa5b61183024761943005c85ba0ddfa69dc",
+                "checks": {
+                  "recipe_valid": true,
+                  "tree_conserved": true,
+                  "review_accepted": true,
+                  "keys_match": true,
+                  "bodies_match": true
+                },
+                "job_id": "1b52aa5e315bec3ba3ab388a45cb79a583a0b471442c06a66bbf91cca0df2d6f",
+                "candidate_sha256": "f49493533417c541184cfba70c0601bfc4336ad81e6ebdd10b055cefb79f7975",
+                "recipe": {
+                  "mode": "elements",
+                  "selector": ".//Unit",
+                  "title_selector": "Name",
+                  "key_source": {
+                    "attribute": "Code"
+                  },
+                  "key_transforms": [
+                    {
+                      "operation": "capture",
+                      "pattern": "^(.*)$"
+                    },
+                    {
+                      "operation": "split",
+                      "pattern": ","
+                    }
+                  ]
+                },
+                "keys": [
+                  "17",
+                  "17B"
+                ],
+                "source_unchanged": true,
+                "decision_count": 1,
+                "meaning": "Executed recipe repair on an operator fixture; not a full independent browser task. Baseline and candidate differ only in retained playbook context."
+              }
+            },
+            {
+              "input_sha256": "6f90ec2b0d191b33ad4a1ded8292c4a7136fdcc87cf9680582b8db87bb6c8f55",
+              "baseline": {
+                "passed": true,
+                "initial_job_id": "98971cf65fbc8ff766e137d38d2ddc9c6cef7d376cf1465dfbf25f11dd3ba6be",
+                "checks": {
+                  "recipe_valid": true,
+                  "tree_conserved": true,
+                  "review_accepted": true,
+                  "keys_match": true,
+                  "bodies_match": true
+                },
+                "job_id": "89d387272baa88ce0d62d1f55a1466020c5057f354d66690a8849213d31c3155",
+                "candidate_sha256": "bf9929d1d165bbafecf0e5c11e16f533a83b91789fac85f7fd79f6be7087d246",
+                "recipe": {
+                  "mode": "elements",
+                  "selector": ".//Unit",
+                  "title_selector": "Name",
+                  "key_source": {
+                    "attribute": "Code"
+                  },
+                  "key_transforms": [
+                    {
+                      "operation": "split",
+                      "pattern": ","
+                    }
+                  ]
+                },
+                "keys": [
+                  "28",
+                  "28C"
+                ],
+                "source_unchanged": true,
+                "decision_count": 1,
+                "meaning": "Executed recipe repair on an operator fixture; not a full independent browser task. Baseline and candidate differ only in retained playbook context."
+              },
+              "candidate": {
+                "passed": true,
+                "initial_job_id": "98971cf65fbc8ff766e137d38d2ddc9c6cef7d376cf1465dfbf25f11dd3ba6be",
+                "checks": {
+                  "recipe_valid": true,
+                  "tree_conserved": true,
+                  "review_accepted": true,
+                  "keys_match": true,
+                  "bodies_match": true
+                },
+                "job_id": "89d387272baa88ce0d62d1f55a1466020c5057f354d66690a8849213d31c3155",
+                "candidate_sha256": "bf9929d1d165bbafecf0e5c11e16f533a83b91789fac85f7fd79f6be7087d246",
+                "recipe": {
+                  "mode": "elements",
+                  "selector": ".//Unit",
+                  "title_selector": "Name",
+                  "key_source": {
+                    "attribute": "Code"
+                  },
+                  "key_transforms": [
+                    {
+                      "operation": "split",
+                      "pattern": ","
+                    }
+                  ]
+                },
+                "keys": [
+                  "28",
+                  "28C"
+                ],
+                "source_unchanged": true,
+                "decision_count": 1,
+                "meaning": "Executed recipe repair on an operator fixture; not a full independent browser task. Baseline and candidate differ only in retained playbook context."
+              }
+            }
+          ]
+        }
+      ],
+      "entries_created": 1,
+      "interpretation": "Controlled initial failure repaired after temporary reflection; both paired replay variants pass, so no persistent admission or fresh-task adoption was established."
+    },
+    {
+      "name": "unseeded_before_context_fix",
+      "kind": "unseeded_known_source_task",
+      "log_dir": "logs/live-generic-documents/20261001-ace-final",
+      "delivery_dir": "deliveries/generic-documents/20261001-ace-final",
+      "status": "incomplete",
+      "steps": 48,
+      "checks": {
+        "agent_completed": false,
+        "artifact_gate_passed": false,
+        "no_special_mcp_or_skill": true,
+        "source_code_unchanged": true,
+        "CN_exported": true,
+        "CN_has_articles": true,
+        "CN_all_text_hashes": true,
+        "CN_unique_record_ids": true,
+        "CN_source_tree_conserved": true,
+        "CN_all_article_boundaries": true,
+        "CN_each_heading_in_distinct_record": true,
+        "CN_all_continuation_paragraphs": true,
+        "CN_chapter_titles_not_body_paragraphs": true,
+        "CN_body_bound_to_own_article": true,
+        "US_exported": false,
+        "JP_exported": false
+      },
+      "all_scope_checks_passed": false,
+      "frozen_runtime_unchanged_at_completion": true,
+      "snapshot_matches_current_runtime": false,
+      "runtime_source_sha256": {
+        "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+        "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+        "cdp_browser_agent/browser/agent.py": "10bf0fb0af0080d39550c55ccda7ec08295bb247b9e080a3f85e646f43c07813",
+        "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+        "cdp_browser_agent/browser/controller.py": "da0a1e8f79eeb802dfd8a08e668fb6a290c0484b53aaff9f5665a3c8d656baed",
+        "cdp_browser_agent/browser/default_config.py": "46054202efc4f7e41931dcce778f100797b4baef3031bc6047169f834205b43d",
+        "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+        "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+        "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+        "cdp_browser_agent/browser/planner.py": "e2a8624e24282fae35f6eea766dc85d03e0551948d05e62170b5d27b455a2434",
+        "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+        "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+        "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+        "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+        "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+        "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+        "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+        "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+        "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+        "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+        "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+        "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+        "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+        "cdp_browser_agent/documents/context.py": "cf1de2ddf613130a7c25a3ed42a326e0d7fedb2577b32ce5951961129e16cb53",
+        "cdp_browser_agent/documents/engine.py": "de4a01c03e1c77431a3f4260297336df165efda27fc057d83fa09528996ad1ad",
+        "cdp_browser_agent/documents/labels.py": "9d738c3c9a245440404ff8d7727e6a50958c1b35eeb128bb9c649135d30df667",
+        "cdp_browser_agent/documents/recovery.py": "88b3a020bcde80da71241ed5360ccc71633aeebddadbfd7363966b2094d61591",
+        "cdp_browser_agent/documents/review.py": "64282f742a1e09099e42b9dc7b4686ebefee76fb6f1cd0f8b2d6a59f8676bc51",
+        "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+        "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+        "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+        "cdp_browser_agent/harness/document_replay.py": "232a9eace3c9f29239d3c75b91cd9f36c0a35e556d3052f9ce48ffb922fae02b",
+        "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+        "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+        "cdp_browser_agent/harness/learning.py": "0b8ecfa5feb61ff1f05728b896893a24766abe6bf9f5f97f3faa8df004caa0d9",
+        "cdp_browser_agent/harness/playbook.py": "9cb11012b8cf2f5defe637dc283fb51cda144c1745f150bf703defc04b0193bc",
+        "cdp_browser_agent/harness/repair.py": "dde6200bf13ec41662e7fb1aa96a686bc854da4a7f35f970108106ded9cc9f25",
+        "cdp_browser_agent/harness/runtime.py": "905bf159df2187cf77aea060705c49f09cfedf27c17dd64b5c549d443253345b",
+        "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+        "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+        "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+        "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+        "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+        "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+        "cdp_browser_agent/model_client.py": "0554ef3f8238e16c2f04c6f1462fbc4d3ac498661b8882a10f5834f9ff325dc5",
+        "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+        "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+        "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+        "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+        "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+        "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+        "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+        "cdp_browser_agent/web/extract.py": "c27d80667da4254e59814eea11784c9f53fd7f1e4dcbab3551ac303615d59a79",
+        "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+        "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+        "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+        "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+        "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+        "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+        "examples/documents-ace-gpt-6-luna.json": "d7d4b1d1140c2518a02909042cc5a91bb1c74b7d4d348709c5e8f09722776a20",
+        "scripts/live_document_eval_support.py": "b40a46a3367373e2c88b6d8b18b48122c3f09ea9867df433a31a8e6aba134b76",
+        "scripts/live_patent_laws_eval.py": "b801214c86f9d4c93ba8f62c65b29932a0e5fcf6217d8ca972a54bf8aa05b4f1"
+      },
+      "model_costs": {
+        "planner": {
+          "requests": 47,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 47,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 582761,
+          "input_tokens_max": 14861,
+          "input_tokens_mean": 12399.2,
+          "elapsed_seconds_total": 304.704,
+          "elapsed_seconds_mean": 6.483
+        },
+        "review": {
+          "requests": 2,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 2,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 35211,
+          "input_tokens_max": 19054,
+          "input_tokens_mean": 17605.5,
+          "elapsed_seconds_total": 28.922,
+          "elapsed_seconds_mean": 14.461
+        },
+        "reflector": {
+          "requests": 2,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 2,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 12327,
+          "input_tokens_max": 6164,
+          "input_tokens_mean": 6163.5,
+          "elapsed_seconds_total": 13.547,
+          "elapsed_seconds_mean": 6.774
+        },
+        "curator": {
+          "requests": 1,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 1,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 717,
+          "input_tokens_max": 717,
+          "input_tokens_mean": 717.0,
+          "elapsed_seconds_total": 11.86,
+          "elapsed_seconds_mean": 11.86
+        }
+      },
+      "cost_totals": {
+        "wire_requests": 52,
+        "http_status_counts": {
+          "200": 52
+        },
+        "usage_known_requests": 52,
+        "usage_missing_requests": 0,
+        "known_input_tokens": 631016,
+        "known_output_tokens": 9368,
+        "wire_elapsed_seconds": 359.033,
+        "meaning": "Wire requests include failed HTTP responses. Unknown usage is missing, never zero. Elapsed sum is provider-call time, not task wall time or money."
+      },
+      "run_metrics": {
+        "model_calls": 52,
+        "model_seconds": 360.548,
+        "input_tokens": 631016,
+        "output_tokens": 9368,
+        "model_routes": {
+          "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c": {
+            "observed_chars_per_token": 2.6184316395370426,
+            "prompt_tokens": 717
+          }
+        }
+      },
+      "online_reflections": [
+        {
+          "source_id": "1ba3bb1c9f4fb307676bea2150066289a713dad07e33341ae4594e888fdb841c",
+          "job_id": "6359f8b7eb28c0fdba012c1bdfb516016ce433917572ab88c66a0968107ec43b",
+          "step": 47,
+          "status": "completed"
+        }
+      ],
+      "planner_decisions_with_temporary_advice": 0,
+      "actual_output_changes_after_advice": [],
+      "evidence_files": [
+        {
+          "path": "logs/live-generic-documents/20261001-ace-final/receipt.json",
+          "bytes": 10682,
+          "sha256": "a78290d9545638869951ea5190c0481eabb57a0652bca65ea513520b0aaee56a"
+        },
+        {
+          "path": "logs/live-generic-documents/20261001-ace-final/config.json",
+          "bytes": 5556,
+          "sha256": "f07116f6b10ebf9b5f4c11a9ec4b1f77dcdd74d4a93ae04610254b1c471bc86f"
+        },
+        {
+          "path": "logs/live-generic-documents/20261001-ace-final/source-snapshot.zip",
+          "bytes": 223106,
+          "sha256": "757fa646c462d6fb7c09bd6dc85fb6e03c25121012fa5c024b871c88658c7621"
+        },
+        {
+          "path": "logs/live-generic-documents/20261001-ace-final/model-wire.jsonl",
+          "bytes": 3408543,
+          "sha256": "f6b44d4b35d13cee675beee31f52111e33230aebd2413660c4488a1c5126a988"
+        },
+        {
+          "path": "logs/live-generic-documents/20261001-ace-final/agent-state.json",
+          "bytes": 1092949,
+          "sha256": "370240957dcfff80ef2ae70eb30ff4b3ca44b8861502459d294a509ed9a60934"
+        }
+      ],
+      "exports": [
+        {
+          "path": "deliveries/generic-documents/20261001-ace-final/CN.json",
+          "bytes": 358035,
+          "sha256": "f2d9fb6af85ee7c5540e6974a6b588837df903517ef5345566f3a401ebe730d6"
+        },
+        {
+          "path": "deliveries/generic-documents/20261001-ace-final/laws.json",
+          "bytes": 385681,
+          "sha256": "a1f004c69ea42e1c3750f6a787d61cddc3ffaf342d8db1c98e078930891af990"
+        },
+        {
+          "path": "deliveries/generic-documents/20261001-ace-final/validation.json",
+          "bytes": 10682,
+          "sha256": "a78290d9545638869951ea5190c0481eabb57a0652bca65ea513520b0aaee56a"
+        }
+      ],
+      "attempt": 1,
+      "resume_run_id": null,
+      "state_record_scope": "This standalone trial.",
+      "final_observed_action": {
+        "action": "tool",
+        "name": "document_preview",
+        "arguments": {
+          "source_id": "1ba3bb1c9f4fb307676bea2150066289a713dad07e33341ae4594e888fdb841c",
+          "spec": {
+            "mode": "sections",
+            "selector": "h3.section-head, p.statutory-body",
+            "heading_selector": "h3.section-head",
+            "start_pattern": "^§\\s*\\d+",
+            "body_selector": "p.statutory-body",
+            "key_pattern": "^§\\s*([^\\.]+)\\.",
+            "collection_key": "articles",
+            "metadata": {
+              "jurisdiction": "US",
+              "source_title": "U.S.C. Title 35 - PATENTS",
+              "edition": "2024"
+            }
+          }
+        }
+      },
+      "termination_observation": "context_budget",
+      "saved_stop_reason_is_inherited": false,
+      "export_counts": {
+        "CN": 82
+      },
+      "browser_started": false,
+      "stop_details": {
+        "stopped_reason": "context_budget",
+        "playbook_learning": {
+          "status": "completed",
+          "sources": [
+            {
+              "document_source_id": "1ba3bb1c9f4fb307676bea2150066289a713dad07e33341ae4594e888fdb841c",
+              "status": "completed",
+              "source_id": "4a65cb36c9438d3ba8b097ba0a64df1743c0993b462eb8b045d32e0686c22262",
+              "reflections": {
+                "lessons": [
+                  {
+                    "trigger": "When a structured-document review finds repealed or renumbered headings retained only as annotations, or a heading groups multiple section numbers,",
+                    "guidance": "Revise the section-record extraction so each required section number becomes its own articles object, while preserving shared source for grouped numbers. In this US Code case, the recipe used `mode: sections`, `heading_selector: h3.section-head`, and `start_pattern: ^§\\s*\\d+`; the review specifically suggests testing omitted `start_pattern` when all selected headings must become records, and `key_separator` to split grouped identifiers. Preview the revised output and confirm the flagged headings actually produce independent records before resubmitting.",
+                    "avoid": "Do not treat an annotation attached to a neighboring record as satisfying the independent-record requirement, or assume a recipe change fixed the output without checking the resulting objects. This evidence supports a repair direction, not a verified repair.",
+                    "evidence_ids": [
+                      "A0047"
+                    ]
+                  },
+                  {
+                    "trigger": "When inspecting an unfamiliar structured document and an initial selector returns `empty_selection`,",
+                    "guidance": "Use `document_inspect` without a selector for a structure inventory, then choose selectors based on observed tags and classes; for XML, use observed descendant tags with `.//Tag`.",
+                    "avoid": "Do not repeat the failed selector; selectors are case-sensitive, and the subsequent successful inspections here do not establish that the initial CSS selector was appropriate.",
+                    "evidence_ids": [
+                      "A0014",
+                      "A0016"
+                    ]
+                  }
+                ]
+              },
+              "delta": {
+                "operations": [
+                  {
+                    "type": "ADD",
+                    "lesson": {
+                      "trigger": "When a structured-document review finds repealed or renumbered headings retained only as annotations, or a heading groups multiple section numbers,",
+                      "guidance": "Revise the section-record extraction so each required section number becomes its own articles object, while preserving shared source for grouped numbers. In this US Code case, the recipe used `mode: sections`, `heading_selector: h3.section-head`, and `start_pattern: ^§\\s*\\d+`; the review specifically suggests testing omitted `start_pattern` when all selected headings must become records, and `key_separator` to split grouped identifiers. Preview the revised output and confirm the flagged headings actually produce independent records before resubmitting.",
+                      "avoid": "Do not treat an annotation attached to a neighboring record as satisfying the independent-record requirement, or assume a recipe change fixed the output without checking the resulting objects. This evidence supports a repair direction, not a verified repair.",
+                      "evidence_ids": [
+                        "A0047"
+                      ]
+                    }
+                  },
+                  {
+                    "type": "ADD",
+                    "lesson": {
+                      "trigger": "When inspecting an unfamiliar structured document and an initial selector returns `empty_selection`,",
+                      "guidance": "Use `document_inspect` without a selector for a structure inventory, then choose selectors based on observed tags and classes; for XML, use observed descendant tags with `.//Tag`.",
+                      "avoid": "Do not repeat the failed selector; selectors are case-sensitive, and the subsequent successful inspections here do not establish that the initial CSS selector was appropriate.",
+                      "evidence_ids": [
+                        "A0014",
+                        "A0016"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "candidates": [
+                {
+                  "id": "3e418f98d4fbb6092b7a0b6e0a074171",
+                  "version": 1
+                },
+                {
+                  "id": "e589d3f2defc1412a1a703598f3da34f",
+                  "version": 1
+                }
+              ],
+              "replays": []
+            }
+          ]
+        }
+      },
+      "source_recovery": [
+        {
+          "source_id": "abca2c3706d9dddf1bbf8784051aba5f430cec691375f23a9359a085568eb08f",
+          "stage": "completed",
+          "revisions": 1,
+          "inspections": 5,
+          "unproductive_actions": 0,
+          "limitation": null
+        },
+        {
+          "source_id": "1ba3bb1c9f4fb307676bea2150066289a713dad07e33341ae4594e888fdb841c",
+          "stage": "revise",
+          "revisions": 1,
+          "inspections": 16,
+          "unproductive_actions": 0,
+          "limitation": null
+        },
+        {
+          "source_id": "ee3606d53f627868a10b1811b83d8d8db672940ce839e0f50e78345ebf30431d",
+          "stage": "derived",
+          "revisions": 0,
+          "inspections": 0,
+          "unproductive_actions": 0,
+          "limitation": null
+        },
+        {
+          "source_id": "f88b2b4e6d9b261d597789e9f4c16cbdc4dbb3b6f8979bd48c7d122f36aca31b",
+          "stage": "blocked",
+          "revisions": 0,
+          "inspections": 16,
+          "unproductive_actions": 4,
+          "limitation": "Source inspection limit reached without delivery."
+        }
+      ],
+      "active_playbook_selections": 0
+    },
+    {
+      "name": "controlled_current",
+      "kind": "controlled_fixture",
+      "log_dir": "logs/live-ace-documents/20261001-ace-repair",
+      "delivery_dir": "deliveries/ace-documents/20261001-ace-repair",
+      "status": "completed",
+      "steps": 2,
+      "checks": {
+        "quoted_negative_review": true,
+        "separate_online_reflector": true,
+        "actual_repair_correct": true,
+        "effective_output_change": true,
+        "curator_created_candidate": true,
+        "source_bytes_unchanged": true,
+        "replay_admission_consistent": true
+      },
+      "all_scope_checks_passed": true,
+      "frozen_runtime_unchanged_at_completion": true,
+      "snapshot_matches_current_runtime": false,
+      "runtime_source_sha256": {
+        "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+        "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+        "cdp_browser_agent/browser/agent.py": "23f5d472127d2959d3c76ae795e6d2acf797e57da0f3cd034dd43dbb682ecfb0",
+        "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+        "cdp_browser_agent/browser/controller.py": "da0a1e8f79eeb802dfd8a08e668fb6a290c0484b53aaff9f5665a3c8d656baed",
+        "cdp_browser_agent/browser/default_config.py": "46054202efc4f7e41931dcce778f100797b4baef3031bc6047169f834205b43d",
+        "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+        "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+        "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+        "cdp_browser_agent/browser/planner.py": "e2a8624e24282fae35f6eea766dc85d03e0551948d05e62170b5d27b455a2434",
+        "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+        "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+        "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+        "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+        "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+        "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+        "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+        "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+        "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+        "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+        "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+        "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+        "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+        "cdp_browser_agent/documents/context.py": "c1b245f8e135711b260f5df8ff4a6cea6b3ecb4a1608265913a607dc65ab605d",
+        "cdp_browser_agent/documents/engine.py": "de4a01c03e1c77431a3f4260297336df165efda27fc057d83fa09528996ad1ad",
+        "cdp_browser_agent/documents/labels.py": "9d738c3c9a245440404ff8d7727e6a50958c1b35eeb128bb9c649135d30df667",
+        "cdp_browser_agent/documents/recovery.py": "88b3a020bcde80da71241ed5360ccc71633aeebddadbfd7363966b2094d61591",
+        "cdp_browser_agent/documents/review.py": "64282f742a1e09099e42b9dc7b4686ebefee76fb6f1cd0f8b2d6a59f8676bc51",
+        "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+        "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+        "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+        "cdp_browser_agent/harness/document_replay.py": "232a9eace3c9f29239d3c75b91cd9f36c0a35e556d3052f9ce48ffb922fae02b",
+        "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+        "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+        "cdp_browser_agent/harness/learning.py": "245a02ec9e608407d64ea34a2c246741378ddec2b4f5e46b4fe3e1bb30074a57",
+        "cdp_browser_agent/harness/playbook.py": "9cb11012b8cf2f5defe637dc283fb51cda144c1745f150bf703defc04b0193bc",
+        "cdp_browser_agent/harness/repair.py": "37132f1e2db3dcc82121b94e8648a5aa4d62877839db8829c226bd06259d62c6",
+        "cdp_browser_agent/harness/runtime.py": "905bf159df2187cf77aea060705c49f09cfedf27c17dd64b5c549d443253345b",
+        "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+        "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+        "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+        "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+        "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+        "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+        "cdp_browser_agent/model_client.py": "0554ef3f8238e16c2f04c6f1462fbc4d3ac498661b8882a10f5834f9ff325dc5",
+        "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+        "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+        "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+        "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+        "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+        "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+        "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+        "cdp_browser_agent/web/extract.py": "c27d80667da4254e59814eea11784c9f53fd7f1e4dcbab3551ac303615d59a79",
+        "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+        "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+        "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+        "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+        "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+        "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+        "examples/documents-ace-gpt-6-luna.json": "d7d4b1d1140c2518a02909042cc5a91bb1c74b7d4d348709c5e8f09722776a20",
+        "scripts/live_ace_document_eval.py": "d4e1794284265c5f1922f8773a8be037f6c20baec00851b871e178d32f3d8985",
+        "scripts/live_document_eval_support.py": "b40a46a3367373e2c88b6d8b18b48122c3f09ea9867df433a31a8e6aba134b76"
+      },
+      "model_costs": {
+        "planner": {
+          "requests": 8,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 8,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 90317,
+          "input_tokens_max": 12792,
+          "input_tokens_mean": 11289.6,
+          "elapsed_seconds_total": 46.657,
+          "elapsed_seconds_mean": 5.832
+        },
+        "review": {
+          "requests": 10,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 10,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 34711,
+          "input_tokens_max": 3666,
+          "input_tokens_mean": 3471.1,
+          "elapsed_seconds_total": 77.94,
+          "elapsed_seconds_mean": 7.794
+        },
+        "reflector": {
+          "requests": 2,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 2,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 6825,
+          "input_tokens_max": 3892,
+          "input_tokens_mean": 3412.5,
+          "elapsed_seconds_total": 9.172,
+          "elapsed_seconds_mean": 4.586
+        },
+        "curator": {
+          "requests": 1,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 1,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 541,
+          "input_tokens_max": 541,
+          "input_tokens_mean": 541.0,
+          "elapsed_seconds_total": 5.203,
+          "elapsed_seconds_mean": 5.203
+        }
+      },
+      "cost_totals": {
+        "wire_requests": 21,
+        "http_status_counts": {
+          "200": 21
+        },
+        "usage_known_requests": 21,
+        "usage_missing_requests": 0,
+        "known_input_tokens": 132394,
+        "known_output_tokens": 4457,
+        "wire_elapsed_seconds": 138.972,
+        "meaning": "Wire requests include failed HTTP responses. Unknown usage is missing, never zero. Elapsed sum is provider-call time, not task wall time or money."
+      },
+      "run_metrics": {
+        "model_calls": 21,
+        "model_seconds": 141.643,
+        "input_tokens": 132394,
+        "output_tokens": 4457,
+        "model_routes": {
+          "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c": {
+            "observed_chars_per_token": 3.1772867420349433,
+            "prompt_tokens": 3554
+          }
+        }
+      },
+      "online_reflections": [
+        {
+          "source_id": "f9f47ac3a10333d228f04d10509637e68cd1b723fd833edeb2c0932971ee4c95",
+          "job_id": "47a03291faba2ac649d6e0a43b8cdda67162bf1b91b9231cfe6b1dce309e5be4",
+          "signal": "quoted_review",
+          "status": "completed"
+        }
+      ],
+      "planner_decisions_with_temporary_advice": 1,
+      "actual_output_changes_after_advice": [
+        {
+          "step": 2,
+          "action_id": "A0002",
+          "effective_change": true,
+          "changed_spec_fields": [
+            "key_transforms"
+          ],
+          "changed_record_fields": [
+            "key"
+          ],
+          "review_accepted": true
+        }
+      ],
+      "evidence_files": [
+        {
+          "path": "logs/live-ace-documents/20261001-ace-repair/receipt.json",
+          "bytes": 21044,
+          "sha256": "ce48eda3428d099fdc5ab503cb3b19b1d0a6350ade43ee1da257572a1f1d43e1"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-repair/config.json",
+          "bytes": 5572,
+          "sha256": "88a20f52a5a9e7a55543157fa2c62c309acb682e94340c40b7f40eb90b2b286e"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-repair/source-snapshot.zip",
+          "bytes": 223651,
+          "sha256": "1ad59544d66713af8843c8cc1d280f98e2e96b654958e86d86a42eac37ede0a5"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-repair/model-wire.jsonl",
+          "bytes": 826706,
+          "sha256": "a7202c7dbb638ade8316481f1c8f32e7805c0b55b23cea7bb08cc2abe1eabe57"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-repair/training-state.json",
+          "bytes": 38999,
+          "sha256": "41e7824fd23f0d9c0be6e4d4bb290341b221370290239f71e59a6ea53ac0b2a8"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-repair/protocol.json",
+          "bytes": 1044,
+          "sha256": "ef2a246ea3de8dcc5fdaf58b04274ee96248d06e7808cdd982ab14786ed7daa4"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-repair/operator-replay-suite.json",
+          "bytes": 2422,
+          "sha256": "f6d163ce5886ad5e8daf471a667bf933438b2c4375f785fe1204682eb2ecd98b"
+        },
+        {
+          "path": "logs/live-ace-documents/20261001-ace-repair/fresh-state.json",
+          "bytes": 26417,
+          "sha256": "5ed8d0709aec9edcacb9ff26777e1e370654bd92fffdf4c4ef915ec14b9d980a"
+        }
+      ],
+      "exports": [],
+      "attempt": 1,
+      "resume_run_id": null,
+      "state_record_scope": "This standalone trial.",
+      "final_observed_action": {
+        "action": "tool",
+        "name": "document_preview",
+        "arguments": {
+          "source_id": "f9f47ac3a10333d228f04d10509637e68cd1b723fd833edeb2c0932971ee4c95",
+          "spec": {
+            "mode": "elements",
+            "selector": ".//Unit",
+            "title_selector": "Name",
+            "key_source": {
+              "attribute": "Code"
+            },
+            "key_transforms": [
+              {
+                "operation": "split",
+                "pattern": ",\\s*"
+              }
+            ]
+          }
+        }
+      },
+      "termination_observation": null,
+      "saved_stop_reason_is_inherited": false,
+      "training_output": {
+        "passed": true,
+        "keys": [
+          "4",
+          "4A"
+        ],
+        "recipe": {
+          "mode": "elements",
+          "selector": ".//Unit",
+          "title_selector": "Name",
+          "key_source": {
+            "attribute": "Code"
+          },
+          "key_transforms": [
+            {
+              "operation": "split",
+              "pattern": ",\\s*"
+            }
+          ]
+        },
+        "job_id": "1b61fff132a8852beefb86a8f34469003a1cfde1d18638434f1e9847e3431c04",
+        "candidate_sha256": "bf0e628240e4bef709dc62de83cc27c04baead725cc35f8b3fcf0226a1966531"
+      },
+      "fresh_output": {
+        "passed": true,
+        "keys": [
+          "39",
+          "39D"
+        ],
+        "recipe": {
+          "mode": "elements",
+          "selector": ".//Unit",
+          "title_selector": "Name",
+          "body_selector": "Body",
+          "key_source": {
+            "attribute": "Code"
+          },
+          "key_transforms": [
+            {
+              "operation": "split",
+              "pattern": ","
+            }
+          ]
+        },
+        "job_id": "00ca4f3f8305edaeca2ee7509d05f119f1891114a372ef5cbbd7772b241e3cad",
+        "candidate_sha256": "e7f683dc4055a240aa942a6c967cab72c6c4bae5d089f27fd1305d26dba90d62"
+      },
+      "promoted": false,
+      "fresh_task_adoption": false,
+      "fresh_advice_ids": [],
+      "replay_reports": [
+        {
+          "replay_id": "07d5a1280baa496384ce146e5af3b27e",
+          "promoted": false,
+          "candidate_all_passed": true,
+          "cases": [
+            {
+              "input_sha256": "92ebd0543820b9b137b841a9aee7b3ebbbdb9090a7047ae80d28672bd111657a",
+              "baseline": {
+                "passed": true,
+                "initial_job_id": "2d05313d7a01e6c136c3cbe36fc45fa5b61183024761943005c85ba0ddfa69dc",
+                "checks": {
+                  "recipe_valid": true,
+                  "tree_conserved": true,
+                  "review_accepted": true,
+                  "keys_match": true,
+                  "bodies_match": true
+                },
+                "job_id": "9c492269d95fecd72606af666611d464c6b7665422560b17557a07b1eb5ea85f",
+                "candidate_sha256": "a4e51bc2d4e7c8f375266689a8b40608af02e1f7d7a596bb720cd16983abc37a",
+                "recipe": {
+                  "mode": "elements",
+                  "selector": ".//Unit",
+                  "title_selector": "Name",
+                  "key_source": {
+                    "attribute": "Code"
+                  },
+                  "key_transforms": [
+                    {
+                      "operation": "split",
+                      "pattern": ","
+                    }
+                  ]
+                },
+                "keys": [
+                  "17",
+                  "17B"
+                ],
+                "source_unchanged": true,
+                "decision_count": 1,
+                "meaning": "Executed recipe repair on an operator fixture; not a full independent browser task. Baseline and candidate differ only in retained playbook context."
+              },
+              "candidate": {
+                "passed": true,
+                "initial_job_id": "2d05313d7a01e6c136c3cbe36fc45fa5b61183024761943005c85ba0ddfa69dc",
+                "checks": {
+                  "recipe_valid": true,
+                  "tree_conserved": true,
+                  "review_accepted": true,
+                  "keys_match": true,
+                  "bodies_match": true
+                },
+                "job_id": "f49986d29c330adda4e18bb6acf8d904a0801258cc095f3732308a779c00dc14",
+                "candidate_sha256": "bce122db17de176fef279edbb8569915318653abd7326a9566f8044e2fb50ae8",
+                "recipe": {
+                  "mode": "elements",
+                  "selector": ".//Unit",
+                  "title_selector": "Name",
+                  "key_source": {
+                    "attribute": "Code"
+                  },
+                  "key_transforms": [
+                    {
+                      "operation": "split",
+                      "pattern": ",\\s*"
+                    }
+                  ]
+                },
+                "keys": [
+                  "17",
+                  "17B"
+                ],
+                "source_unchanged": true,
+                "decision_count": 1,
+                "meaning": "Executed recipe repair on an operator fixture; not a full independent browser task. Baseline and candidate differ only in retained playbook context."
+              }
+            },
+            {
+              "input_sha256": "6f90ec2b0d191b33ad4a1ded8292c4a7136fdcc87cf9680582b8db87bb6c8f55",
+              "baseline": {
+                "passed": true,
+                "initial_job_id": "98971cf65fbc8ff766e137d38d2ddc9c6cef7d376cf1465dfbf25f11dd3ba6be",
+                "checks": {
+                  "recipe_valid": true,
+                  "tree_conserved": true,
+                  "review_accepted": true,
+                  "keys_match": true,
+                  "bodies_match": true
+                },
+                "job_id": "1350f56e4f3eb4cb6652c7b524c60a228b45dd0fc5b1c1c410492a170fc98578",
+                "candidate_sha256": "b555b63cc5e8324cd6c21c74ebcc50aae6b804ea0e985d91e8f7d4130593ba63",
+                "recipe": {
+                  "mode": "elements",
+                  "selector": ".//Unit",
+                  "title_selector": "Name",
+                  "key_source": {
+                    "attribute": "Code"
+                  },
+                  "key_transforms": [
+                    {
+                      "operation": "capture",
+                      "pattern": "^(.+)$"
+                    },
+                    {
+                      "operation": "split",
+                      "pattern": ","
+                    }
+                  ]
+                },
+                "keys": [
+                  "28",
+                  "28C"
+                ],
+                "source_unchanged": true,
+                "decision_count": 1,
+                "meaning": "Executed recipe repair on an operator fixture; not a full independent browser task. Baseline and candidate differ only in retained playbook context."
+              },
+              "candidate": {
+                "passed": true,
+                "initial_job_id": "98971cf65fbc8ff766e137d38d2ddc9c6cef7d376cf1465dfbf25f11dd3ba6be",
+                "checks": {
+                  "recipe_valid": true,
+                  "tree_conserved": true,
+                  "review_accepted": true,
+                  "keys_match": true,
+                  "bodies_match": true
+                },
+                "job_id": "9dd9c0fe5e455116000820298cf76af52b445b5176ba4d7ac5bcb58260dea5a1",
+                "candidate_sha256": "ce45aea4b1148e8116ff6ec5250d5571e941b304593dfb55dc1b4c8f4e5609eb",
+                "recipe": {
+                  "mode": "elements",
+                  "selector": ".//Unit",
+                  "title_selector": "Name",
+                  "key_source": {
+                    "attribute": "Code"
+                  },
+                  "key_transforms": [
+                    {
+                      "operation": "split",
+                      "pattern": ",\\s*"
+                    }
+                  ]
+                },
+                "keys": [
+                  "28",
+                  "28C"
+                ],
+                "source_unchanged": true,
+                "decision_count": 1,
+                "meaning": "Executed recipe repair on an operator fixture; not a full independent browser task. Baseline and candidate differ only in retained playbook context."
+              }
+            }
+          ]
+        }
+      ],
+      "entries_created": 1,
+      "interpretation": "Controlled initial failure repaired after temporary reflection; both paired replay variants pass, so no persistent admission or fresh-task adoption was established."
+    },
+    {
+      "name": "unseeded_after_review_dedup",
+      "kind": "unseeded_known_source_task",
+      "log_dir": "logs/live-generic-documents/20261001-ace-repair",
+      "delivery_dir": "deliveries/generic-documents/20261001-ace-repair",
+      "status": "incomplete",
+      "steps": 51,
+      "checks": {
+        "agent_completed": false,
+        "artifact_gate_passed": false,
+        "no_special_mcp_or_skill": true,
+        "source_code_unchanged": true,
+        "CN_exported": true,
+        "CN_has_articles": true,
+        "CN_all_text_hashes": true,
+        "CN_unique_record_ids": true,
+        "CN_source_tree_conserved": true,
+        "CN_all_article_boundaries": true,
+        "CN_each_heading_in_distinct_record": true,
+        "CN_all_continuation_paragraphs": true,
+        "CN_chapter_titles_not_body_paragraphs": true,
+        "CN_body_bound_to_own_article": true,
+        "US_exported": false,
+        "JP_exported": true,
+        "JP_has_articles": true,
+        "JP_all_text_hashes": true,
+        "JP_unique_record_ids": true,
+        "JP_source_tree_conserved": true,
+        "JP_all_article_nodes": true,
+        "JP_grouped_article_ranges_separate": false,
+        "JP_each_article_source_preserved": true,
+        "JP_all_body_paragraphs": true,
+        "JP_body_bound_to_own_article": true,
+        "JP_captions_in_records": true,
+        "JP_appendix_table_retained": true,
+        "JP_source_revision_retained": true
+      },
+      "all_scope_checks_passed": false,
+      "frozen_runtime_unchanged_at_completion": true,
+      "snapshot_matches_current_runtime": false,
+      "runtime_source_sha256": {
+        "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+        "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+        "cdp_browser_agent/browser/agent.py": "23f5d472127d2959d3c76ae795e6d2acf797e57da0f3cd034dd43dbb682ecfb0",
+        "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+        "cdp_browser_agent/browser/controller.py": "da0a1e8f79eeb802dfd8a08e668fb6a290c0484b53aaff9f5665a3c8d656baed",
+        "cdp_browser_agent/browser/default_config.py": "46054202efc4f7e41931dcce778f100797b4baef3031bc6047169f834205b43d",
+        "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+        "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+        "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+        "cdp_browser_agent/browser/planner.py": "e2a8624e24282fae35f6eea766dc85d03e0551948d05e62170b5d27b455a2434",
+        "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+        "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+        "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+        "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+        "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+        "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+        "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+        "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+        "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+        "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+        "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+        "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+        "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+        "cdp_browser_agent/documents/context.py": "c1b245f8e135711b260f5df8ff4a6cea6b3ecb4a1608265913a607dc65ab605d",
+        "cdp_browser_agent/documents/engine.py": "de4a01c03e1c77431a3f4260297336df165efda27fc057d83fa09528996ad1ad",
+        "cdp_browser_agent/documents/labels.py": "9d738c3c9a245440404ff8d7727e6a50958c1b35eeb128bb9c649135d30df667",
+        "cdp_browser_agent/documents/recovery.py": "88b3a020bcde80da71241ed5360ccc71633aeebddadbfd7363966b2094d61591",
+        "cdp_browser_agent/documents/review.py": "64282f742a1e09099e42b9dc7b4686ebefee76fb6f1cd0f8b2d6a59f8676bc51",
+        "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+        "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+        "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+        "cdp_browser_agent/harness/document_replay.py": "232a9eace3c9f29239d3c75b91cd9f36c0a35e556d3052f9ce48ffb922fae02b",
+        "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+        "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+        "cdp_browser_agent/harness/learning.py": "245a02ec9e608407d64ea34a2c246741378ddec2b4f5e46b4fe3e1bb30074a57",
+        "cdp_browser_agent/harness/playbook.py": "9cb11012b8cf2f5defe637dc283fb51cda144c1745f150bf703defc04b0193bc",
+        "cdp_browser_agent/harness/repair.py": "37132f1e2db3dcc82121b94e8648a5aa4d62877839db8829c226bd06259d62c6",
+        "cdp_browser_agent/harness/runtime.py": "905bf159df2187cf77aea060705c49f09cfedf27c17dd64b5c549d443253345b",
+        "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+        "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+        "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+        "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+        "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+        "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+        "cdp_browser_agent/model_client.py": "0554ef3f8238e16c2f04c6f1462fbc4d3ac498661b8882a10f5834f9ff325dc5",
+        "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+        "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+        "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+        "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+        "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+        "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+        "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+        "cdp_browser_agent/web/extract.py": "c27d80667da4254e59814eea11784c9f53fd7f1e4dcbab3551ac303615d59a79",
+        "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+        "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+        "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+        "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+        "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+        "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+        "examples/documents-ace-gpt-6-luna.json": "d7d4b1d1140c2518a02909042cc5a91bb1c74b7d4d348709c5e8f09722776a20",
+        "scripts/live_document_eval_support.py": "b40a46a3367373e2c88b6d8b18b48122c3f09ea9867df433a31a8e6aba134b76",
+        "scripts/live_patent_laws_eval.py": "b801214c86f9d4c93ba8f62c65b29932a0e5fcf6217d8ca972a54bf8aa05b4f1"
+      },
+      "model_costs": {
+        "planner": {
+          "requests": 50,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 50,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 619337,
+          "input_tokens_max": 14901,
+          "input_tokens_mean": 12386.7,
+          "elapsed_seconds_total": 358.31,
+          "elapsed_seconds_mean": 7.166
+        },
+        "review": {
+          "requests": 5,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 5,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 89646,
+          "input_tokens_max": 19536,
+          "input_tokens_mean": 17929.2,
+          "elapsed_seconds_total": 53.485,
+          "elapsed_seconds_mean": 10.697
+        },
+        "reflector": {
+          "requests": 5,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 5,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 53164,
+          "input_tokens_max": 12540,
+          "input_tokens_mean": 10632.8,
+          "elapsed_seconds_total": 47.391,
+          "elapsed_seconds_mean": 9.478
+        },
+        "curator": {
+          "requests": 2,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 2,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 1493,
+          "input_tokens_max": 854,
+          "input_tokens_mean": 746.5,
+          "elapsed_seconds_total": 31.75,
+          "elapsed_seconds_mean": 15.875
+        }
+      },
+      "cost_totals": {
+        "wire_requests": 62,
+        "http_status_counts": {
+          "200": 62
+        },
+        "usage_known_requests": 62,
+        "usage_missing_requests": 0,
+        "known_input_tokens": 763640,
+        "known_output_tokens": 14334,
+        "wire_elapsed_seconds": 490.936,
+        "meaning": "Wire requests include failed HTTP responses. Unknown usage is missing, never zero. Elapsed sum is provider-call time, not task wall time or money."
+      },
+      "run_metrics": {
+        "model_calls": 62,
+        "model_seconds": 494.448,
+        "input_tokens": 763640,
+        "output_tokens": 14334,
+        "model_routes": {
+          "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c": {
+            "observed_chars_per_token": 2.6172953648915187,
+            "prompt_tokens": 854
+          }
+        }
+      },
+      "online_reflections": [
+        {
+          "source_id": "b5c491cbc05dd65abb4ea4690d07d4a5713ace174b99fc5cf3b70b10c7dbf436",
+          "job_id": "7f60e076ff5c4fd043b1885c42f90a93df355b12bfaf26b117b8f7f63a7b3ce6",
+          "step": 8,
+          "signal": "quoted_review",
+          "status": "completed"
+        },
+        {
+          "source_id": "a5dabd61fecd3894fd7bf34da3607aa856fa0ef2b1cc23b2c24e6fbb4680f5b2",
+          "job_id": "6dd1de221ed60022769ac485799731e618c423724bea46a76c2e17d194648dac",
+          "step": 32,
+          "signal": "quoted_review",
+          "status": "completed"
+        },
+        {
+          "source_id": "a5dabd61fecd3894fd7bf34da3607aa856fa0ef2b1cc23b2c24e6fbb4680f5b2",
+          "job_id": "dc1689b8a766ae90127b1f63ec81843f5a2ee9d3227d9746b6d15c466d38106b",
+          "step": 33,
+          "signal": "quoted_review",
+          "status": "completed"
+        }
+      ],
+      "planner_decisions_with_temporary_advice": 9,
+      "actual_output_changes_after_advice": [
+        {
+          "step": 13,
+          "action_id": "A0013",
+          "effective_change": true,
+          "changed_spec_fields": [
+            "exclude_pattern"
+          ],
+          "changed_record_fields": [
+            "paragraphs",
+            "source_paths",
+            "text"
+          ],
+          "review_accepted": true
+        },
+        {
+          "step": 33,
+          "action_id": "A0033",
+          "effective_change": true,
+          "changed_spec_fields": [
+            "body_selector"
+          ],
+          "changed_record_fields": [
+            "annotations",
+            "paragraphs",
+            "text"
+          ],
+          "review_accepted": false
+        }
+      ],
+      "evidence_files": [
+        {
+          "path": "logs/live-generic-documents/20261001-ace-repair/receipt.json",
+          "bytes": 11660,
+          "sha256": "6c6ea6a0997dd7b979bb78741970305d3dc9ef283e8baf330024f580276ba072"
+        },
+        {
+          "path": "logs/live-generic-documents/20261001-ace-repair/config.json",
+          "bytes": 5562,
+          "sha256": "fbc29007dd8d631b5688ab7d2ea07f94c68b65d6ab86cd533ebd9bac90e87d6f"
+        },
+        {
+          "path": "logs/live-generic-documents/20261001-ace-repair/source-snapshot.zip",
+          "bytes": 224008,
+          "sha256": "7ca69d2730dd99f7d86cbd53b308362bcc647ea3b209ffc3c8d4b6057f9cc8a3"
+        },
+        {
+          "path": "logs/live-generic-documents/20261001-ace-repair/model-wire.jsonl",
+          "bytes": 4083913,
+          "sha256": "ed949f11181ef1929e9454227c79b847d65b25f46364013d3761513acb800945"
+        },
+        {
+          "path": "logs/live-generic-documents/20261001-ace-repair/agent-state.json",
+          "bytes": 1183326,
+          "sha256": "d4c6867b793fc29bb5a03a9d3e7daab104a8b2a03474b49aec594e387298ee09"
+        }
+      ],
+      "exports": [
+        {
+          "path": "deliveries/generic-documents/20261001-ace-repair/CN.json",
+          "bytes": 358148,
+          "sha256": "448c7ef02f80ce493e5c41b6d0b8de794ccdb99ad4ec41b086fb7e0753f6b466"
+        },
+        {
+          "path": "deliveries/generic-documents/20261001-ace-repair/JP.json",
+          "bytes": 5663324,
+          "sha256": "7e01140eaa5cf2fc79e14f800d5268c830556b64e3ec08da7e6e7a4120b365eb"
+        },
+        {
+          "path": "deliveries/generic-documents/20261001-ace-repair/laws.json",
+          "bytes": 6452423,
+          "sha256": "dff132692d9cbd7de01d53ce39e10a32cfaf2ad9596062a907b4ee58b061a15c"
+        },
+        {
+          "path": "deliveries/generic-documents/20261001-ace-repair/validation.json",
+          "bytes": 11660,
+          "sha256": "6c6ea6a0997dd7b979bb78741970305d3dc9ef283e8baf330024f580276ba072"
+        }
+      ],
+      "attempt": 1,
+      "resume_run_id": null,
+      "state_record_scope": "This standalone trial.",
+      "final_observed_action": {
+        "action": "tool",
+        "name": "document_review",
+        "arguments": {
+          "job_id": "b0a7b4830447417539bd1845d61b7bfd428910370b9e6f631cccb7404a2a16b9",
+          "offset": 0,
+          "limit": 5
+        }
+      },
+      "termination_observation": "context_budget",
+      "saved_stop_reason_is_inherited": false,
+      "export_counts": {
+        "CN": 82,
+        "JP": 464
+      },
+      "browser_started": false,
+      "stop_details": {
+        "stopped_reason": "context_budget",
+        "playbook_learning": {
+          "status": "completed",
+          "sources": [
+            {
+              "document_source_id": "b5c491cbc05dd65abb4ea4690d07d4a5713ace174b99fc5cf3b70b10c7dbf436",
+              "status": "completed",
+              "source_id": "c583b95e4c435e9106a0258055ac84210766150225dd89dba90bc6bbffff925b",
+              "reflections": {
+                "lessons": [
+                  {
+                    "trigger": "When section extraction from an HTML law puts chapter headings into an article body, and the source uses the same selected paragraph units for headings and article text",
+                    "guidance": "Use document_inspect to confirm the heading and article units, then revise document_preview in sections mode with an exclude_pattern for chapter headings (for example, ^第[一二三四五六七八九十百千〇零两0-9]+章), while retaining the article start/key patterns and collection_key=\"articles\". Check the revised preview’s changed source paths and independent review before document_export; here the exclusion changed affected article text without changing the 82-record count and was accepted.",
+                    "avoid": "Do not use start_pattern to turn a chapter heading into a new article record. Excluding headings keeps them out of the articles collection, so separately verify that the requested output preserves needed structural material; do not infer completeness for other laws or requirements from this single accepted review.",
+                    "evidence_ids": [
+                      "A0003",
+                      "A0004",
+                      "A0007",
+                      "A0008",
+                      "A0013",
+                      "A0014"
+                    ]
+                  }
+                ]
+              },
+              "delta": {
+                "operations": [
+                  {
+                    "type": "ADD",
+                    "lesson": {
+                      "trigger": "When section extraction from an HTML law puts chapter headings into article bodies because headings and article text use the same selected paragraph units",
+                      "guidance": "Use document_inspect to confirm the heading and article units, then revise document_preview in sections mode with an exclude_pattern for chapter headings (for example, ^第[一二三四五六七八九十百千〇零两0-9]+章), while retaining the article start/key patterns and collection_key=\"articles\". Check the revised preview’s changed source paths and independent review before document_export; in the reviewed case, the exclusion changed affected article text without changing the 82-record count and was accepted.",
+                      "avoid": "Do not use start_pattern to turn a chapter heading into a new article record. Excluding headings keeps them out of the articles collection, so separately verify that the requested output preserves needed structural material; do not infer completeness for other laws or requirements from a single accepted review.",
+                      "evidence_ids": [
+                        "A0003",
+                        "A0004",
+                        "A0007",
+                        "A0008",
+                        "A0013",
+                        "A0014"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "candidates": [
+                {
+                  "id": "756c29ffdb709bcca6b7197b5a7d6a77",
+                  "version": 1
+                }
+              ],
+              "replays": []
+            },
+            {
+              "document_source_id": "a5dabd61fecd3894fd7bf34da3607aa856fa0ef2b1cc23b2c24e6fbb4680f5b2",
+              "status": "completed",
+              "source_id": "0a8ed53f7ce43eb913d0a091434f907098a2df3d6c1d0f387988c6f01bfeae85",
+              "reflections": {
+                "lessons": [
+                  {
+                    "trigger": "When extracting U.S. Code sections from GovInfo HTML, where headings can group multiple section numbers and paragraphs use the class `note-body`.",
+                    "guidance": "Inspect the source structure with `document_inspect` (for example, `h3.section-head` and `p.note-body`) before designing the recipe. Exclude `note-body` from statutory body text only if the output actually moves that material into annotations. For grouped headings such as a repealed-section heading, use a splitting method that creates a separate article object for each observed section number while retaining their common source. Then use `document_preview` to verify both the generated objects and the body/annotation partition; an effective output change is not by itself evidence that the review findings are fixed.",
+                    "avoid": "Do not treat a grouped heading as a single record or leave it only as an adjacent record’s annotation when each section needs its own object. Do not assume `key_separator` works: here adding it changed no output, and `body_selector: p:not(.note-body)` changed output but did not resolve the grouped-heading finding. Stop rather than retry after the source repair budget is exhausted.",
+                    "evidence_ids": [
+                      "A0027",
+                      "A0034",
+                      "A0033",
+                      "A0035",
+                      "A0050"
+                    ]
+                  },
+                  {
+                    "trigger": "When a document review identifies a concrete recipe defect, and later inspection or review is blocked by a source limit.",
+                    "guidance": "Use the cited review finding and observed source values to plan a distinct next operation, then verify its actual output with the registered preview/review tools before claiming resolution. If inspection is blocked, report the saved limitation and leave the result incomplete rather than treating an unchanged retry or a recipe-only edit as recovery.",
+                    "avoid": "Do not repeat an inspection after `document_inspect` reports `recovery_action_required`; here the source was already at its inspection limit, and the subsequent `document_review` confirmed the repair budget was exhausted. Do not claim completion or retain unexecuted repair advice as a verified lesson.",
+                    "evidence_ids": [
+                      "A0033",
+                      "A0035",
+                      "A0036",
+                      "A0050"
+                    ]
+                  }
+                ]
+              },
+              "delta": {
+                "operations": [
+                  {
+                    "type": "ADD",
+                    "lesson": {
+                      "trigger": "When extracting U.S. Code sections from GovInfo HTML whose headings may group multiple section numbers and whose paragraphs use the class `note-body`.",
+                      "guidance": "Inspect the source structure with `document_inspect` (for example, `h3.section-head` and `p.note-body`) before designing the recipe. Exclude `note-body` from statutory body text only if that material is actually moved into annotations. For a grouped heading, use a splitting method that creates a separate article object for each observed section number while retaining their common source. Use `document_preview` to verify both the generated objects and the body/annotation partition; an effective output change alone does not show that review findings are fixed.",
+                      "avoid": "Do not treat a grouped heading as a single record or leave it only as an adjacent record’s annotation when each section needs its own object. Do not assume `key_separator` works: adding it changed no output, and `body_selector: p:not(.note-body)` changed output but did not resolve the grouped-heading finding. Stop when the source repair budget is exhausted.",
+                      "evidence_ids": [
+                        "A0027",
+                        "A0033",
+                        "A0034",
+                        "A0035",
+                        "A0050"
+                      ]
+                    }
+                  },
+                  {
+                    "type": "ADD",
+                    "lesson": {
+                      "trigger": "When a document review identifies a concrete recipe defect and later inspection or review is blocked by a source limit.",
+                      "guidance": "Use the cited review finding and observed source values to plan a distinct next operation, then verify its actual output with the registered preview or review tools before claiming resolution. If inspection is blocked, report the saved limitation and leave the result incomplete.",
+                      "avoid": "Do not repeat inspection after `document_inspect` reports `recovery_action_required`; the source may already be at its inspection limit. Do not treat an unchanged retry or a recipe-only edit as recovery, or claim completion without verification.",
+                      "evidence_ids": [
+                        "A0033",
+                        "A0035",
+                        "A0036",
+                        "A0050"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "candidates": [
+                {
+                  "id": "afe6c0ae94af622d7973b89ba970cb63",
+                  "version": 1
+                },
+                {
+                  "id": "b349dc19b837dd18bef503d47b9f5d66",
+                  "version": 1
+                }
+              ],
+              "replays": []
+            }
+          ]
+        }
+      },
+      "source_recovery": [
+        {
+          "source_id": "b5c491cbc05dd65abb4ea4690d07d4a5713ace174b99fc5cf3b70b10c7dbf436",
+          "stage": "completed",
+          "revisions": 3,
+          "inspections": 6,
+          "unproductive_actions": 0,
+          "limitation": null
+        },
+        {
+          "source_id": "a5dabd61fecd3894fd7bf34da3607aa856fa0ef2b1cc23b2c24e6fbb4680f5b2",
+          "stage": "blocked",
+          "revisions": 4,
+          "inspections": 16,
+          "unproductive_actions": 1,
+          "limitation": "Source inspection limit reached without delivery."
+        },
+        {
+          "source_id": "a614e25e6687226ea6baa374a7d999315ce59a824d5da035762fdeb422884278",
+          "stage": "derived",
+          "revisions": 0,
+          "inspections": 2,
+          "unproductive_actions": 0,
+          "limitation": null
+        },
+        {
+          "source_id": "71cf22b51c8092657a9d6062e56829f8f374c6134403f1dc171abbce60027ed1",
+          "stage": "completed",
+          "revisions": 1,
+          "inspections": 7,
+          "unproductive_actions": 0,
+          "limitation": null
+        }
+      ],
+      "active_playbook_selections": 0
+    },
+    {
+      "name": "unseeded_resume_soft_target_fix",
+      "kind": "unseeded_known_source_task",
+      "log_dir": "logs/live-generic-documents/20261001-ace-repair/attempt-2",
+      "delivery_dir": "deliveries/generic-documents/20261001-ace-repair/attempt-2",
+      "status": "incomplete",
+      "steps": 59,
+      "checks": {
+        "agent_completed": false,
+        "artifact_gate_passed": false,
+        "no_special_mcp_or_skill": true,
+        "source_code_unchanged": true,
+        "CN_exported": true,
+        "CN_has_articles": true,
+        "CN_all_text_hashes": true,
+        "CN_unique_record_ids": true,
+        "CN_source_tree_conserved": true,
+        "CN_all_article_boundaries": true,
+        "CN_each_heading_in_distinct_record": true,
+        "CN_all_continuation_paragraphs": true,
+        "CN_chapter_titles_not_body_paragraphs": true,
+        "CN_body_bound_to_own_article": true,
+        "US_exported": false,
+        "JP_exported": true,
+        "JP_has_articles": true,
+        "JP_all_text_hashes": true,
+        "JP_unique_record_ids": true,
+        "JP_source_tree_conserved": true,
+        "JP_all_article_nodes": true,
+        "JP_grouped_article_ranges_separate": false,
+        "JP_each_article_source_preserved": true,
+        "JP_all_body_paragraphs": true,
+        "JP_body_bound_to_own_article": true,
+        "JP_captions_in_records": true,
+        "JP_appendix_table_retained": true,
+        "JP_source_revision_retained": true
+      },
+      "all_scope_checks_passed": false,
+      "frozen_runtime_unchanged_at_completion": true,
+      "snapshot_matches_current_runtime": true,
+      "runtime_source_sha256": {
+        "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+        "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+        "cdp_browser_agent/browser/agent.py": "23f5d472127d2959d3c76ae795e6d2acf797e57da0f3cd034dd43dbb682ecfb0",
+        "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+        "cdp_browser_agent/browser/controller.py": "da0a1e8f79eeb802dfd8a08e668fb6a290c0484b53aaff9f5665a3c8d656baed",
+        "cdp_browser_agent/browser/default_config.py": "46054202efc4f7e41931dcce778f100797b4baef3031bc6047169f834205b43d",
+        "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+        "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+        "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+        "cdp_browser_agent/browser/planner.py": "0e76ece6187392f7edebf21354a64f28808b6c43145ec79b25d0e0ca4414ff48",
+        "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+        "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+        "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+        "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+        "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+        "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+        "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+        "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+        "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+        "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+        "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+        "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+        "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+        "cdp_browser_agent/documents/context.py": "c1b245f8e135711b260f5df8ff4a6cea6b3ecb4a1608265913a607dc65ab605d",
+        "cdp_browser_agent/documents/engine.py": "de4a01c03e1c77431a3f4260297336df165efda27fc057d83fa09528996ad1ad",
+        "cdp_browser_agent/documents/labels.py": "9d738c3c9a245440404ff8d7727e6a50958c1b35eeb128bb9c649135d30df667",
+        "cdp_browser_agent/documents/recovery.py": "88b3a020bcde80da71241ed5360ccc71633aeebddadbfd7363966b2094d61591",
+        "cdp_browser_agent/documents/review.py": "64282f742a1e09099e42b9dc7b4686ebefee76fb6f1cd0f8b2d6a59f8676bc51",
+        "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+        "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+        "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+        "cdp_browser_agent/harness/document_replay.py": "232a9eace3c9f29239d3c75b91cd9f36c0a35e556d3052f9ce48ffb922fae02b",
+        "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+        "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+        "cdp_browser_agent/harness/learning.py": "245a02ec9e608407d64ea34a2c246741378ddec2b4f5e46b4fe3e1bb30074a57",
+        "cdp_browser_agent/harness/playbook.py": "9cb11012b8cf2f5defe637dc283fb51cda144c1745f150bf703defc04b0193bc",
+        "cdp_browser_agent/harness/repair.py": "37132f1e2db3dcc82121b94e8648a5aa4d62877839db8829c226bd06259d62c6",
+        "cdp_browser_agent/harness/runtime.py": "905bf159df2187cf77aea060705c49f09cfedf27c17dd64b5c549d443253345b",
+        "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+        "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+        "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+        "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+        "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+        "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+        "cdp_browser_agent/model_client.py": "0554ef3f8238e16c2f04c6f1462fbc4d3ac498661b8882a10f5834f9ff325dc5",
+        "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+        "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+        "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+        "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+        "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+        "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+        "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+        "cdp_browser_agent/web/extract.py": "c27d80667da4254e59814eea11784c9f53fd7f1e4dcbab3551ac303615d59a79",
+        "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+        "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+        "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+        "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+        "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+        "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+        "examples/documents-ace-gpt-6-luna.json": "d7d4b1d1140c2518a02909042cc5a91bb1c74b7d4d348709c5e8f09722776a20",
+        "scripts/live_document_eval_support.py": "b40a46a3367373e2c88b6d8b18b48122c3f09ea9867df433a31a8e6aba134b76",
+        "scripts/live_patent_laws_eval.py": "b801214c86f9d4c93ba8f62c65b29932a0e5fcf6217d8ca972a54bf8aa05b4f1"
+      },
+      "model_costs": {
+        "planner": {
+          "requests": 8,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 8,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 117139,
+          "input_tokens_max": 17027,
+          "input_tokens_mean": 14642.4,
+          "elapsed_seconds_total": 52.875,
+          "elapsed_seconds_mean": 6.609
+        },
+        "review": {
+          "requests": 0,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 0,
+          "usage_missing_requests": 0,
+          "input_tokens_total": null,
+          "input_tokens_max": null,
+          "input_tokens_mean": null,
+          "elapsed_seconds_total": 0,
+          "elapsed_seconds_mean": null
+        },
+        "reflector": {
+          "requests": 2,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 2,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 23600,
+          "input_tokens_max": 11948,
+          "input_tokens_mean": 11800.0,
+          "elapsed_seconds_total": 18.984,
+          "elapsed_seconds_mean": 9.492
+        },
+        "curator": {
+          "requests": 2,
+          "failed_requests": 0,
+          "http_error_requests": 0,
+          "usage_known_requests": 2,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 1587,
+          "input_tokens_max": 878,
+          "input_tokens_mean": 793.5,
+          "elapsed_seconds_total": 18.781,
+          "elapsed_seconds_mean": 9.39
+        }
+      },
+      "cost_totals": {
+        "wire_requests": 12,
+        "http_status_counts": {
+          "200": 12
+        },
+        "usage_known_requests": 12,
+        "usage_missing_requests": 0,
+        "known_input_tokens": 142326,
+        "known_output_tokens": 3386,
+        "wire_elapsed_seconds": 90.64,
+        "meaning": "Wire requests include failed HTTP responses. Unknown usage is missing, never zero. Elapsed sum is provider-call time, not task wall time or money."
+      },
+      "run_metrics": {
+        "model_calls": 74,
+        "model_seconds": 586.292,
+        "input_tokens": 905966,
+        "output_tokens": 17720,
+        "model_routes": {
+          "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c": {
+            "observed_chars_per_token": 2.6172953648915187,
+            "prompt_tokens": 878
+          }
+        }
+      },
+      "online_reflections": [
+        {
+          "source_id": "b5c491cbc05dd65abb4ea4690d07d4a5713ace174b99fc5cf3b70b10c7dbf436",
+          "job_id": "7f60e076ff5c4fd043b1885c42f90a93df355b12bfaf26b117b8f7f63a7b3ce6",
+          "step": 8,
+          "signal": "quoted_review",
+          "status": "completed"
+        },
+        {
+          "source_id": "a5dabd61fecd3894fd7bf34da3607aa856fa0ef2b1cc23b2c24e6fbb4680f5b2",
+          "job_id": "6dd1de221ed60022769ac485799731e618c423724bea46a76c2e17d194648dac",
+          "step": 32,
+          "signal": "quoted_review",
+          "status": "completed"
+        },
+        {
+          "source_id": "a5dabd61fecd3894fd7bf34da3607aa856fa0ef2b1cc23b2c24e6fbb4680f5b2",
+          "job_id": "dc1689b8a766ae90127b1f63ec81843f5a2ee9d3227d9746b6d15c466d38106b",
+          "step": 33,
+          "signal": "quoted_review",
+          "status": "completed"
+        }
+      ],
+      "planner_decisions_with_temporary_advice": 12,
+      "actual_output_changes_after_advice": [
+        {
+          "step": 13,
+          "action_id": "A0013",
+          "effective_change": true,
+          "changed_spec_fields": [
+            "exclude_pattern"
+          ],
+          "changed_record_fields": [
+            "paragraphs",
+            "source_paths",
+            "text"
+          ],
+          "review_accepted": true
+        },
+        {
+          "step": 33,
+          "action_id": "A0033",
+          "effective_change": true,
+          "changed_spec_fields": [
+            "body_selector"
+          ],
+          "changed_record_fields": [
+            "annotations",
+            "paragraphs",
+            "text"
+          ],
+          "review_accepted": false
+        }
+      ],
+      "evidence_files": [
+        {
+          "path": "logs/live-generic-documents/20261001-ace-repair/attempt-2/receipt.json",
+          "bytes": 11675,
+          "sha256": "8c62bec50565a3418a8d4e5be78567892878c8a439a9af179e73aa28332bf4e7"
+        },
+        {
+          "path": "logs/live-generic-documents/20261001-ace-repair/attempt-2/config.json",
+          "bytes": 5562,
+          "sha256": "fbc29007dd8d631b5688ab7d2ea07f94c68b65d6ab86cd533ebd9bac90e87d6f"
+        },
+        {
+          "path": "logs/live-generic-documents/20261001-ace-repair/attempt-2/source-snapshot.zip",
+          "bytes": 224237,
+          "sha256": "51a630a551050e25463bc67b1f4b6eb59ad825aa58d07ec06f1a6dc888aa64a2"
+        },
+        {
+          "path": "logs/live-generic-documents/20261001-ace-repair/attempt-2/model-wire.jsonl",
+          "bytes": 707866,
+          "sha256": "1f70bd0d8617334e0294a11122f82c3129595523ca3ffd9745dc7b0f335849b2"
+        },
+        {
+          "path": "logs/live-generic-documents/20261001-ace-repair/attempt-2/agent-state.json",
+          "bytes": 1343209,
+          "sha256": "e0c666eff9e1a4ff74a924d4ff4fa3b8c9169ab6e1a2c0c6d9c2c306e724e275"
+        }
+      ],
+      "exports": [
+        {
+          "path": "deliveries/generic-documents/20261001-ace-repair/attempt-2/CN.json",
+          "bytes": 358148,
+          "sha256": "448c7ef02f80ce493e5c41b6d0b8de794ccdb99ad4ec41b086fb7e0753f6b466"
+        },
+        {
+          "path": "deliveries/generic-documents/20261001-ace-repair/attempt-2/JP.json",
+          "bytes": 5663324,
+          "sha256": "7e01140eaa5cf2fc79e14f800d5268c830556b64e3ec08da7e6e7a4120b365eb"
+        },
+        {
+          "path": "deliveries/generic-documents/20261001-ace-repair/attempt-2/laws.json",
+          "bytes": 6452423,
+          "sha256": "dff132692d9cbd7de01d53ce39e10a32cfaf2ad9596062a907b4ee58b061a15c"
+        },
+        {
+          "path": "deliveries/generic-documents/20261001-ace-repair/attempt-2/validation.json",
+          "bytes": 11675,
+          "sha256": "8c62bec50565a3418a8d4e5be78567892878c8a439a9af179e73aa28332bf4e7"
+        }
+      ],
+      "attempt": 2,
+      "resume_run_id": "3e1267aa612543b1a206787945624567",
+      "state_record_scope": "Cumulative checkpoint history; costs are only this attempt. Earlier exports/repair records are inherited on resume.",
+      "final_observed_action": {
+        "action": "tool",
+        "name": "plan_update",
+        "arguments": {
+          "steps": [
+            {
+              "task": "检查并结构化中国专利法全文，按条款与注释边界生成并审核JSON",
+              "status": "done"
+            },
+            {
+              "task": "获取并检查美国专利法官方全文，按条款及版本状态生成并审核JSON",
+              "status": "blocked"
+            },
+            {
+              "task": "获取并检查日本专利法官方全文，按条款及注释生成并审核JSON",
+              "status": "done"
+            },
+            {
+              "task": "核验三份导出文件、条数、来源与版本限制并汇总",
+              "status": "done"
+            }
+          ]
+        }
+      },
+      "termination_observation": "done",
+      "saved_stop_reason_is_inherited": false,
+      "export_counts": {
+        "CN": 82,
+        "JP": 464
+      },
+      "browser_started": false,
+      "stop_details": {
+        "stopped_reason": "done",
+        "playbook_learning": {
+          "status": "completed",
+          "sources": [
+            {
+              "document_source_id": "b5c491cbc05dd65abb4ea4690d07d4a5713ace174b99fc5cf3b70b10c7dbf436",
+              "status": "completed",
+              "source_id": "52a16502028a0bde2003c2557c64c32b2fc5de9a2a30a83f49d52e44daea10bd",
+              "reflections": {
+                "lessons": [
+                  {
+                    "trigger": "When extracting numbered legal provisions from a source where chapter headings are selected alongside article paragraphs, and review finds a chapter heading embedded in an article body",
+                    "guidance": "Use document_inspect to confirm the selected source units, then revise the sections recipe with an exclude_pattern that identifies chapter headings while keeping the article start/key patterns intact. Re-run document_preview and compare the candidate output: verify the cited heading is removed from the article body, source paths/text actually change, and the independent review accepts the revised output before export. In the demonstrated CNIPA page, the recipe used selector and body_selector `div.article-content p`, collection_key `articles`, article pattern `^第[一二三四五六七八九十百千〇零两0-9]+条`, and excluded chapter headings with `^第[一二三四五六七八九十百千〇零两0-9]+章`.",
+                    "avoid": "Do not treat adding `collection_key: articles` as fixing content—the initial preview had the required key but review still found a chapter heading mixed into an article. Do not rely on unchanged record count as evidence that the repair had no effect; compare changed record fields, source paths, and actual output. A successful export or accepted structural review does not establish semantic accuracy beyond the review scope.",
+                    "evidence_ids": [
+                      "A0007",
+                      "A0008",
+                      "A0013",
+                      "A0014",
+                      "A0052"
+                    ]
+                  }
+                ]
+              },
+              "delta": {
+                "operations": [
+                  {
+                    "type": "ADD",
+                    "lesson": {
+                      "trigger": "When extracting numbered legal provisions from a source where chapter headings are selected alongside article paragraphs, and review finds a chapter heading embedded in an article body",
+                      "guidance": "Use document_inspect to confirm the selected source units, then revise the sections recipe with an exclude_pattern that identifies chapter headings while keeping the article start/key patterns intact. Re-run document_preview and compare candidate output: verify the cited heading is removed from the article body, source paths or text actually change, and independent review accepts the revised output before export. In the demonstrated CNIPA page, the recipe used selector and body_selector `div.article-content p`, collection_key `articles`, article pattern `^第[一二三四五六七八九十百千〇零两0-9]+条`, and excluded chapter headings with `^第[一二三四五六七八九十百千〇零两0-9]+章`.",
+                      "avoid": "Do not treat adding `collection_key: articles` as fixing content—the initial preview had the required key but review still found a chapter heading mixed into an article. Do not rely on unchanged record count as evidence that the repair had no effect; compare changed record fields, source paths, and actual output. A successful export or accepted structural review does not establish semantic accuracy beyond the review scope.",
+                      "evidence_ids": [
+                        "A0007",
+                        "A0008",
+                        "A0013",
+                        "A0014",
+                        "A0052"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "candidates": [
+                {
+                  "id": "e3c881ed8df47d2b57d10309a5ae5b0c",
+                  "version": 1
+                }
+              ],
+              "replays": []
+            },
+            {
+              "document_source_id": "a5dabd61fecd3894fd7bf34da3607aa856fa0ef2b1cc23b2c24e6fbb4680f5b2",
+              "status": "completed",
+              "source_id": "2bbf4f480588f2ad862f39ad935760a5c0522d33b63f54186df6a3082f0b7287",
+              "reflections": {
+                "lessons": [
+                  {
+                    "trigger": "When extracting U.S. Code sections from govinfo HTML with `document_preview` in `sections` mode, especially where headings may group multiple section numbers or paragraphs include editorial history.",
+                    "guidance": "Before finalizing the recipe, inspect actual heading and paragraph classes with `document_inspect`. In the demonstrated source, editorial material uses `p.note-body`, while a grouped repealer is labeled `[§§155, 155A. Repealed.`. Configure `body_selector` to partition observed note paragraphs, and ensure the heading/start/key rules admit grouped-number headings. Then use `document_preview` to verify that the grouped heading yields one article per section with the same source, and that the actual article body and annotations are separated; compare output fields and record counts rather than treating a recipe change as proof of repair.",
+                    "avoid": "Do not assume `key_separator` fixes a grouped heading if the heading was filtered out by `start_pattern`; in this run adding `key_separator` changed no output. Do not assume excluding `.note-body` resolves all body/annotation mixing: the review still found a mix in the resulting record. Do not export an unaccepted candidate as complete.",
+                    "evidence_ids": [
+                      "A0028",
+                      "A0031",
+                      "A0033",
+                      "A0034",
+                      "A0035"
+                    ]
+                  },
+                  {
+                    "trigger": "When a document candidate has received specific negative review findings and a repair attempt produces no record-field or output-fingerprint change.",
+                    "guidance": "Use the cited findings to target the next preview operation: change the rule that admits and splits the grouped heading, and the selector partition that affects the reviewed body/annotation content. Confirm that the next `document_preview` changes the relevant records and then re-evaluate the findings. If the source’s repair budget is exhausted, stop retrying that source and report the saved limitation rather than treating repeated review calls as recovery.",
+                    "avoid": "Do not make cosmetic recipe changes that leave the output unchanged, or retry `document_review` after the recovery guard says the repair budget is exhausted. In this run, adding `key_separator` left the fingerprint and record count unchanged, and subsequent reviews were blocked.",
+                    "evidence_ids": [
+                      "A0035",
+                      "A0050",
+                      "A0054",
+                      "A0056"
+                    ]
+                  }
+                ]
+              },
+              "delta": {
+                "operations": [
+                  {
+                    "type": "ADD",
+                    "lesson": {
+                      "trigger": "When extracting U.S. Code sections from govinfo HTML with `document_preview` in `sections` mode, especially when headings group section numbers or paragraphs contain editorial history.",
+                      "guidance": "Inspect heading and paragraph classes with `document_inspect` before finalizing the recipe. In the observed source, editorial material uses `p.note-body`, and a grouped repealer appears as `[§§155, 155A. Repealed.` Configure `body_selector` based on observed paragraphs, and ensure heading/start/key rules admit grouped-number headings. Use `document_preview` to check that grouped headings yield one article per section with the same source and that body and annotations are separated. Compare output fields and record counts; a recipe change alone does not establish a repair.",
+                      "avoid": "Do not assume `key_separator` fixes a grouped heading filtered out by `start_pattern`; it changed no output in this run. Excluding `.note-body` did not resolve all body/annotation mixing. Do not export an unaccepted candidate as complete.",
+                      "evidence_ids": [
+                        "A0028",
+                        "A0031",
+                        "A0033",
+                        "A0034",
+                        "A0035"
+                      ]
+                    }
+                  },
+                  {
+                    "type": "ADD",
+                    "lesson": {
+                      "trigger": "When a document candidate has specific negative review findings and a repair attempt leaves record fields or the output fingerprint unchanged.",
+                      "guidance": "Use the cited findings to target the next preview: change the rule admitting and splitting the grouped heading, and the selector partition affecting the reviewed body and annotation content. Confirm that `document_preview` changes the relevant records, then re-evaluate the findings. If the repair budget is exhausted, stop retrying that source and report the saved limitation.",
+                      "avoid": "Do not make cosmetic recipe changes that leave output unchanged or retry `document_review` after the recovery guard says the repair budget is exhausted. In this run, adding `key_separator` left the fingerprint and record count unchanged, and subsequent reviews were blocked.",
+                      "evidence_ids": [
+                        "A0035",
+                        "A0050",
+                        "A0054",
+                        "A0056"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "candidates": [
+                {
+                  "id": "8742191f39fcad2f839df620055f0664",
+                  "version": 1
+                },
+                {
+                  "id": "fbc62f6d4fc1ab571c991b17568e321a",
+                  "version": 1
+                }
+              ],
+              "replays": []
+            }
+          ]
+        }
+      },
+      "source_recovery": [
+        {
+          "source_id": "b5c491cbc05dd65abb4ea4690d07d4a5713ace174b99fc5cf3b70b10c7dbf436",
+          "stage": "completed",
+          "revisions": 3,
+          "inspections": 6,
+          "unproductive_actions": 0,
+          "limitation": null
+        },
+        {
+          "source_id": "a5dabd61fecd3894fd7bf34da3607aa856fa0ef2b1cc23b2c24e6fbb4680f5b2",
+          "stage": "blocked",
+          "revisions": 4,
+          "inspections": 16,
+          "unproductive_actions": 1,
+          "limitation": "Source inspection limit reached without delivery."
+        },
+        {
+          "source_id": "a614e25e6687226ea6baa374a7d999315ce59a824d5da035762fdeb422884278",
+          "stage": "derived",
+          "revisions": 0,
+          "inspections": 2,
+          "unproductive_actions": 0,
+          "limitation": null
+        },
+        {
+          "source_id": "71cf22b51c8092657a9d6062e56829f8f374c6134403f1dc171abbce60027ed1",
+          "stage": "completed",
+          "revisions": 1,
+          "inspections": 7,
+          "unproductive_actions": 0,
+          "limitation": null
+        }
+      ],
+      "active_playbook_selections": 0
+    }
+  ],
+  "claims": {
+    "controlled_current_task_repair_observed": true,
+    "independent_executed_document_replay_observed": true,
+    "persistent_live_entry_promoted": false,
+    "fresh_task_used_active_learned_entry": false,
+    "unseeded_three_source_task_completed": false,
+    "general_performance_gain_established": false,
+    "paper_results_reproduced": false
+  },
+  "limitations": [
+    "Controlled numeric-prefix recipe is an operator-supplied failure; natural error frequency is not measured.",
+    "Both baseline and candidate pass the two independent document replay cases in all three controlled trials; no admission or persistent adoption is justified.",
+    "Unseeded tasks use known official URLs; this does not measure source discovery or confirm newest legal validity.",
+    "Within-task advice plus an output change is an observed sequence, not isolated causal improvement; no counterfactual controlled run was made for the natural repair.",
+    "Precursor trials used frozen earlier code and sometimes ran concurrently; their time differences are not an efficiency experiment.",
+    "Review, Reflector and Curator use the same service/model family; private source-specific post-run assertions remain separate from their inputs.",
+    "This engineering integration is not a reproduction of ACE benchmark performance."
+  ]
+}

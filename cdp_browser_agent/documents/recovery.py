@@ -125,7 +125,7 @@ class DocumentRecovery:
         ledger['issues'] = deepcopy(review.get('issues', []))
         ledger['required_changes'] = deepcopy(review.get('required_changes', []))
         if ledger['stage'] not in {'diagnose', 'blocked'}:
-            ledger['stage'] = 'export' if review.get('accepted') else 'revise'
+            ledger['stage'] = 'export' if review.get('accepted') else 'review_pending' if review.get('status') == 'review_inconclusive' else 'revise'
 
     def after(self, name, arguments, result):
         if name == 'document_open':
@@ -249,6 +249,7 @@ class DocumentRecovery:
         return {k: deepcopy(ledger[k]) for k in fields if k in ledger} | {
             'next_step': {'inspect': 'Inspect observed structure, then declare a candidate.',
                 'review': 'Await or refresh the candidate review.', 'revise': 'Locate cited evidence, change the recipe, compare output changes, then review.',
+                'review_pending': 'No valid verdict exists. If the saved transient review is retryable, use document_review_retry with its exact review_id within the attempt budget. Otherwise preserve the unapproved candidate and report the review limitation.',
                 'diagnose': 'Use the remaining bounded diagnostics for a different query/representation or an effective revision; otherwise move to another source.',
                 'export': 'Export the accepted current candidate.', 'completed': 'Keep the delivery summary; use IDs to recover full evidence.',
                 'derived': 'Process the source-bound decoded document; preserve this parent as provenance.',

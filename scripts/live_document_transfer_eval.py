@@ -65,6 +65,7 @@ async def evaluate(tag, config_path=None):
     config['harness'].update(run_timeout_seconds=600, state_dir=str(log / 'state'), artifact_dir=str(log / 'artifacts'))
     config['web']['artifact_dir'] = str(log / 'web')
     config['documents']['state_dir'] = str(output / 'workspace')
+    config['learning']['state_dir'] = str(log / 'playbook')
     atomic_json(log / 'config.json', config)
     task = ('下载并分别整理以下两个非法律文档，输出各自一个 JSON 对象，records 数组每个条目一个对象。'
         '第一个是 Python PEP 索引，每个索引条目单独成对象；同一个 PEP 在不同分组出现时保留各次来源位置。'

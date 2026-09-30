@@ -1,0 +1,9 @@
+{
+  "model": {"provider": "openai", "baseUrl": "http://localhost:15536/v1", "apiEndpoint": "/responses", "apiKeyEnv": "CDP_BROWSER_AGENT_API_KEY", "model": "gpt-6-luna", "extraHeaders": {"X-Agtools-Disable-Image-Generation": "chat"}, "temperature": null, "maxTokens": 2048, "apiTimeout": 90, "maxRetries": 0, "enableThinking": false},
+  "browser": {"headless": true, "focus_page": false},
+  "agent": {"max_steps": 60},
+  "learning": {"enabled": true, "online_reflection": true, "task_type": "structured-documents", "max_online_reflections": 3, "max_source_reflections": 2, "reflection_timeout_seconds": 60, "auto_replay": true, "replay_paths": [], "state_dir": "../memory/document-playbook"},
+  "harness": {"run_timeout_seconds": 1200, "tool_timeout_seconds": 60, "skill_paths": [], "active_skills": [], "mcp_servers": {}},
+  "documents": {"enabled": true, "state_dir": "../downloads/documents", "max_review_attempts": 2},
+  "web": {"enabled": true, "proxy": "auto", "prefer_fast_path": true, "max_response_bytes": 4000000}
+}

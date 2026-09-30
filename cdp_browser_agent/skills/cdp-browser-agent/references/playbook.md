@@ -14,8 +14,10 @@ passed, not general factual correctness or guaranteed future success.
 When the user requests evaluation, call `browser_playbook_replay(entry_id, version, suite)`.
 This calls the configured model. Only operator-registered suites are accepted. Set
 `force=true` when a fresh regression check is requested instead of reusing a receipt.
-Planner suites verify decisions without executing proposed actions; processing suites
-run the processing method and validate output artifacts and expected data.
+Ordinary planner suites verify decisions without executing proposed actions. Planner
+suites with `evaluation: document_recipe` execute bounded document repairs on independent
+source fixtures and verify the generated output. Processing suites run the processing
+method and validate output artifacts and expected data.
 
 When asked to stop using an experience, `browser_playbook_retire(entry_id, expected_version)`
 retires all versions while retaining evidence. For a bad update,
@@ -27,3 +29,9 @@ Browser results expose `playbook_selections` and `playbook_learning`; workers ex
 `playbook_entries`. Check these alongside actual task outputs to distinguish available
 experience from experience selected by a task. Selection alone does not establish that
 it caused an improvement. Learned advice cannot change task goals, permissions or skills.
+
+Document runs can also expose `repair_reflections` and `repair_adoption`. These are
+temporary, source-specific advice and actual subsequent action/output-change receipts.
+They do not establish retained experience or a causal gain. An inconclusive transient
+review can use the task's `document_review_retry` tool with the exact current review ID;
+old attempts remain saved and unapproved candidates cannot export.

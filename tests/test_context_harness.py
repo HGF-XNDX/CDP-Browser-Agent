@@ -227,10 +227,25 @@ async def test_responses_wire_contract_preserves_text_images_headers_and_usage(s
     assert payload['instructions'] == 'Return JSON'
     assert payload['input'][0]['content'] == [{'type': 'output_text', 'text': 'Earlier response'}]
     assert payload['input'][1]['content'][1] == {'type': 'input_image', 'image_url': 'data:image/png;base64,eA==', 'detail': 'high'}
+    assert payload['input'][1]['content'][2] == {'type': 'input_text', 'text': 'Return valid JSON.'}
     assert payload['max_output_tokens'] == 1536 and payload['text']['format']['type'] == 'json_object'
     assert payload['store'] is False and payload['tool_choice'] == 'none'
     assert 'temperature' not in payload and 'messages' not in payload and 'max_tokens' not in payload
     assert request.headers['X-Provider-Text-Only'] == 'chat'
+
+
+async def test_responses_json_mode_has_input_cue_without_mutating_original_messages(server):
+    responses, calls = server
+    def respond(request):
+        payload = json.loads(request.content)
+        assert any('JSON' in p.get('text', '') for item in payload['input'] for p in item['content'])
+        return httpx.Response(200, json={'status': 'completed', 'output': [
+            {'type': 'message', 'content': [{'type': 'output_text', 'text': '{"ok":true}'}]}]})
+    responses['/v1/responses'] = respond
+    messages = [{'role': 'system', 'content': 'Return JSON'}, {'role': 'user', 'content': '{"source":"original"}'}]
+    assert await model_client.chat_completion(messages, options(provider='openai', model='fixture', apiEndpoint='/responses')) == '{"ok":true}'
+    assert messages[-1]['content'] == '{"source":"original"}'
+    assert len([r for r in calls if r.method == 'POST']) == 1
 
 
 async def test_responses_format_retry_preserves_input_and_control_headers(server):
@@ -392,6 +407,36 @@ async def test_planner_does_not_retry_when_required_context_cannot_shrink(tmp_pa
     with pytest.raises(ContextBudgetExceeded):
         await planner.plan_next_action(request)
     assert call.await_count == 1
+
+
+@pytest.mark.parametrize('capacity,allowed', [(32768, True), (12288, False)])
+async def test_document_soft_target_does_not_override_real_admission_or_drop_review(tmp_path, monkeypatch, capacity, allowed):
+    model = options(model='fixture', contextWindowTokens=capacity)
+    monkeypatch.setattr(planner, 'prepare_model_options', AsyncMock(return_value=model))
+    call = AsyncMock(return_value='{"action":"done","outcome":"incomplete","answer":"partial"}')
+    monkeypatch.setattr(planner, 'chat_completion', call)
+    review = {'accepted': False, 'issues': [{'evidence_id': 'record_0', 'quote': 'original grouped label'}]}
+    advice = [{'guidance': 'Inspect actual labels before a distinct transformation', 'basis': 'current_task_reflection'}]
+    extension = {'builtin_tools': [{'description': 'Pinned registered tool schema ' * 1000}],
+        'document_focus': {'active_source_id': 'source', 'active_candidate': {'job_id': 'job', 'review': review}}}
+    compactor = ContextCompactor(ArtifactStore(tmp_path / 'artifacts'), tmp_path / 'compactions')
+    request = {'task': 'Repair this source', 'step': 2, 'model_settings': model,
+        'agent_settings': {'document_prompt_target_tokens': 6000}, 'extensions': extension,
+        'memory_context': {'repair_advice': advice}, 'compactor': compactor}
+    if not allowed:
+        with pytest.raises(ContextBudgetExceeded):
+            await planner.plan_next_action(request)
+        assert call.await_count == 0
+        return
+    result = await planner.plan_next_action(request)
+    assert call.await_count == 1
+    assert result['compaction']['soft_target_fallback']['requested_tokens'] == 6000
+    assert result['compaction']['estimated_tokens'] <= result['context_budget']['available_prompt_tokens']
+    payload = json.loads(call.call_args.args[0][1]['content'])
+    assert payload['extensions']['document_focus']['active_candidate']['review'] == review
+    assert payload['extensions']['builtin_tools'] == extension['builtin_tools']
+    assert payload['repair_advice'] == advice
+    assert json.loads(next(compactor.directory.glob('*.json')).read_text())['status'] == 'aborted'
 
 
 @pytest.mark.parametrize('structured', [True, False])

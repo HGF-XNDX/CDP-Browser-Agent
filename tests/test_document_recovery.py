@@ -217,6 +217,26 @@ def test_source_focus_reduces_history_preserves_current_defects_and_restoration(
     assert payload == original
 
 
+def test_source_focus_preserves_one_exact_review_and_archives_duplicates(tmp_path):
+    store = ArtifactStore(tmp_path / 'artifacts')
+    decision = {'accepted': False, 'issues': [{'quote': 'Original missing label', 'problem': 'Missing a record'}],
+                'required_changes': ['Read full source labels']}
+    payload = {'task': 'Export every label', 'extensions': {'document_focus': {
+        'active_source_id': 'source', 'active_candidate': {'job_id': 'job', 'review': decision},
+        'recovery': {'stage': 'revise', 'issues': decision['issues'], 'required_changes': decision['required_changes']}},
+        'document_candidates': [{'job_id': 'job', 'review': decision}]},
+        'last_result': {'job_id': 'job', 'review': decision, 'preview': 'Large repeated output ' * 10000},
+        'repair_advice': [{'guidance': 'Check actual source mapping', 'evidence_ids': ['A1']}], 'recent_history': []}
+    original = deepcopy(payload)
+    view, receipt = project_context(payload, store, {}, {})
+    assert view['extensions']['document_focus']['active_candidate']['review'] == decision
+    assert view['repair_advice'] == original['repair_advice']
+    assert 'review' not in view['last_result'] and 'preview' not in view['last_result']
+    assert view['last_result']['review_reference']['job_id'] == 'job'
+    assert store.load(view['context_archive']['artifact_id']) == original
+    assert receipt['after_chars'] < receipt['before_chars'] / 5
+
+
 async def test_review_deadline_keeps_candidate_recipe_and_does_not_invent_defects(config, monkeypatch):
     from cdp_browser_agent.documents import review
     async def slow(*_):

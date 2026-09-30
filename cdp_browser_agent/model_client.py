@@ -169,7 +169,7 @@ async def chat_completion(messages: list[dict], options: dict | None = None) -> 
     }
     if options.get("temperature", 0.1) is not None:
         payload["temperature"] = options.get("temperature", 0.1)
-    ContextBudget.from_settings(options, options.get("_agent_context"), RUN_METRICS.get()).check(messages)
+    budget_messages = messages
     if endpoint == "/responses":
         instructions, items = _responses_input(messages)
         payload = {"model": options["model"], "instructions": instructions, "input": items,
@@ -179,11 +179,22 @@ async def chat_completion(messages: list[dict], options: dict | None = None) -> 
             payload["temperature"] = options.get("temperature", 0.1)
         if not enable_thinking:
             payload["text"] = {"format": {"type": "json_object"}}
+            if not any('json' in part.get('text', '').lower() for item in items for part in item['content']):
+                cue = "Return valid JSON."
+                user = next((item for item in reversed(items) if item['role'] == 'user'), None)
+                if user is None:
+                    items.append({'type': 'message', 'role': 'user', 'content': [{'type': 'input_text', 'text': cue}]})
+                else:
+                    user['content'].append({'type': 'input_text', 'text': cue})
+                # Native adapters can require the JSON cue in input, not just
+                # instructions. Include it in admission without altering source data.
+                budget_messages = [*messages, {'role': 'user', 'content': cue}]
     else:
         if not enable_thinking:
             payload["response_format"] = {"type": "json_object"}
         if provider == "llama.cpp":
             payload["chat_template_kwargs"] = {"enable_thinking": enable_thinking}
+    ContextBudget.from_settings(options, options.get("_agent_context"), RUN_METRICS.get()).check(budget_messages)
     seconds = max(10.0, float(options.get("apiTimeout", 180)))
     timeout = httpx.Timeout(seconds, connect=min(20, seconds), read=seconds, write=seconds, pool=20)
     max_retries = max(0, int(options.get("maxRetries", 3)))
