@@ -292,3 +292,25 @@ async def test_planner_does_not_retry_when_required_context_cannot_shrink(tmp_pa
     with pytest.raises(ContextBudgetExceeded):
         await planner.plan_next_action(request)
     assert call.await_count == 1
+
+
+@pytest.mark.parametrize('structured', [True, False])
+async def test_planner_respects_empty_structured_history_and_keeps_legacy_fallback(tmp_path, monkeypatch, structured):
+    model = options(model='fixture')
+    monkeypatch.setattr(planner, 'prepare_model_options', AsyncMock(return_value=model))
+    call = AsyncMock(return_value='{"action":"done","outcome":"incomplete","answer":"partial"}')
+    monkeypatch.setattr(planner, 'chat_completion', call)
+    memory = [{'actionId': f'A{i:04}', 'step': i, 'action': 'read',
+               'result': f'legacy result {i}'} for i in range(1, 13)]
+    request = {'task': 'Read a catalog', 'step': 13, 'model_settings': model, 'memory': memory,
+        'compactor': ContextCompactor(ArtifactStore(tmp_path / 'artifacts'), tmp_path / 'compactions')}
+    if structured:
+        request['memory_context'] = {'recent_exact_history': [], 'compressed_action_memory': []}
+    await planner.plan_next_action(request)
+    payload = json.loads(call.call_args.args[0][1]['content'])
+    if structured:
+        assert payload['recent_history'] == []
+        assert payload['compressed_action_memory'] == []
+    else:
+        assert len(payload['recent_history']) == 10
+        assert len(payload['compressed_action_memory']) == 2

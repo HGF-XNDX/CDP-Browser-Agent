@@ -159,6 +159,40 @@ async def test_repeated_tool_result_gets_recovery_feedback_before_stall(setup_ru
     assert calls[:2] == [None, None]
 
 
+async def test_changing_reason_does_not_reset_repeated_tool_progress(setup_run, monkeypatch):
+    config, _ = setup_run
+    config['web']['prefer_fast_path'] = True
+    calls = []
+
+    async def planner(request):
+        calls.append(deepcopy(request['extensions'].get('progress_recovery')))
+        if len(calls) <= 2:
+            return {'action': {'action': 'tool', 'name': 'tool_list',
+                'arguments': {'query': 'unavailable-export-operation'},
+                'reason': f'Explanation variant {len(calls)}'}}
+        recovery = request['extensions'].get('progress_recovery')
+        assert recovery and recovery['repeat_count'] == 2
+        return {'action': {'action': 'done', 'outcome': 'incomplete',
+                           'answer': 'The unchanged query returned no new capability.'}}
+
+    monkeypatch.setattr(agent, 'plan_next_action', planner)
+    result = await run_browser_agent('Inspect a capability', config)
+    assert result['status'] == 'incomplete', result.get('last_result')
+    assert len(calls) == 3
+
+
+def test_tool_progress_still_changes_for_real_arguments_and_evidence():
+    observation = {'url': 'about:blank'}
+    action = {'action': 'tool', 'name': 'document_inspect',
+              'arguments': {'source_id': 'a' * 64, 'selector': 'p', 'offset': 0}}
+    result = {'ok': True, 'samples': [{'text': 'First item'}]}
+    original = agent.progress_signature(observation, action, result)
+    next_page = {**action, 'arguments': {**action['arguments'], 'offset': 1}}
+    assert agent.progress_signature(observation, next_page, result) != original
+    assert agent.progress_signature(observation, action,
+        {**result, 'samples': [{'text': 'Changed source evidence'}]}) != original
+
+
 async def test_host_verifier_rejects_premature_done(setup_run, monkeypatch):
     config, _ = setup_run
     planner = AsyncMock(return_value={"action": {"action": "done", "outcome": "completed", "answer": "Finished"}})

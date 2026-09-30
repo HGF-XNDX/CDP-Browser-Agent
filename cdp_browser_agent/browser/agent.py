@@ -44,7 +44,10 @@ def progress_signature(observation: dict, last_action: dict, last_result: dict) 
             if isinstance(value, list):
                 return [stable(v) for v in value]
             return value
-        content["tool"] = [last_action, stable(last_result)]
+        # Only these fields reach the tool handler. A rewritten explanation does
+        # not change the operation or establish new evidence.
+        operation = {k: last_action.get(k) for k in ("action", "name", "arguments")}
+        content["tool"] = [operation, stable(last_result)]
     return hashlib.sha256(json.dumps(content, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest()
 
 

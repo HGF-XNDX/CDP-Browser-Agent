@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-30",
+  "scope": "Component fixes and proposed recovery work; no new autonomous law task run",
+  "prior_live_evidence_commit": "4a9e26d1c1b13dbdc10e33bf8bf9f013f0aff9e0",
+  "model_calls_in_this_followup": 0,
+  "source_outputs_modified": false,
+  "reproduced_before_fix": [
+    "Changing only reason bypassed repeated-tool recovery feedback",
+    "Empty structured history was repopulated from legacy history"
+  ],
+  "verification": {
+    "targeted_tests_passed": 42,
+    "full_tests_passed": 187,
+    "full_tests_seconds": 85.89,
+    "autonomous_three_source_completion_verified": false
+  },
+  "causal_scope": {
+    "prior_tool_actions": 46,
+    "prior_tool_actions_with_reason": 0,
+    "prior_repeated_operations": 6,
+    "prior_duplicate_recent_and_compressed_action_ids_observed": false,
+    "these_bugs_proven_as_cause_of_prior_timeout": false
+  },
+  "observed_last_planner_request": {
+    "step": 48,
+    "input_tokens": 117572,
+    "recent_history_chars": 192739,
+    "extensions_chars": 42830,
+    "task_memory_chars": 33557
+  },
+  "proposed_next_work": [
+    "Persist repair attempts, actual candidate changes and bounded recovery branches",
+    "Generic label reading from node text, descendants or attributes, with explicit list/range operations",
+    "Mandatory checks for diagnostics and source-to-output unit mappings",
+    "Focus active context by source and phase, with cost/time budgets and recoverable evidence references",
+    "Frozen live evaluation with held-out nonlegal layouts before reusing the law task"
+  ]
+}

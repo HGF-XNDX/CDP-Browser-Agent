@@ -278,6 +278,12 @@ async def plan_next_action(request: dict) -> dict:
     model_settings["_agent_context"] = request.get("agent_settings", {})
     language_instruction = answer_language_instruction(model_settings)
     memory_context = request.get("memory_context") or {}
+    recent_history = memory_context.get("recent_exact_history")
+    if recent_history is None:
+        recent_history = compact_history(request.get("memory", []))
+    compressed_memory = memory_context.get("compressed_action_memory")
+    if compressed_memory is None:
+        compressed_memory = compact_memory(request.get("memory", []), model_settings)
     payload = {
         "run_notes": memory_context.get("run_notes", {}),
         "verified_experience": memory_context.get("verified_experience", []),
@@ -296,9 +302,9 @@ async def plan_next_action(request: dict) -> dict:
         "memory_policy": memory_context.get("memory_policy", {}),
         "task_memory": memory_context.get("task_memory", {}),
         "run_memory_brief": memory_context.get("run_memory_brief", {}),
-        "recent_history": memory_context.get("recent_exact_history") or compact_history(request.get("memory", [])),
+        "recent_history": recent_history,
         "recalled_relevant_history": memory_context.get("recalled_relevant_history", []),
-        "compressed_action_memory": memory_context.get("compressed_action_memory") or compact_memory(request.get("memory", []), model_settings),
+        "compressed_action_memory": compressed_memory,
         "site_memory": memory_context.get("site_memory", {}),
         "context_budget": memory_context.get("context_budget", {}),
         "sources": compact_sources(request.get("sources", [])),
