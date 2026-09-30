@@ -68,7 +68,11 @@ async def test_cookie_download_and_click_artifact(browser):
             pass
 
         def do_GET(self):
-            if self.path == "/report.csv":
+            if self.path == "/limited.csv":
+                self.send_response(429)
+                self.send_header('Retry-After', '60')
+                body = b'Try later'
+            elif self.path == "/report.csv":
                 ok = self.headers.get("Cookie") == "session=ok"
                 self.send_response(200 if ok else 403)
                 self.send_header("Content-Type", "text/csv")
@@ -90,6 +94,8 @@ async def test_cookie_download_and_click_artifact(browser):
     try:
         # Unauthenticated requests must still fail; no forged Cookie header.
         assert not (await browser.download_url(url + "/report.csv"))["ok"]
+        limited = await browser.download_url(url + '/limited.csv')
+        assert not limited['ok'] and limited['http_status'] == 429 and limited['retry_after'] == '60'
         await browser.page.goto(url)
         direct = await browser.download_url(url + "/report.csv")
         assert direct["ok"] and Path(direct["path"]).read_bytes() == b"sku,quantity\nA17,8\n"

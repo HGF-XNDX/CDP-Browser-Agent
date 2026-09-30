@@ -4,6 +4,8 @@ from __future__ import annotations
 import asyncio
 from collections import Counter, defaultdict
 import json
+import math
+import time
 
 from ..common.json_utils import extract_json_object
 from ..model_client import chat_completion
@@ -24,7 +26,13 @@ Do not reject legitimate repeated labels in distinct scopes or inactive empty re
 The unique record identity is id, bound to source path and label. key is a display
 label and need not be globally unique. Consult output_shape.record_identity and
 sample ids before demanding a different identity scheme. key_diagnostics identifies
-observed capture/split interactions for inspection, not a semantic rejection.
+observed capture/split interactions. To accept, assess EVERY diagnostic with a
+verified quote, explain the source-unit to output-label mapping, and mark it resolved.
+A diagnostic is not automatically a semantic defect, but it cannot be ignored.
+Label transformations operate on key_source observations (node text or attributes)
+and preserve original bodies. source_unit_mapping shows actual pipeline inputs,
+outputs and shared source. An explicitly requested separate-object contract requires
+separate rows for each label when the source declares a grouped/range label.
 Judge the per-source candidate, not completion of the entire multi-source task.
 Start by identifying the user's requested semantic record unit. Preserving every
 source component does NOT mean turning structural headings into records. Check
@@ -57,7 +65,9 @@ Return JSON only: {"accepted": true|false,
 "matches_requested_record_unit": true|false,
 "disposition": "retained_body|retained_annotations|retained_structure|out_of_scope|missing_record|missing_body",
 "reason": "why this source material does or does not belong in requested records"}],
-"issues": [{"kind": "record_unit|record_boundary|body_omission|body_annotation_mix|metadata",
+"diagnostic_checks": [{"evidence_id": "key_diagnostic_N", "resolved": true|false,
+"quote": "exact substring of diagnostic evidence", "reason": "source to output mapping assessment"}],
+"issues": [{"kind": "record_unit|record_boundary|body_omission|body_annotation_mix|metadata|label_mapping",
 "evidence_id": "ID from evidence", "quote": "exact substring of its text",
 "problem": "concrete defect supported by that quote"}],
 "required_changes": ["actionable correction supported by the cited evidence"]}.
@@ -66,6 +76,8 @@ fails, accepted must be false and issues must cite its actual evidence. Explain
 the checks before deciding acceptance; an empty list of checks is not approval.
 To ACCEPT, coverage_checks must cover EVERY coverage_evidence_id exactly once (group similar
 items in one check). Do not skip this just because sampled bodies look correct.
+To ACCEPT, diagnostic_checks must cover EVERY diagnostic_evidence_id exactly once.
+Unresolved diagnostics cannot be accepted. Empty diagnostics allow an empty list.
 A REJECTION needs at least one concrete issue with a verified evidence quote, not
 a completed acceptance checklist. You may omit sample_checks/coverage_checks when
 rejecting. The host returns only the cited issues in that case; unverified checklist
@@ -161,8 +173,20 @@ def build_evidence(service, receipt, candidate):
              'source': meta, 'metadata': candidate['metadata']}
     add('output', json.dumps(shape, ensure_ascii=False))
     scopes = Counter('/'.join(r['source_paths'][0].split('/')[:3]) for r in rows)
-    key_diagnostics = service.key_diagnostics(spec, rows)
-    indexes = representative_indexes(rows, tree, priority=[w['record_index'] for w in key_diagnostics['warnings']])
+    mappings = candidate.get('source_unit_mapping', [])
+    key_diagnostics = service.key_diagnostics(spec, rows, mappings)
+    priority = [w['record_index'] for w in key_diagnostics['warnings']]
+    priority += [m['record_indexes'][0] for m in mappings if len(m['output_labels']) > 1]
+    indexes = representative_indexes(rows, tree, priority=priority)
+    diagnostic_ids = []
+    for i, warning in enumerate(key_diagnostics['warnings']):
+        identity = f'key_diagnostic_{i}'
+        add(identity, json.dumps(warning, ensure_ascii=False), location='parameter_diagnostic')
+        diagnostic_ids.append(identity)
+    if key_diagnostics['truncated']:
+        add('key_diagnostic_overflow', 'Additional parameter diagnostics exceed the bounded review view. Resolve the recipe or inspect the full candidate before approval.',
+            location='parameter_diagnostic', cannot_accept=True)
+        diagnostic_ids.append('key_diagnostic_overflow')
     samples = []
     for i in indexes:
         row = rows[i]
@@ -174,6 +198,7 @@ def build_evidence(service, receipt, candidate):
         add(f'record_{i}', row['text'], path=row['source_paths'][0], location='record_body')
         samples.append({'index': i, 'fields': list(row), 'body_evidence_id': f'record_{i}',
             'id': row['id'], 'key_preview': row['key'][:240], 'heading_preview': row['heading'][:240],
+            'source_unit_attributes': first.attrs,
             'text_chars': len(row['text']), 'paragraph_count': len(row['paragraphs']),
             'source_unit_children': dict(Counter(n.tag for n in first.content if hasattr(n, 'tag'))),
             'selected_body_unit_count': len(body_nodes), 'body_unit_kinds': dict(kinds),
@@ -223,6 +248,9 @@ def build_evidence(service, receipt, candidate):
     return {'output_shape': shape, 'record_scopes': dict(scopes), 'label_sample_indexes': label_indexes,
         'labels_total': len(rows), 'labels_are_previews': True, 'label_preview_chars': 180,
         'samples': samples, 'key_diagnostics': key_diagnostics,
+        'source_unit_mapping': {'total': len(mappings), 'samples': [m for m in mappings if any(i in indexes for i in m['record_indexes'])],
+            'meaning': 'Each source start has observed label inputs, declared transformation steps and exact output record references. No expected labels are inferred from memory.'},
+        'diagnostic_evidence_ids': diagnostic_ids,
         'filtered_heading_count': len(filtered), 'unselected_peer_group_count': len(peers), 'evidence': evidence,
         'coverage_evidence_ids': [e['id'] for e in evidence if e['id'].startswith(('filtered_heading_', 'unselected_peer_', 'unselected_body_'))]}
 
@@ -241,7 +269,7 @@ def validate_decision(response, evidence):
         if not isinstance(issue, dict) or not all(isinstance(issue.get(k), str) and issue[k].strip()
                 for k in ('kind', 'evidence_id', 'quote', 'problem')):
             raise ValueError('Each issue needs kind, evidence_id, exact quote and problem')
-        if issue['kind'] not in {'record_unit', 'record_boundary', 'body_omission', 'body_annotation_mix', 'metadata'}:
+        if issue['kind'] not in {'record_unit', 'record_boundary', 'body_omission', 'body_annotation_mix', 'metadata', 'label_mapping'}:
             raise ValueError('Unsupported issue kind')
         if issue['evidence_id'] not in texts or issue['quote'] not in texts[issue['evidence_id']]:
             raise ValueError('Issue quote is absent from the cited evidence: ' + issue['evidence_id'])
@@ -295,11 +323,21 @@ def validate_decision(response, evidence):
             raise ValueError(f"Coverage disposition {check['disposition']} contradicts actual locations {misplaced}; allowed locations: {sorted(allowed)}")
     if len(accounted) != len(required) or set(accounted) != required:
         raise ValueError('Coverage checks must cover every coverage_evidence_id exactly once')
+    diagnostics = {e['id']: e for e in evidence if e.get('location') == 'parameter_diagnostic'}
+    checks = value.get('diagnostic_checks', [])
+    if not isinstance(checks, list) or len(checks) != len(diagnostics) or {c.get('evidence_id') for c in checks if isinstance(c, dict)} != set(diagnostics):
+        raise ValueError('diagnostic_checks must assess every diagnostic_evidence_id exactly once')
+    for check in checks:
+        cited = diagnostics[check['evidence_id']]
+        if check.get('resolved') is not True or cited.get('cannot_accept'):
+            raise ValueError('Unresolved parameter diagnostics cannot be accepted: ' + check['evidence_id'])
+        if not isinstance(check.get('quote'), str) or not check['quote'].strip() or check['quote'] not in cited['text'] or not isinstance(check.get('reason'), str) or not check['reason'].strip():
+            raise ValueError('Diagnostic checks need a verified quote and source-to-output mapping reason')
     return {**value, 'review_scope': 'complete_acceptance_checklist', 'checklist_verified': True}
 
 
 def review_policy_id(config):
-    return digest({'protocol_version': 2, 'system': SYSTEM, 'model': config.get('model', {}),
+    return digest({'protocol_version': 3, 'system': SYSTEM, 'model': config.get('model', {}),
                    'contract': config.get('agent', {}).get('completion_documents', {})})
 
 
@@ -324,8 +362,22 @@ async def review_candidate(config, task, service, job_id):
                '_agent_context': config.get('agent', {})}
     messages = [{'role': 'system', 'content': SYSTEM}, {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False)}]
     attempts = []
+    review_seconds = min(float(config.get('documents', {}).get('review_timeout_seconds', 54)),
+        max(.1, .9 * float(config.get('harness', {}).get('tool_timeout_seconds', 60))))
+    if not math.isfinite(review_seconds) or review_seconds <= 0:
+        raise ValueError('review_timeout_seconds must be positive and finite')
+    deadline = time.monotonic() + review_seconds
     for _ in range(2):
-        response = await chat_completion(messages, options)
+        remaining = deadline - time.monotonic()
+        try:
+            if remaining <= 0:
+                raise asyncio.TimeoutError
+            response = await asyncio.wait_for(chat_completion(messages, options), remaining)
+        except asyncio.TimeoutError:
+            attempts.append({'valid': False, 'error': 'review_timeout', 'time_budget_seconds': review_seconds})
+            value = {'accepted': False, 'issues': [], 'required_changes': [], 'status': 'review_inconclusive',
+                'message': 'The bounded review time budget expired. No semantic defect was established; the saved candidate is unapproved.'}
+            break
         try:
             value = validate_decision(response, projection['evidence'])
             attempts.append({'response': response, 'valid': True})
@@ -352,8 +404,9 @@ def repair_guidance(issues):
     hints = []
     if kinds & {'record_unit', 'record_boundary', 'body_annotation_mix'}:
         hints.append('start_pattern creates a NEW record. For a structural boundary that must end the previous record without becoming a record itself, use exclude_pattern: the boundary stays intact in remainder. Preserving structure does not require adding it to the record array.')
-    if kinds & {'record_unit', 'record_boundary'}:
+    if kinds & {'record_unit', 'record_boundary', 'label_mapping'}:
         hints.append('heading_selector chooses candidate headings; start_pattern filters them. Omit the filter if all selected headings are required. key_pattern extracts identifiers and key_separator can create separate records for grouped identifiers sharing one source.')
+        hints.append('For labels in attributes or child nodes, declare key_source and ordered key_transforms (capture, split, integer_range). Read observed values first. Preserve the complete label before splitting; never invent labels, rewrite bodies or mix this pipeline with legacy key_pattern/key_separator.')
     if kinds & {'body_omission', 'body_annotation_mix'}:
         hints.append('selector defines all ordered source units; body_selector partitions them into body and annotations. Both must cover every required body variant. In elements mode, omit body_selector to retain the entire selected node. Inspect actual nodes before choosing values.')
     if 'metadata' in kinds:

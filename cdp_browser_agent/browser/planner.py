@@ -65,6 +65,21 @@ tables and unassigned remainder. Revise a wrong recipe before document_export. T
 model chooses and reviews rules; tools copy exact full-source text without asking the
 model to reproduce it. Source-tree conservation is NOT proof of correct boundaries
 or task completeness. Report unresolved semantic issues and source-version limits.
+Read extensions.document_focus for the current source, candidate, saved recipe,
+cited defects, effective output changes and remaining repair/diagnostic budget.
+Follow inspect -> preview -> locate rejected evidence -> revise -> compare changes ->
+review -> export. Re-reading the same evidence or changing metadata/reasons is not
+repair progress. A bounded diagnosis must change the query/representation or produce
+an effective candidate change; blocked sources remain checkpointed while you handle
+other pending sources. Do not busy-loop an action rejected by the recovery guard.
+For labels in observed attributes or child nodes use key_source. Use ordered
+key_transforms capture/split/integer_range when the requested units need list or
+numeric range expansion. Specify the observed delimiter, preserve whole labels before
+splitting, and inspect source_unit_mapping/diagnostics. These operations never alter
+the body. Consult schemas for precise arguments; no language/site-specific parser exists.
+The context is centered on the active source. Completed sources retain delivery
+summaries and IDs. Use context_archive with artifact_read or history_read to recover
+archived evidence; do not rebuild old work simply because its full text left the view.
 Use configured processing workers for semantic enrichment or other output schemas;
 discover external tools only when the generic capabilities are insufficient. A lack
 of a task-specific profile does not mean that document transformation is impossible.
@@ -323,7 +338,14 @@ async def plan_next_action(request: dict) -> dict:
         root = Path(settings.get("log_dir", "logs/browser-agent")) / "contexts" / uuid4().hex
         compactor = ContextCompactor(ArtifactStore(root / "artifacts"), root / "compactions")
     original = deepcopy(payload)
-    payload, receipt = compactor.prepare(original, budget, system, image=image)
+    from ..documents.context import project_context
+    payload, projection = project_context(original, compactor.artifacts, settings, request.get('execution_budget', {}))
+    projected = deepcopy(payload)
+    target_ratio = min(1.0, projection.get('target_prompt_tokens', budget.available_prompt_tokens) / budget.available_prompt_tokens)
+    payload, receipt = compactor.prepare(projected, budget, system, image=image, target_ratio=target_ratio)
+    remaining = request.get('execution_budget', {}).get('remaining_seconds')
+    if remaining is not None:
+        model_settings['apiTimeout'] = min(float(model_settings.get('apiTimeout', 90)), max(5, remaining - 3))
 
     def messages(value):
         content = json.dumps(value, ensure_ascii=False)
@@ -337,13 +359,13 @@ async def plan_next_action(request: dict) -> dict:
         # One bounded recovery, only after a committed, strictly smaller view.
         prior_size = budget.estimate_messages(messages(payload))
         target_ratio = min(.7, prior_size * .7 / budget.available_prompt_tokens)
-        smaller, recovery = compactor.prepare(original, budget, system, image=image, target_ratio=target_ratio)
+        smaller, recovery = compactor.prepare(projected, budget, system, image=image, target_ratio=target_ratio)
         if recovery["status"] != "committed" or budget.estimate_messages(messages(smaller)) >= prior_size:
             raise
         raw = await chat_completion(messages(smaller), model_settings)
         receipt = recovery
     return {"action": extract_json_object(raw), "raw_model_output": raw,
-            "context_budget": budget.as_dict(), "compaction": receipt}
+            "context_budget": budget.as_dict(), "compaction": receipt, "projection": projection}
 
 
 

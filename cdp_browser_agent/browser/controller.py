@@ -565,7 +565,8 @@ class BrowserController:
         try:
             if not response.ok:
                 return {"ok": False, "errorType": "download_http_error",
-                        "message": f"Download returned HTTP {response.status}", "url": url}
+                        "message": f"Download returned HTTP {response.status}", "url": url,
+                        "http_status": response.status, "retry_after": response.headers.get('retry-after')}
             data = await response.body()
         finally:
             await response.dispose()

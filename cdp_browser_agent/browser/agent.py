@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import re
+import time
 from copy import deepcopy
 from pathlib import Path
 
@@ -79,6 +80,14 @@ def collect_web_sources(sources, name, result):
     return sources
 
 
+def is_background_wait(action, result, state):
+    if action.get('action') == 'tool' and action.get('name', '').endswith(('_status', '.status')):
+        return result.get('status') in {'running', 'queued', 'retry_backoff', 'waiting'}
+    if action.get('action') == 'wait':
+        return any(target.get('next_retry_at', 0) > time.time() for target in state.get('document_targets', {}).values())
+    return False
+
+
 async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = None, *, session: RunSession | None = None,
                     controller: BrowserController | None = None, completion_check=None, action_guard=None) -> dict:
     if runtime is None:
@@ -112,6 +121,8 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
     feedback = None
     pending_screenshot = None
     state["browser_started"] = controller is not None
+    attempt_started = time.monotonic()
+    previous_plan_seconds = None
     try:
         model_settings = await prepare_model_options(model_settings)
         model_settings["_agent_context"] = settings
@@ -130,6 +141,10 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
             model_settings = await prepare_model_options(model_settings)
             memory.model_settings = model_settings
             state["step"] = step
+            if state.get('document_guard_rejections', 0) >= 6:
+                state.update(status='stalled', stopped_reason='document_recovery_exhausted',
+                    answer='Stopped after repeated actions rejected by bounded document recovery. Source limitations and candidate evidence are preserved in the checkpoint.')
+                break
             observation = await controller.observe() if controller else {
                 "url": "about:blank", "title": "Browser not started", "pageType": "not_started", "elements": [],
                 "fullText": "No browser page has been observed. Use web_search/web_fetch for public reading or observe_browser for interactive tasks. "
@@ -141,15 +156,18 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
             state["observed_resource_candidates"] = collect_observed_candidate_resources(state["observed_resource_candidates"], observation)
             signature = progress_signature(observation, previous_action, state["last_result"] or {})
             seen_progress[signature] = seen_progress.get(signature, 0) + 1
-            if seen_progress[signature] >= no_progress_limit:
+            background_wait = is_background_wait(previous_action, state['last_result'] or {}, state)
+            if seen_progress[signature] >= no_progress_limit and not background_wait:
                 state.update(status="stalled", stopped_reason="no_progress", answer="Stopped after repeated observations without new progress.")
                 break
             recorder.write("observe", {"step": step, "observation": compact_observation(observation)})
             extensions = runtime.context()
-            if seen_progress[signature] >= 2:
+            if seen_progress[signature] >= 2 and not background_wait:
                 extensions["progress_recovery"] = {"repeat_count": seen_progress[signature],
                     "last_action": previous_action, "evidence_action_ids": [h["actionId"] for h in state["history"][-3:]],
                     "message": "The same action/result has repeated without new evidence. Diagnose transport, representation, selection or missing capability. Use reflect with actual action IDs and change the query/method, complete other pending work, or report a precise limitation. Do not repeat the unchanged action."}
+            if background_wait:
+                extensions['background_wait'] = {'message': 'A pending status/backoff is a normal wait, not a failed repair. Respect polling/backoff intervals and the remaining task deadline; do not busy-loop.'}
             base = {"task": task, "observation": compact_observation(observation),
                     "last_result": state["last_result"], "extensions": extensions}
             memory_context = memory.build_context(task, observation, state["last_result"], state["sources"], base)
@@ -176,10 +194,17 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                        "memory": memory.to_legacy_memory(), "sources": state["sources"],
                        "history": state["history"], "last_result": state["last_result"],
                        "extensions": extensions, "strategy_feedback": feedback, "screenshot": pending_screenshot, "compactor": compactor}
+            request['execution_budget'] = {'remaining_seconds': max(0, float(config.get('harness', {}).get('run_timeout_seconds', 600)) - (time.monotonic() - attempt_started)),
+                'remaining_steps': first_step + max_steps - step, 'previous_plan_seconds': previous_plan_seconds}
             pending_screenshot = None
             reviews = []
             try:
+                plan_started = time.monotonic()
                 planned = await plan_next_action(request)
+                previous_plan_seconds = time.monotonic() - plan_started
+                state.setdefault('planning_costs', []).append({'step': step, 'elapsed_seconds': round(previous_plan_seconds, 3),
+                    'context': planned.get('projection'), 'execution_budget': request['execution_budget']})
+                recorder.write('planning_cost', state['planning_costs'][-1])
                 if planned.get("compaction"):
                     state["context_view"] = planned["compaction"]
                     if planned["compaction"].get("status") == "committed":
@@ -277,7 +302,13 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                             pending_screenshot = await controller.capture_screenshot_for_vision()
                         result = {"ok": bool(pending_screenshot), "message": "vision_captured" if pending_screenshot else "vision_unavailable"}
                     else:
-                        result = await controller.execute(action)
+                        blocked = None
+                        recovery = runtime.document_recovery() if runtime.document_tool_names and state.get('document_targets') else None
+                        if recovery and action['action'] == 'download':
+                            blocked = recovery.before_access('download', action['url'])
+                        result = blocked or await controller.execute(action)
+                        if recovery and action['action'] == 'download' and not blocked:
+                            recovery.after_access('download', action['url'], result)
             except Exception as exc:
                 result = {"ok": False, "errorType": type(exc).__name__, "message": str(exc)[:2000]}
             entry = {"actionId": f"A{step:04d}", "step": step,
@@ -289,6 +320,8 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                      "result": result, "strategyReviews": reviews, "sourceCount": len(state["sources"])}
             state["history"].append(entry)
             state["last_result"] = result
+            if runtime.document_tool_names and action['action'] == 'tool':
+                runtime.document_recovery().auxiliary(action)
             state.pop("pending_action", None)
             state["active_skills"] = deepcopy(runtime.skills.active)
             previous_action = action

@@ -33,9 +33,10 @@ def extract_page(body, content_type, url):
     text = decode(body, content_type)
     is_html = "html" in content_type or bool(re.match(r"\s*(?:<!doctype html|<html)", text, re.I))
     if not is_html:
-        if content_type.startswith("text/") or any(x in content_type for x in ("application/json", "application/xml")):
+        media_type = content_type.partition(';')[0].strip().lower()
+        if media_type.startswith("text/") or media_type in {"application/json", "application/xml"} or media_type.endswith(('+xml', '+json')):
             return {"title": "", "text": text.strip(), "links": [], "extraction": "plain_text", "needs_browser": False}
-        raise WebError("unsupported_content", "Only HTML and text are read by web_fetch; use browser/download for this resource", needs_browser=True)
+        raise WebError("unsupported_content", "web_fetch supports HTML, text, XML and JSON (including +xml/+json media types); use an appropriate download/import capability for other resources", needs_browser=True)
     soup = BeautifulSoup(text, "html.parser")
     title = soup.title.get_text(" ", strip=True) if soup.title else ""
     head = (title + " " + soup.get_text(" ", strip=True)[:800]).lower()

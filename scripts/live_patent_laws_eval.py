@@ -13,11 +13,9 @@ from pathlib import Path
 import re
 import shutil
 import sys
-import zipfile
 import xml.etree.ElementTree as ET
 
 from bs4 import BeautifulSoup
-import httpx
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -27,6 +25,7 @@ from cdp_browser_agent.documents.engine import DocumentTools, digest
 from cdp_browser_agent.harness.verification import check_documents
 from cdp_browser_agent.harness.task_store import TaskStore
 from cdp_browser_agent.workflows.store import atomic_json
+from scripts.live_document_eval_support import snapshot, trace_model, model_costs
 
 URLS = {
     'CN': 'https://www.cnipa.gov.cn/art/2020/11/23/art_97_155167.html',
@@ -134,12 +133,13 @@ def oracle(country, law, service):
     return checks
 
 
-async def evaluate(tag, resume=False):
+async def evaluate(tag, resume=False, config_path=None):
     if not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', tag):
         raise ValueError('Use a simple unique run tag')
     log = ROOT / 'logs/live-generic-documents' / tag
     output = ROOT / 'deliveries/generic-documents' / tag
     resume_run_id = None
+    config_path = Path(config_path or ROOT / 'examples/documents-gpt-6-luna.json').resolve()
     if resume:
         config = json.loads((log / 'config.json').read_text(encoding='utf-8'))
         with_task = TaskStore(config)
@@ -154,7 +154,7 @@ async def evaluate(tag, resume=False):
         attempt = previous.get('attempt', 1) + 1
         log, output = log / f'attempt-{attempt}', output / f'attempt-{attempt}'
     else:
-        config = load_config(str(ROOT / 'examples/documents-30000.json'))
+        config = load_config(str(config_path))
         config['agent'].update(log_dir=str(log / 'agent'), completion_documents={'min_sources': 3, 'collection_key': 'articles'})
         config['harness'].update(state_dir=str(log / 'state'), artifact_dir=str(log / 'artifacts'))
         config['web']['artifact_dir'] = str(log / 'web')
@@ -164,23 +164,7 @@ async def evaluate(tag, resume=False):
     atomic_json(log / 'config.json', config)
     if resume:
         atomic_json(log / 'prior-checkpoint.json', previous)
-    sources = sorted((ROOT / 'cdp_browser_agent').rglob('*.py')) + [Path(__file__), ROOT / 'examples/documents-30000.json']
-    hashes = {p.relative_to(ROOT).as_posix(): digest(p.read_bytes()) for p in sources}
-    with zipfile.ZipFile(log / 'source-snapshot.zip', 'x', zipfile.ZIP_DEFLATED) as archive:
-        for p in sources:
-            archive.write(p, p.relative_to(ROOT))
-    wire, send = [], httpx.AsyncClient.send
-
-    async def traced(client, request, **kwargs):
-        response = await send(client, request, **kwargs)
-        if str(request.url).startswith(config['model']['baseUrl']) and request.method == 'POST':
-            await response.aread()
-            record = {'request': json.loads(request.content), 'response': response.json()}
-            wire.append(record)
-            with (log / 'model-wire.jsonl').open('a', encoding='utf-8') as stream:
-                stream.write(json.dumps(record, ensure_ascii=False) + '\n')
-            print(json.dumps({'model_call': len(wire), 'reply': record['response'].get('choices', [{}])[0].get('message', {}).get('content', '')[:350]}, ensure_ascii=False), flush=True)
-        return response
+    hashes = snapshot(ROOT, log, [Path(__file__), ROOT / 'scripts/live_document_eval_support.py', config_path])
     task = ('从以下官方网站下载中国、美国、日本各一部专利法，分别输出每部法律一个JSON对象，articles数组每条一个元素。'
         '请根据实际文档自行研究处理方法。保留完整原文、款项、来源及可核验版本，区分正文和注释。'
         '废止或改号的条目也必须在articles数组中各有一个独立对象，不能只放进相邻条目的注释。'
@@ -189,11 +173,8 @@ async def evaluate(tag, resume=False):
     if resume:
         task = previous['task']
     atomic_json(log / 'task.json', {'task': task, 'recipes_supplied': False, 'known_urls_supplied': True})
-    httpx.AsyncClient.send = traced
-    try:
+    with trace_model(log, config) as wire:
         state = await run_browser_agent(task, config, resume_run_id=resume_run_id)
-    finally:
-        httpx.AsyncClient.send = send
     atomic_json(log / 'agent-state.json', state)
     service = DocumentTools(config)
     checks = {'agent_completed': state['status'] == 'completed', 'artifact_gate_passed': check_documents(config, state)['ok'],
@@ -214,6 +195,7 @@ async def evaluate(tag, resume=False):
     receipt = {'all_passed': all(checks.values()), 'checks': checks, 'agent_status': state['status'],
         'resume_run_id': resume_run_id, 'attempt': state.get('attempt', 1),
         'model_calls': len(wire), 'metrics': state.get('metrics'), 'browser_started': state.get('browser_started'),
+        'model_costs': model_costs(wire),
         'counts': {c: len(law.get('articles', [])) for c, law in laws.items()}, 'source_sha256': hashes,
         'recipes': {c: law['method'] for c, law in laws.items()}, 'scope': 'Known-source processing acceptance, not source discovery or a newest-law guarantee.'}
     atomic_json(log / 'receipt.json', receipt)
@@ -225,7 +207,8 @@ async def evaluate(tag, resume=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--tag', required=True)
+    parser.add_argument('--config', help='Model/config JSON for new runs; defaults to documents-gpt-6-luna.json. Resume uses the checkpoint config.')
     parser.add_argument('--resume', action='store_true', help='Continue a checkpoint; keep earlier outputs and write a separate attempt receipt')
     args = parser.parse_args()
-    result = asyncio.run(evaluate(args.tag, resume=args.resume))
+    result = asyncio.run(evaluate(args.tag, resume=args.resume, config_path=args.config))
     raise SystemExit(0 if result['all_passed'] else 1)

@@ -53,6 +53,10 @@ def site(tmp_path):
                 status, text = 429, "Slow down"
             elif self.path == "/json":
                 content_type, text = "application/json", '{"value":42}'
+            elif self.path == "/feed":
+                content_type, text = "Application/Rss+Xml; charset=utf-8", '<rss><channel><item><title>One</title><description>Full source body</description></item></channel></rss>'
+            elif self.path == "/vendor-json":
+                content_type, text = "application/vnd.example+json", '{"records":[{"title":"One","body":"Full source body"}]}'
             elif self.path.startswith("/gzip"):
                 content_type, text = "text/plain", "Source text. " * (1000 if self.path == "/gzip-large" else 5)
                 headers["Content-Encoding"] = "gzip"
@@ -124,6 +128,24 @@ async def test_unsolicited_compression_is_bounded_and_preserves_wire_evidence(si
     assert hashlib.sha256(decoded.read_bytes()).hexdigest() == metadata["response_sha256"]
     assert (await web.fetch(url + "/gzip-large"))["status"] == "too_large"
     assert (await web.fetch(url + "/gzip-broken"))["status"] == "invalid_encoding"
+
+
+@pytest.mark.parametrize('path,kind', [('/feed', 'xml'), ('/vendor-json', 'json')])
+async def test_structured_media_suffix_reaches_document_pipeline_with_full_source(site, tmp_path, path, kind):
+    from cdp_browser_agent.documents.engine import DocumentTools, digest
+    url, settings = site
+    web = WebTools(settings)
+    service = DocumentTools({'documents': {'state_dir': str(tmp_path / 'documents')}}, web)
+    result = await service.open(url + path)
+    assert result['ok'] and result['format'] == kind
+    raw, meta = service._source(result['source_id'])
+    assert digest(raw) == meta['sha256'] and meta['requested_url'] == url + path
+    if kind == 'xml':
+        candidate = await service.preview(result['source_id'], {'mode': 'elements', 'selector': './/item'})
+        assert service._job(candidate['job_id'])[2]['records'][0]['text'] == 'OneFull source body'
+    else:
+        inspected = await service.inspect(result['source_id'], '/records/0/body')
+        assert inspected['value'] == 'Full source body'
 
 
 def test_compression_formats_and_trailing_data_fail_closed():

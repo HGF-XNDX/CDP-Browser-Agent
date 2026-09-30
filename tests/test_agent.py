@@ -193,6 +193,24 @@ def test_tool_progress_still_changes_for_real_arguments_and_evidence():
         {**result, 'samples': [{'text': 'Changed source evidence'}]}) != original
 
 
+async def test_pending_worker_status_does_not_stall_or_warn_but_keeps_step_budget(setup_run, monkeypatch):
+    from cdp_browser_agent.harness.tools import Tool
+    config, _ = setup_run
+    config['agent']['max_steps'] = 7
+    config['web']['prefer_fast_path'] = True
+    requests = []
+    async def planner(request):
+        requests.append(request)
+        return {'action': {'action': 'tool', 'name': 'simulation_status', 'arguments': {}}}
+    monkeypatch.setattr(agent, 'plan_next_action', planner)
+    handler = AsyncMock(return_value={'ok': False, 'status': 'running', 'active': True})
+    tool = Tool('simulation_status', 'Read a pending simulation', {'type': 'object', 'properties': {}, 'additionalProperties': False}, handler, read_only=True)
+    state = await run_browser_agent('Wait for the simulation', config, tools=[tool])
+    assert state['status'] == 'max_steps' and handler.await_count == 7
+    assert all('progress_recovery' not in request['extensions'] for request in requests)
+    assert all('background_wait' in request['extensions'] for request in requests[1:])
+
+
 async def test_host_verifier_rejects_premature_done(setup_run, monkeypatch):
     config, _ = setup_run
     planner = AsyncMock(return_value={"action": {"action": "done", "outcome": "completed", "answer": "Finished"}})
@@ -231,14 +249,18 @@ def test_file_names_and_collision_preservation(tmp_path):
 
 async def test_deadline_with_connected_external_mcp(setup_run, monkeypatch):
     config, controller = setup_run
-    config["harness"].update(run_timeout_seconds=2, mcp_servers={"fixture": {
+    config["harness"].update(run_timeout_seconds=5, mcp_servers={"fixture": {
         "command": sys.executable,
         "args": [str(Path(__file__).parent / "fixtures" / "external_mcp.py")],
         "allow_tools": ["add"]}})
+    entered = asyncio.Event()
+    monkeypatch.setattr(agent, 'prepare_model_options', AsyncMock(side_effect=lambda options: options))
     async def slow(_):
+        entered.set()
         await asyncio.sleep(100)
     monkeypatch.setattr(agent, "plan_next_action", slow)
     result = await run_browser_agent("Inspect", config)
     assert result["status"] == "timeout", result
     assert result["log_file"]
+    assert entered.is_set(), 'This test requires connected MCP/browser before the deadline'
     controller.close.assert_awaited_once()

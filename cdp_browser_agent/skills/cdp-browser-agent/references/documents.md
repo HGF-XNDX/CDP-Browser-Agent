@@ -4,6 +4,10 @@ Use generic document tools for structured exports from HTML/XML. Work by source_
 and job_id; do not copy a long file into the model context or transcribe its content.
 
 1. document_open(url) retains full source and returns a structure inventory.
+   A verified saved source is reused by source_id. Before acquisition, consult
+   document_focus.retrieval/document_targets for shared HTTP/download attempts,
+   representation gaps and Retry-After. Respect backoff and the task deadline;
+   repeating a URL or changing filenames does not add a missing parser/importer.
 2. document_inspect(source_id, selector?, offset?, limit?) checks actual nodes.
    HTML uses CSS; XML uses case-sensitive ElementTree paths such as .//Entry;
    JSON uses RFC 6901 pointers. Inspect first/middle/last and metadata.
@@ -18,6 +22,10 @@ and job_id; do not copy a long file into the model context or transcribe its con
    Capture the full grouped label before splitting; key_separator cannot recover
    text outside the capture. Inspect key_diagnostics rather than assuming a split
    occurred. id is the unique source-bound identity; key is a display label.
+   key_source can read one observed relative node's text or attribute. Ordered
+   key_transforms supports capture, split and explicitly delimited integer_range;
+   do not mix it with legacy key_pattern/key_separator. Check source_unit_mapping
+   for step inputs/outputs and shared-source record IDs; never invent labels.
 5. Review counts, full-source boundaries, continuations, duplicate labels, tables,
    annotations and remainder; revise the rule when evidence disagrees. An empty
    query is not permission to repeat it: inspect actual tags/case and change it.
@@ -28,6 +36,14 @@ and job_id; do not copy a long file into the model context or transcribe its con
    not certify the rest of the checklist. Acceptance requires all displayed checks.
    A review-policy change requires refreshing the saved candidate; old decisions
    are retained for audit but cannot authorize a new export.
+   Approval must also assess every parameter diagnostic with a source-to-output
+   explanation and verified quote; unresolved diagnostics cannot be approved.
+   Consult extensions.document_focus/recovery for the current candidate, actual
+   output changes and remaining repair budget. Metadata/reason edits and repeated
+   reads are not repair progress. When bounded diagnosis is exhausted, preserve
+   the limitation and handle other pending sources; do not retry blocked actions.
+   Context projections archive the full original view. Restore evidence by ID
+   rather than rerunning completed work whose full history left the active view.
 6. document_export(job_id) replays the frozen candidate and verifies hashes before
    writing. Keep the returned output path and verification receipt.
 

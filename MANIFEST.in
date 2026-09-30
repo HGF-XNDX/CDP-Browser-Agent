@@ -1,6 +1,7 @@
 include README.md
 recursive-include examples *.json
 recursive-include examples *.md *.py
+prune examples/downloads
 recursive-include cdp_browser_agent/skills *.md
 recursive-include docs *.md *.json
 recursive-include tests *.py

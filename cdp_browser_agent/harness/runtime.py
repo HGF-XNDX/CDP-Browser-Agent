@@ -56,6 +56,11 @@ class ExtensionRuntime:
                 async def document_call(_handler=tool.handler, _name=tool.name, **args):
                     task = self.task_state.get('task')
                     review_required = bool(task and self.config.get('documents', {}).get('review_candidates', True))
+                    recovery = self.document_recovery() if task else None
+                    if recovery:
+                        blocked = recovery.before(_name, args)
+                        if blocked:
+                            return blocked
                     if _name == 'document_preview':
                         required_key = self.config.get('agent', {}).get('completion_documents', {}).get('collection_key')
                         if required_key and args['spec'].get('collection_key', 'records') != required_key:
@@ -65,12 +70,31 @@ class ExtensionRuntime:
                         reviewed = self.task_state.get('document_reviews', {}).get(args['job_id'], {})
                         if not reviewed.get('accepted') or reviewed.get('policy_id') != review_policy_id(self.config):
                             raise ValueError('Candidate has no accepted independent review for this task. Run document_preview and address its review issues before exporting.')
-                    result = await _handler(**args)
+                    try:
+                        result = await _handler(**args)
+                    except Exception as exc:
+                        if recovery:
+                            recovery.failure(args, str(exc))
+                        raise
+                    if _name == 'document_preview':
+                        self.task_state.setdefault('document_candidates', {})[result['job_id']] = {
+                            k: result[k] for k in ('job_id', 'source_id', 'status', 'record_count', 'validation') if k in result}
+                    revision = recovery.candidate(result) if recovery and _name == 'document_preview' else None
                     if _name == 'document_preview' and review_required and result.get('validation', {}).get('ok'):
                         from ..documents.review import review_candidate, repair_guidance
-                        review = await review_candidate(self.config, task, self.documents, result['job_id'])
+                        from ..documents.review import review_policy_id
+                        previous = self.task_state.get('document_reviews', {}).get((revision or {}).get('previous_job_id'), {})
+                        if revision and not revision['effective_change'] and previous.get('issues') and previous.get('policy_id') == review_policy_id(self.config):
+                            review = {**previous, 'accepted': False, 'kind': 'unchanged_output_rejection',
+                                'candidate_sha256': self.documents._job(result['job_id'])[1]['candidate_sha256'],
+                                'previous_review_id': previous.get('review_id'),
+                                'message': 'This candidate produces the same record fields as the rejected candidate. Its cited defects remain unresolved; a cosmetic recipe/metadata change is not an effective repair.'}
+                        else:
+                            review = await review_candidate(self.config, task, self.documents, result['job_id'])
                         review = {**review, 'repair_options': repair_guidance(review.get('issues', []))}
                         self.task_state.setdefault('document_reviews', {})[result['job_id']] = review
+                        if recovery:
+                            recovery.decision(result['job_id'], review)
                     if _name in {'document_preview', 'document_review'} and review_required and result.get('job_id'):
                         review = self.task_state.get('document_reviews', {}).get(result['job_id'])
                         if review:
@@ -92,6 +116,8 @@ class ExtensionRuntime:
                     if result.get("status") == "exported" and result.get("output_path"):
                         exports = self.task_state.setdefault("document_exports", {})
                         exports[result["job_id"]] = result
+                    if recovery:
+                        recovery.after(_name, args, result)
                     return result
                 self.registry.register(replace(tool, handler=document_call))
                 self.document_tool_names.append(tool.name)
@@ -375,6 +401,10 @@ class ExtensionRuntime:
     def crawler(self):
         return Crawler(self.config, parent_id=self.task_state.get("run_id"), allowed_origins=self.crawl_allowed_origins)
 
+    def document_recovery(self):
+        from ..documents.recovery import DocumentRecovery
+        return DocumentRecovery(self.task_state, getattr(self, 'documents', None), self.config.get('documents', {}))
+
     def _document_review_refresh(self):
         """Expose policy changes without inventing a replacement extraction recipe."""
         result = {'actions': [], 'errors': []}
@@ -409,11 +439,34 @@ class ExtensionRuntime:
 
     def context(self) -> dict:
         review_refresh = self._document_review_refresh()
+        sources = list(self.task_state.get('document_sources', {}).values())[-20:]
+        candidates = self.task_state.get('document_candidates', {})
+        ledgers = self.task_state.get('document_recovery', {})
+        active = self.task_state.get('active_document_source_id')
+        latest = {c['source_id']: c for c in candidates.values() if c.get('source_id')}
+        focused = latest.get(active)
+        recipe = None
+        if focused:
+            recipe = self.documents._job(focused['job_id'])[1]['spec']
+            review = focused.get('review')
+            if review:
+                focused = {**focused, 'review': {k: review[k] for k in ('accepted', 'status', 'issues', 'required_changes', 'repair_options', 'message', 'semantic_accuracy_verified') if k in review}}
+        focus = {'active_source_id': active, 'active_candidate': focused, 'recipe': recipe,
+            'pending_url': self.task_state.get('pending_document_url'),
+            'retrieval': self.document_recovery().target(self.task_state['pending_document_url']) if self.task_state.get('pending_document_url') else None,
+            'recovery': self.document_recovery().view(ledgers[active]) if active in ledgers else None,
+            'other_sources': [{**s, 'stage': ledgers.get(s['source_id'], {}).get('stage', 'inspect'),
+                'latest_job_id': latest.get(s['source_id'], {}).get('job_id')} for s in sources if s['source_id'] != active]}
         return {"builtin_tools": [self.registry.describe(n) for n in self.builtin_names + self.web_tool_names + self.processing_tool_names + self.document_tool_names],
+                "document_focus": focus,
+                "document_targets": [{k: t[k] for k in ('target_id', 'url', 'stage', 'source_id', 'attempts', 'last_failure', 'limitation', 'next_retry_at') if k in t}
+                    for t in self.task_state.get('document_targets', {}).values()],
                 "document_review_refresh": review_refresh,
-                "document_exports": list(self.task_state.get("document_exports", {}).values()),
-                "document_sources": list(self.task_state.get("document_sources", {}).values())[-20:],
-                "document_candidates": list(self.task_state.get("document_candidates", {}).values())[-20:],
+                "document_exports": [{k: e[k] for k in ('source_id', 'job_id', 'status', 'record_count', 'output_path', 'output_sha256', 'artifact_paths') if k in e}
+                    for e in self.task_state.get("document_exports", {}).values()],
+                "document_sources": sources,
+                "document_candidates": [{k: c[k] for k in ('source_id', 'job_id', 'status', 'record_count', 'validation') if k in c} |
+                    ({'review': focused['review']} if c['source_id'] == active and focused and focused.get('review') else {}) for c in latest.values()][-20:],
                 "processing_profiles": self.processing.catalog.catalog(),
                 "child_workers": self.workers.list(self.task_state["run_id"]) if self.task_state.get("run_id") else [],
                 "crawls": self.crawler().list() if self.task_state.get("run_id") else [],

@@ -2,6 +2,11 @@
 
 [English](README.md) | 中文
 
+当前文档任务实测使用 [gpt-6-luna 配置](examples/documents-gpt-6-luna.json)：
+`http://localhost:15536/v1`，密钥从 `CDP_BROWSER_AGENT_API_KEY` 环境变量读取。
+本轮通用修复、组件检查、真实工具访问和任务完成状态分别记录在
+[恢复修复验收](docs/DOCUMENT_RECOVERY_VALIDATION.md)。
+
 通用浏览器智能体。使用 Playwright 启动 Chromium 或连接 Chrome/Edge CDP，
 使用 OpenAI-compatible Chat Completions 接口规划动作。支持内部加载 Agent Skills、
 调用外部 MCP 工具，也能作为 MCP 服务或一个可分发的 Skill 被其他智能体使用。

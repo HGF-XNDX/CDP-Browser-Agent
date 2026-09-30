@@ -22,6 +22,11 @@ including unselected tables and notes, is retained for review. See the
 [document tools and diagnostic workflow](docs/DOCUMENTS.md) and [live validation boundaries](docs/DOCUMENT_VALIDATION.md). The earlier patent
 adapter was removed because adapter success did not establish autonomous processing.
 
+The current document evaluation configuration is [documents-gpt-6-luna.json](examples/documents-gpt-6-luna.json),
+using `http://localhost:15536/v1`, `gpt-6-luna`, and the `CDP_BROWSER_AGENT_API_KEY`
+environment variable. [Recovery validation](docs/DOCUMENT_RECOVERY_VALIDATION.md)
+separates component checks, actual tool access, and completed agent tasks.
+
 Version 0.9 adds bounded HTTP crawling: persistent URL queues, static pagination,
 CSS field extraction, robots rules, shared origin throttling, retry/backoff, immutable
 source records and JSON/JSONL/CSV exports. `web_crawl` can hand its complete dataset

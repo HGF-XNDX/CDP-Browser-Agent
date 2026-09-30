@@ -6,7 +6,8 @@ from typing import Any
 
 
 DEFAULT_BROWSER_AGENT_CONFIG: dict[str, Any] = {
-    "documents": {"enabled": True, "state_dir": "downloads/documents", "max_nodes": 100000, "max_records": 10000, "review_candidates": True},
+    "documents": {"enabled": True, "state_dir": "downloads/documents", "max_nodes": 100000, "max_records": 10000, "review_candidates": True,
+        "recovery": {"max_revisions": 10, "max_inspections": 16, "unproductive_limit": 4, "diagnostic_actions": 3, "max_retrieval_attempts": 3}},
     "learning": {"enabled": False, "auto_replay": True, "reflect_success": False,
                  "task_type": "general", "replay_paths": [], "ttl_days": 30,
                  "max_entries": 4, "max_context_chars": 6000, "timeout_seconds": 180,
@@ -87,6 +88,9 @@ DEFAULT_BROWSER_AGENT_CONFIG: dict[str, Any] = {
         "memory_structured_recall_enabled": True,
         "browser_site_memory_enabled": False,
         "browser_site_memory_max_steps": 80,
+        "document_prompt_target_tokens": 18000,
+        "document_history_chars": 18000,
+        "document_plan_seconds": 35,
     },
     "harness": {
         "skill_paths": [],

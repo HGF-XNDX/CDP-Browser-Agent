@@ -22,6 +22,7 @@ from ..harness.tools import Tool
 from ..web.extract import decode
 from ..web.tools import WebTools
 from ..workflows.store import atomic_json
+from .labels import label_values
 
 
 def digest(value):
@@ -46,6 +47,14 @@ SPEC_SCHEMA = schema({
     "title_selector": SELECTOR,
     "key_pattern": {**PATTERN, "description": "Capture group 1 extracts a label from each heading. When supplied, EVERY heading must match; unmatched headings block export. Test on actual text and check regex escaping."},
     "key_separator": {**PATTERN, "description": "Splits the label extracted by key_pattern, not the original heading. Capture the entire grouped label first; content outside that capture cannot be split."},
+    "key_source": {**schema({"selector": SELECTOR, "attribute": {"type": "string", "minLength": 1, "maxLength": 120}}),
+        "description": "Read a label from one relative node, independently of body/title. selector defaults to '.' (the record start node); attribute reads its actual attribute, otherwise its text."},
+    "key_transforms": {"type": "array", "minItems": 1, "maxItems": 6, "items": {"oneOf": [
+        schema({"operation": {"const": "capture"}, "pattern": PATTERN}, ["operation", "pattern"]),
+        schema({"operation": {"const": "split"}, "pattern": PATTERN}, ["operation", "pattern"]),
+        schema({"operation": {"const": "integer_range"}, "delimiter": {"type": "string", "minLength": 1, "maxLength": 8},
+            "max_values": {"type": "integer", "minimum": 1, "maximum": 10000}}, ["operation", "delimiter"])]},
+        "description": "Ordered label-only pipeline: capture group 1, split by regex (delimiter captures are not labels), expand two integer endpoints using a literal delimiter. Non-range labels remain unchanged. Use observed source values; never combine with legacy key_pattern/key_separator. Each step is saved with input/output; expansion is bounded."},
     "collection_key": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,39}$"},
     "metadata": {"type": "object", "maxProperties": 20},
 }, ["mode", "selector"])
@@ -292,12 +301,14 @@ class DocumentTools:
                 selector_examples=[(".//" if meta["format"] == "xml" else "") + tag for tag, count in tags.most_common(12) if tag != "[document]"])
         return result
 
-    def _transform(self, source_id, spec):
+    def _transform(self, source_id, spec, engine=2):
         Draft202012Validator(SPEC_SCHEMA).validate(spec)
         if len(json.dumps(spec)) > 12000:
             raise ValueError("Document spec exceeds 12000 characters")
+        if spec.get('key_source') and (spec.get('key_pattern') or spec.get('key_separator')):
+            raise ValueError('Use key_transforms with key_source; legacy key_pattern/key_separator read heading text only')
         collection = spec.get("collection_key", "records")
-        if collection in {"source", "source_id", "method", "coverage", "validation", "remainder", "fragments", "metadata", "schema_version"}:
+        if collection in {"source", "source_id", "method", "coverage", "validation", "remainder", "fragments", "metadata", "schema_version", "source_unit_mapping"}:
             raise ValueError("Reserved collection key")
         if spec["mode"] == "sections" and not (spec.get("start_pattern") or spec.get("heading_selector")):
             raise ValueError("Sections require start_pattern or heading_selector")
@@ -345,7 +356,7 @@ class DocumentTools:
                 current.append(node)
         if not groups:
             raise ValueError("No record boundaries matched; inspect samples and revise the rule")
-        records, fragments, unmatched_keys = [], {}, []
+        records, fragments, unmatched_keys, mappings = [], {}, [], []
         materialized_chars = 0
         for group in groups:
             first = group[0]
@@ -357,6 +368,14 @@ class DocumentTools:
             key = (key_match.group(1) if key_match and key_match.lastindex else key_match.group(0) if key_match else heading) or heading
             keys = patterns["key_separator"].split(key, timeout=0.05) if "key_separator" in patterns else [key]
             keys = [k.strip() for k in keys if k.strip()] or [first.path]
+            mapping, label_warnings = None, []
+            if spec.get('key_source') or spec.get('key_transforms'):
+                if engine < 2:
+                    raise ValueError('This label pipeline requires document engine 2')
+                keys, mapping, label_warnings = label_values(tree, first, heading, spec, self.max_records, started + 15)
+            elif engine >= 2:
+                mapping = {'source_path': first.path, 'attribute': None, 'input': heading,
+                    'steps': [{'operation': 'legacy_capture_split', 'output': keys}], 'output_labels': keys}
             if len(records) + len(keys) > self.max_records:
                 raise ValueError("Document record limit exceeded")
             body, extras = [], []
@@ -376,6 +395,8 @@ class DocumentTools:
             record_chars = (len(heading) + len(text) + sum(map(len, body)) + sum(map(len, source_paths))
                             + sum(len(a['path']) + len(a['text']) for a in extras) + 256)
             materialized_chars += len(keys) * record_chars + sum(map(len, keys))
+            if mapping:
+                materialized_chars += len(json.dumps(mapping, ensure_ascii=False))
             if materialized_chars > self.max_materialized_chars:
                 raise ValueError("Document materialized text limit exceeded; reduce grouped expansion or configure max_materialized_chars")
             for node in group:
@@ -385,6 +406,10 @@ class DocumentTools:
                     "text": text, "text_sha256": digest(text.encode()), "paragraphs": body,
                     "source_paths": source_paths, "annotations": extras,
                     "shared_source": len(keys) > 1})
+            if mapping:
+                mappings.append({**mapping, 'record_start_path': first.path,
+                    'record_indexes': list(range(len(records) - len(keys), len(records))),
+                    'record_ids': [r['id'] for r in records[-len(keys):]], 'diagnostics': label_warnings})
         remainder = tree.root.tree(fragments)
         reconstructed = self._restore(remainder, fragments)
         if reconstructed != tree.root.tree():
@@ -411,9 +436,12 @@ class DocumentTools:
         validation = {"ok": not unmatched_keys and len({r['id'] for r in records}) == len(records),
             "unmatched_key_count": len(unmatched_keys), "unmatched_key_samples": unmatched_keys[:8],
             "unique_ids": len({r['id'] for r in records}) == len(records)}
-        return {"schema_version": 1, "source_id": source_id, "source": meta,
+        result = {"schema_version": engine, "source_id": source_id, "source": meta,
             "metadata": {"origin": "planner_supplied", "values": spec.get("metadata", {})},
             "method": spec, collection: records, "fragments": fragments, "remainder": remainder, "coverage": coverage, "validation": validation}
+        if engine >= 2:
+            result['source_unit_mapping'] = mappings
+        return result
 
     @staticmethod
     def _restore(item, fragments):
@@ -428,12 +456,12 @@ class DocumentTools:
     async def preview(self, source_id: str, spec: dict) -> dict[str, Any]:
         """Freeze a candidate; do not equate structural conservation with correct segmentation."""
         result = await asyncio.to_thread(self._transform, source_id, deepcopy(spec))
-        job_id = digest({"source_id": source_id, "spec": spec, "engine": 1})
+        job_id = digest({"source_id": source_id, "spec": spec, "engine": 2})
         folder = self._path(job_id, "jobs")
         folder.mkdir(parents=True, exist_ok=True)
         if not (folder / "receipt.json").exists():
             atomic_json(folder / "candidate.json", result)
-            atomic_json(folder / "receipt.json", {"source_id": source_id, "spec": spec, "candidate_sha256": digest(result), "engine": 1})
+            atomic_json(folder / "receipt.json", {"source_id": source_id, "spec": spec, "candidate_sha256": digest(result), "engine": 2})
         return await self.review(job_id)
 
     def _job(self, job_id):
@@ -441,6 +469,8 @@ class DocumentTools:
         receipt = json.loads((folder / "receipt.json").read_text(encoding="utf-8"))
         if digest({k: receipt[k] for k in ("source_id", "spec", "engine")}) != job_id:
             raise ValueError("Job recipe/hash changed")
+        if receipt['engine'] not in {1, 2}:
+            raise ValueError('Unsupported document engine version')
         candidate = json.loads((folder / "candidate.json").read_text(encoding="utf-8"))
         if digest(candidate) != receipt["candidate_sha256"]:
             raise ValueError("Candidate/hash changed")
@@ -448,9 +478,14 @@ class DocumentTools:
         return folder, receipt, candidate
 
     @staticmethod
-    def key_diagnostics(spec, records):
+    def key_diagnostics(spec, records, mappings=()):
         """Expose a detectable capture/split mismatch without guessing record labels."""
         warnings = []
+        for mapping in mappings:
+            for warning in mapping.get('diagnostics', []):
+                warnings.append({**warning, 'record_index': mapping['record_indexes'][0], 'source_path': mapping['source_path']})
+        if warnings:
+            return {'warnings': warnings[:8], 'truncated': len(warnings) > 8}
         if not spec.get('key_pattern') or not spec.get('key_separator'):
             return {'warnings': warnings, 'truncated': False}
         capture, separator = regex.compile(spec['key_pattern']), regex.compile(spec['key_separator'])
@@ -485,7 +520,8 @@ class DocumentTools:
             indexes = sorted(set(indexes + [len(records) // 2, len(records) - 1]))
         return {"ok": True, "job_id": job_id, "source_id": receipt["source_id"], "status": "exported" if (folder / "export.json").exists() else "preview",
             "coverage": candidate["coverage"], "validation": candidate["validation"], "record_count": len(records),
-            "key_diagnostics": self.key_diagnostics(receipt['spec'], records),
+            "key_diagnostics": self.key_diagnostics(receipt['spec'], records, candidate.get('source_unit_mapping', [])),
+            "label_mapping_samples": [m for m in candidate.get('source_unit_mapping', []) if any(i in indexes for i in m['record_indexes'])],
             "record_fields": list(records[0]), "source": candidate['source'],
             "samples": [{"index": i, **{k: records[i][k] for k in ("key", "heading", "source_paths", "shared_source")},
                 "text": records[i]["text"][:1400], "text_chars": len(records[i]["text"]),
@@ -501,7 +537,7 @@ class DocumentTools:
         if not candidate['validation']['ok']:
             raise ValueError('Recipe constraints failed; revise document_preview before export: ' + json.dumps(candidate['validation'], ensure_ascii=False))
         # Independently replay the frozen transformation on verified full source bytes.
-        replay = await asyncio.to_thread(self._transform, receipt["source_id"], receipt["spec"])
+        replay = await asyncio.to_thread(self._transform, receipt["source_id"], receipt["spec"], receipt['engine'])
         if digest(replay) != receipt["candidate_sha256"]:
             raise ValueError("Independent transformation replay differs")
         path = folder / "export.json"
@@ -537,7 +573,7 @@ class DocumentTools:
             Tool("document_open", "Download a full public HTML/XML/JSON/text source to an immutable source_id and inspect its structure. Reuses web proxy/size/access rules; never transcribe long sources through model context.", schema({"url": {"type": "string"}}, ["url"]), self.open),
             Tool("document_inspect", "Inspect full saved source by ID: HTML CSS, XML ElementTree XPath, JSON pointer. Omit selector for structure inventory. Bounded samples have total counts; select headers/paragraphs to infer a general extraction recipe.", schema({"source_id": identity, "selector": {"type": "string", "maxLength": 500}, **paging}, ["source_id"]), self.inspect, read_only=True),
             Tool("document_decode", "Derive a complete embedded document from a JSON string field (JSON pointer), using base64 or text. Retains and verifies parent provenance. Does not execute content.", schema({"source_id": identity, "json_pointer": {"type": "string", "maxLength": 500}, "encoding": {"enum": ["base64", "text"]}, "format": {"enum": ["xml", "html", "json", "text"]}}, ["source_id", "json_pointer"]), self.decode),
-            Tool("document_preview", "Test a planner-authored recipe on full source. elements: selector matches disjoint complete records; optional relative title_selector/body_selector. sections: selector matches ordered disjoint units; heading_selector chooses candidate headings and start_pattern filters them (if both supplied, BOTH must match); exclude_pattern closes groups; body_selector separates body from annotations. key_pattern capture 1 extracts key; key_separator splits grouped keys. CSS for HTML, ElementTree XPath for XML. Preserves full fragments and remainder. Agent tasks also review candidate semantics in a separate model context before export. Revise rejected candidates.", schema({"source_id": identity, "spec": SPEC_SCHEMA}, ["source_id", "spec"]), self.preview),
+            Tool("document_preview", "Test a planner-authored recipe on full source. elements selects complete disjoint nodes; sections selects headings AND content units; heading_selector/start_pattern start records, exclude_pattern closes groups, body_selector separates annotations. Read labels with key_source (relative selector and/or attribute), then key_transforms capture/split/integer_range. Or use legacy key_pattern/key_separator. The pipeline is explicit and source-bound; labels never rewrite bodies. CSS for HTML, ElementTree XPath for XML. Preserves full fragments, remainder and source-to-record mapping. Agent tasks separately review semantics before export; rejected candidates require effective revision.", schema({"source_id": identity, "spec": SPEC_SCHEMA}, ["source_id", "spec"]), self.preview),
             Tool("document_review", "Read preview/export samples and coverage by job_id. Duplicate labels can be legitimate in separate source scopes; inspect source_paths and remainder. Counts alone do not prove completeness.", schema({"job_id": identity, **paging}, ["job_id"]), self.review, read_only=True),
             Tool("document_export", "Export a reviewed candidate to JSON after independent full-source replay and hash verification. Uses frozen job_id; returns real file paths. Idempotent across restarts, no model rewriting. Semantic correctness remains a review obligation.", schema({"job_id": identity}, ["job_id"]), self.export),
         ]
