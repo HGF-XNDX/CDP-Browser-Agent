@@ -7,6 +7,11 @@ Completions endpoint. Launch Chromium or attach to Chrome/Edge over CDP. Load
 Agent Skills, call external MCP tools, expose the agent as an MCP server, or
 export its bundled Skill for another agent host.
 
+The [gpt-6-luna document configuration](examples/documents-gpt-6-luna.json) uses
+Cockpit's local API with credentials resolved from `CDP_BROWSER_AGENT_API_KEY`.
+Optional `model.extraHeaders` apply to model discovery and completion requests.
+See [Cockpit compatibility and live evidence](docs/COCKPIT_API_COMPATIBILITY.md).
+
 Version 0.10 adds ACE-inspired procedural learning: automatic reflection and curation,
 versioned scoped playbooks, paired held-out replay before adoption, expiry, retirement
 and rollback. Browser planners and processing workers can reuse verified lessons.

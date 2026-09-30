@@ -1,5 +1,8 @@
 # 通用文档恢复修复验收
 
+本记录保留首次 gpt-6-luna 运行失败时的证据与结论。用户随后说明服务由 Cockpit
+启动，进一步诊断与修复另见 [Cockpit 接口兼容记录](COCKPIT_API_COMPATIBILITY.md)。
+
 日期：2026-09-30。通用修复已经实现，206 项回归通过；三国专利法的自主交付仍未通过。
 用户指定的 http://localhost:15536/v1 与 gpt-6-luna 已配置并实际调用，密钥经
 CDP_BROWSER_AGENT_API_KEY 环境变量读取，不进入配置、源码或运行回执。

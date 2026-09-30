@@ -7,6 +7,7 @@ import zipfile
 import httpx
 
 from cdp_browser_agent.documents.engine import digest
+from cdp_browser_agent.model_client import extract_assistant_content
 
 
 def snapshot(root, log, extra_paths):
@@ -27,7 +28,8 @@ def trace_model(log, config):
             return await original(client, request, **kwargs)
         started = time.monotonic()
         payload = json.loads(request.content)
-        role = 'review' if payload.get('messages', [{}])[0].get('content', '').startswith('Review ONE') else 'planner'
+        instruction = payload.get('instructions') or (payload.get('messages') or [{}])[0].get('content') or ''
+        role = 'review' if isinstance(instruction, str) and instruction.startswith('Review ONE') else 'planner'
         record = {'request': payload, 'role': role}
         try:
             response = await original(client, request, **kwargs)
@@ -44,9 +46,9 @@ def trace_model(log, config):
                 stream.write(json.dumps(record, ensure_ascii=False) + '\n')
             response_data = record.get('response', {})
             print(json.dumps({'model_call': len(wire), 'role': role, 'seconds': record['elapsed_seconds'],
-                'input_tokens': response_data.get('usage', {}).get('prompt_tokens'),
+                'input_tokens': response_data.get('usage', {}).get('prompt_tokens', response_data.get('usage', {}).get('input_tokens')),
                 'outcome': record['outcome'],
-                'reply': response_data.get('choices', [{}])[0].get('message', {}).get('content', '')[:350]}, ensure_ascii=False), flush=True)
+                'reply': extract_assistant_content(response_data)[:350]}, ensure_ascii=False), flush=True)
     httpx.AsyncClient.send = traced
     try:
         yield wire
@@ -58,7 +60,8 @@ def model_costs(wire):
     result = {}
     for role in ('planner', 'review'):
         records = [r for r in wire if r['role'] == role]
-        tokens = [r.get('response', {}).get('usage', {}).get('prompt_tokens') for r in records]
+        tokens = [r.get('response', {}).get('usage', {}).get('prompt_tokens',
+            r.get('response', {}).get('usage', {}).get('input_tokens')) for r in records]
         known = [v for v in tokens if isinstance(v, int)]
         result[role] = {'requests': len(records), 'failed_requests': sum(r['outcome'] == 'request_failed' for r in records),
             'usage_known_requests': len(known), 'usage_missing_requests': len(records) - len(known),

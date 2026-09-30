@@ -31,6 +31,8 @@ DEFAULT_BROWSER_AGENT_CONFIG: dict[str, Any] = {
         "fallbackModel": "local-model",
         "modelDiscoveryTimeout": 5,
         "apiKey": "",
+        "extraHeaders": {},
+        "apiEndpoint": "/chat/completions",
         "maxTokens": 4096,
         "temperature": 0,
         "apiTimeout": 180,

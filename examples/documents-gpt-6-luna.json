@@ -1,5 +1,5 @@
 {
-  "model": {"provider": "openai", "baseUrl": "http://localhost:15536/v1", "apiKeyEnv": "CDP_BROWSER_AGENT_API_KEY", "model": "gpt-6-luna", "maxTokens": 2048, "apiTimeout": 90, "maxRetries": 0, "enableThinking": false},
+  "model": {"provider": "openai", "baseUrl": "http://localhost:15536/v1", "apiEndpoint": "/responses", "apiKeyEnv": "CDP_BROWSER_AGENT_API_KEY", "model": "gpt-6-luna", "extraHeaders": {"X-Agtools-Disable-Image-Generation": "chat"}, "temperature": null, "maxTokens": 2048, "apiTimeout": 90, "maxRetries": 0, "enableThinking": false},
   "browser": {"headless": true, "focus_page": false},
   "agent": {"max_steps": 60},
   "learning": {"enabled": false},

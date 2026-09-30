@@ -187,6 +187,106 @@ async def test_format_compatibility_retry_still_works(server):
     assert len([r for r in calls if r.method == "POST"]) == 2
 
 
+async def test_model_headers_reach_discovery_and_format_retry_without_overriding_credentials(server):
+    responses, calls = server
+    responses["/v1/models"] = (200, {"data": [{"id": "fixture"}]})
+    def respond(request):
+        if "response_format" in json.loads(request.content):
+            return httpx.Response(400, json={"error": {"message": "response_format unsupported"}})
+        return httpx.Response(200, json={"choices": [{"message": {"content": '{"ok":true}'}}]})
+    responses["/v1/chat/completions"] = respond
+    extra = {"X-Provider-Text-Only": "chat", "authorization": "obsolete"}
+    settings = options(provider="openai", model="fixture", apiKey="resolved-env-key", extraHeaders=extra)
+    assert await model_client.chat_completion([{"role": "user", "content": "small"}], settings) == '{"ok":true}'
+    assert [r.url.path for r in calls] == ["/v1/models", "/v1/chat/completions", "/v1/chat/completions"]
+    assert all(r.headers["X-Provider-Text-Only"] == "chat" for r in calls)
+    assert all(r.headers.get_list("Authorization") == ["Bearer resolved-env-key"] for r in calls)
+    assert extra == {"X-Provider-Text-Only": "chat", "authorization": "obsolete"}
+
+
+async def test_responses_wire_contract_preserves_text_images_headers_and_usage(server):
+    responses, calls = server
+    responses["/v1/responses"] = (200, {"status": "completed", "output": [
+        {"type": "reasoning", "summary": [{"type": "summary_text", "text": "private reasoning"}]},
+        {"type": "function_call", "name": "invented", "arguments": "{}"},
+        {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": '{"ok":true}'}]}],
+        "usage": {"input_tokens": 123, "output_tokens": 17}})
+    messages = [{"role": "system", "content": "Return JSON"}, {"role": "assistant", "content": "Earlier response"},
+        {"role": "user", "content": [{"type": "text", "text": "Read the image"},
+         {"type": "image_url", "image_url": {"url": "data:image/png;base64,eA==", "detail": "high"}}]}]
+    metrics = {}
+    token = model_client.RUN_METRICS.set(metrics)
+    try:
+        result = await model_client.chat_completion(messages, options(provider="openai", model="fixture",
+            apiEndpoint="/responses", temperature=None, extraHeaders={"X-Provider-Text-Only": "chat"}))
+    finally:
+        model_client.RUN_METRICS.reset(token)
+    assert result == '{"ok":true}' and metrics['input_tokens'] == 123 and metrics['output_tokens'] == 17
+    request = next(r for r in calls if r.method == 'POST')
+    payload = json.loads(request.content)
+    assert payload['instructions'] == 'Return JSON'
+    assert payload['input'][0]['content'] == [{'type': 'output_text', 'text': 'Earlier response'}]
+    assert payload['input'][1]['content'][1] == {'type': 'input_image', 'image_url': 'data:image/png;base64,eA==', 'detail': 'high'}
+    assert payload['max_output_tokens'] == 1536 and payload['text']['format']['type'] == 'json_object'
+    assert payload['store'] is False and payload['tool_choice'] == 'none'
+    assert 'temperature' not in payload and 'messages' not in payload and 'max_tokens' not in payload
+    assert request.headers['X-Provider-Text-Only'] == 'chat'
+
+
+async def test_responses_format_retry_preserves_input_and_control_headers(server):
+    responses, calls = server
+    def respond(request):
+        if 'text' in json.loads(request.content):
+            return httpx.Response(422, json={'error': {'message': 'format unsupported'}})
+        return httpx.Response(200, json={'status': 'completed', 'output': [
+            {'type': 'message', 'content': [{'type': 'output_text', 'text': '{"ok":true}'}]}]})
+    responses['/v1/responses'] = respond
+    assert await model_client.chat_completion([{'role': 'user', 'content': 'JSON'}],
+        options(provider='openai', model='fixture', apiEndpoint='/responses', extraHeaders={'X-Provider-Text-Only': 'chat'})) == '{"ok":true}'
+    posts = [r for r in calls if r.method == 'POST']
+    assert len(posts) == 2 and all(r.headers['X-Provider-Text-Only'] == 'chat' for r in posts)
+    before, after = [json.loads(r.content) for r in posts]
+    assert {k: v for k, v in before.items() if k != 'text'} == after
+
+
+async def test_responses_overflow_does_not_retry_or_remove_format(server):
+    responses, calls = server
+    responses['/v1/responses'] = (400, {'error': {'code': 'context_length_exceeded'}})
+    with pytest.raises(ContextWindowExceeded):
+        await model_client.chat_completion([{'role': 'user', 'content': 'JSON'}],
+            options(provider='openai', model='fixture', apiEndpoint='/responses'))
+    assert len([r for r in calls if r.method == 'POST']) == 1
+
+
+@pytest.mark.parametrize('status', ['failed', 'incomplete'])
+async def test_responses_http_200_with_terminal_failure_cannot_supply_an_action(server, status):
+    responses, _ = server
+    responses['/v1/responses'] = (200, {'status': status, 'output': [
+        {'type': 'message', 'content': [{'type': 'output_text', 'text': '{"action":"done"}'}]}]})
+    with pytest.raises(RuntimeError, match='did not complete'):
+        await model_client.chat_completion([{'role': 'user', 'content': 'JSON'}],
+            options(provider='openai', model='fixture', apiEndpoint='/responses'))
+
+
+async def test_live_trace_keeps_empty_response_without_masking_the_model_error(tmp_path, monkeypatch):
+    from scripts.live_document_eval_support import trace_model, model_costs
+    model_client._capability_cache.clear()
+    def handle(request):
+        return httpx.Response(200, json={'choices': [{'message': {'content': None}}],
+            'usage': {'prompt_tokens': 12, 'completion_tokens': 6}} if request.method == 'POST' else {'data': []})
+    factory = httpx.AsyncClient
+    class FixtureClient(factory):
+        def __init__(self, **kwargs):
+            super().__init__(transport=httpx.MockTransport(handle), **kwargs)
+    monkeypatch.setattr(httpx, 'AsyncClient', FixtureClient)
+    with trace_model(tmp_path, {'model': {'baseUrl': 'http://fixture/v1'}}) as wire:
+        with pytest.raises(RuntimeError, match='did not contain assistant content'):
+            await model_client.chat_completion([{'role': 'user', 'content': 'JSON'}], options(provider='openai', model='fixture'))
+    assert wire[0]['outcome'] == 'response_received' and wire[0]['response']['choices'][0]['message']['content'] is None
+    assert model_costs(wire)['planner']['input_tokens_total'] == 12
+    model_client._capability_cache.clear()
+
+
 async def test_generic_tool_result_retained_readable_after_restart(tmp_path):
     original = {"ok": True, "records": [{"text": "前文" * 9000 + "末尾证据-917", "source": "https://example.com"}]}
     store = ArtifactStore(tmp_path)

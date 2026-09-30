@@ -1,0 +1,1365 @@
+{
+  "schema_version": 1,
+  "date": "2026-09-30",
+  "status": "cockpit_text_transport_and_two_document_acceptance_passed_three_country_task_incomplete",
+  "connection": {
+    "base_url": "http://localhost:15536/v1",
+    "model": "gpt-6-luna",
+    "api_key_env": "CDP_BROWSER_AGENT_API_KEY",
+    "api_endpoint": "/responses",
+    "temperature_parameter": "omitted",
+    "extra_headers": {
+      "X-Agtools-Disable-Image-Generation": "chat"
+    },
+    "capacity_reported_by_server": null,
+    "client_fallback_capacity_tokens": 32768,
+    "cockpit_global_configuration_changed": false
+  },
+  "verification": {
+    "pytest_passed": 217,
+    "pytest_seconds": 89.42,
+    "pip_check": "passed",
+    "compileall": "passed",
+    "git_diff_check": "passed",
+    "two_new_document_acceptance": true,
+    "complete_three_country_autonomy": false,
+    "final_runtime_snapshots_match_current_disk": true,
+    "CI_for_followup_commit": "recorded_separately_after_push"
+  },
+  "runtime_boundaries": {
+    "task_specific_recipes_in_runtime": false,
+    "country_or_site_branches_in_runtime": false,
+    "source_specific_oracles_used_only_after_run": true,
+    "oracle_feedback_to_agent": false,
+    "arbitrary_generated_code_execution": false,
+    "same_model_separate_context_review": true,
+    "planner_output_selection": "first complete action only; raw response and ignored suffix retained",
+    "repair_broken_json": false,
+    "execute_trailing_actions": false,
+    "review_protocol_version": 4,
+    "semantic_accuracy_guarantee": false
+  },
+  "review_mapping_budget": {
+    "known_failed_prompt_estimate": 63412,
+    "new_prompt_estimate": 14104,
+    "available_prompt_tokens": 26112,
+    "candidate_sha256": "4a174ef4fcb5342290ba5a572bd6b42053c055479b776805d6463aef74ffb695",
+    "candidate_unchanged": true,
+    "new_mapping_sample_chars": 8813,
+    "diagnostic_only": true,
+    "no_model_call": true
+  },
+  "primary_references": [
+    {
+      "url": "https://github.com/jlcodes99/cockpit-tools/blob/main/sidecars/cockpit-cliproxy/third_party/CLIProxyAPI/internal/runtime/executor/codex_executor_request.go",
+      "purpose": "Upstream hosted image tool injection"
+    },
+    {
+      "url": "https://github.com/jlcodes99/cockpit-tools/blob/main/sidecars/cockpit-cliproxy/third_party/CLIProxyAPI/internal/runtime/executor/helps/payload_helpers.go",
+      "purpose": "Request-level image-disable header"
+    },
+    {
+      "url": "https://developers.openai.com/api/docs/guides/migrate-to-responses",
+      "purpose": "Native Responses input, output and parameter shapes"
+    }
+  ],
+  "diagnostics": [
+    {
+      "path": "logs/model-compatibility-20260930-luna/cockpit-service-evidence.json",
+      "bytes": 11217,
+      "sha256": "630e6849ecbae0ac0f819a6cc0b5dd018854209cc3b559992d8f2e1ce8438f3e"
+    },
+    {
+      "path": "logs/model-compatibility-20260930-luna/original-planner-chat-images-disabled.json",
+      "bytes": 38754,
+      "sha256": "b6388db1e37691114de7beb9d9f3a3a916e89de6b878443b51f237f0e26be75f"
+    },
+    {
+      "path": "logs/model-compatibility-20260930-luna/original-planner-chat-turn-contract.json",
+      "bytes": 38179,
+      "sha256": "160fda09465517287cbd360ca1995f31fb51484634cd10a391ea62e87f4bdffa"
+    },
+    {
+      "path": "logs/model-compatibility-20260930-luna/empty-chat-responses-replay.json",
+      "bytes": 67957,
+      "sha256": "e5f17a9fa627dd2400cf97fa182f6953aaae24efc996792823ffbb49ce4dcc32"
+    },
+    {
+      "path": "logs/model-compatibility-20260930-luna/review-mapping-budget.json",
+      "bytes": 329,
+      "sha256": "bf9f00a21e8168ade798d358a94c9d2e859b82a54158f1eeb6c21fb1336fcf32"
+    }
+  ],
+  "runs": [
+    {
+      "name": "law_chat_text",
+      "tag": "20260930-cockpit-text",
+      "all_passed": false,
+      "agent_status": "failed",
+      "checks": {
+        "agent_completed": false,
+        "artifact_gate_passed": false,
+        "no_special_mcp_or_skill": true,
+        "source_code_unchanged": true,
+        "CN_exported": false,
+        "US_exported": false,
+        "JP_exported": false
+      },
+      "counts": {},
+      "expected_counts": null,
+      "model_calls": 10,
+      "model_requests": null,
+      "model_costs": {
+        "planner": {
+          "requests": 10,
+          "failed_requests": 0,
+          "usage_known_requests": 10,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 134142,
+          "input_tokens_max": 15210,
+          "input_tokens_mean": 13414.2,
+          "elapsed_seconds_total": 67.657,
+          "elapsed_seconds_mean": 6.766
+        },
+        "review": {
+          "requests": 0,
+          "failed_requests": 0,
+          "usage_known_requests": 0,
+          "usage_missing_requests": 0,
+          "input_tokens_total": null,
+          "input_tokens_max": null,
+          "input_tokens_mean": null,
+          "elapsed_seconds_total": 0,
+          "elapsed_seconds_mean": null
+        }
+      },
+      "metrics": {
+        "model_calls": 8,
+        "model_seconds": 59.421,
+        "input_tokens": 105178,
+        "output_tokens": 2426,
+        "model_routes": {
+          "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c": {
+            "observed_chars_per_token": 3.607802041782165,
+            "prompt_tokens": 14446
+          }
+        }
+      },
+      "source_sha256": {
+        "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+        "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+        "cdp_browser_agent/browser/agent.py": "3509d38b6fb229ec1c7b6ccc10fb1bd5a549eb4348ae3f1467e3674cd8c65cbb",
+        "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+        "cdp_browser_agent/browser/controller.py": "da0a1e8f79eeb802dfd8a08e668fb6a290c0484b53aaff9f5665a3c8d656baed",
+        "cdp_browser_agent/browser/default_config.py": "81f00137731df05ab847c0cce7971a55a6adbb5ca60c7d977f53ff4634fc07c1",
+        "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+        "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+        "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+        "cdp_browser_agent/browser/planner.py": "663132385cbe84f82f9e16c2849524e8106c12de61495107023eb8afb5b2e18b",
+        "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+        "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+        "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+        "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+        "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+        "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+        "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+        "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+        "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+        "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+        "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+        "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+        "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+        "cdp_browser_agent/documents/context.py": "cf1de2ddf613130a7c25a3ed42a326e0d7fedb2577b32ce5951961129e16cb53",
+        "cdp_browser_agent/documents/engine.py": "de4a01c03e1c77431a3f4260297336df165efda27fc057d83fa09528996ad1ad",
+        "cdp_browser_agent/documents/labels.py": "9d738c3c9a245440404ff8d7727e6a50958c1b35eeb128bb9c649135d30df667",
+        "cdp_browser_agent/documents/recovery.py": "9cb1589f5ae2392e8b06d1d528ecf1f3ad1c4a29c6683d4cab1ecaaad4ea38aa",
+        "cdp_browser_agent/documents/review.py": "78eefe3415d4bda390d4a171474727c7aa909c6076f9dca9b7adf71d34fde0ad",
+        "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+        "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+        "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+        "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+        "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+        "cdp_browser_agent/harness/learning.py": "80a480b49970994550f2cbd1a995ab761a24dac10873842fee8993a875ca9e3c",
+        "cdp_browser_agent/harness/playbook.py": "463faca979c788a1db10bbe26ebe1a1dced62c0c036fa579c26d0b079db20593",
+        "cdp_browser_agent/harness/runtime.py": "a3b38f20804e99222d59b7fa95a7232122edf7b48a4a4e09ffb568ab0dbb33ba",
+        "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+        "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+        "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+        "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+        "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+        "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+        "cdp_browser_agent/model_client.py": "eb6af24bcc29d7728bc5f33842522aee5c0ed1d03e7f3a020ea6ea76f694ccff",
+        "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+        "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+        "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+        "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+        "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+        "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+        "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+        "cdp_browser_agent/web/extract.py": "c27d80667da4254e59814eea11784c9f53fd7f1e4dcbab3551ac303615d59a79",
+        "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+        "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+        "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+        "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+        "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+        "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+        "examples/documents-gpt-6-luna.json": "fc8b14b6ac67039f93a74db112502a257212a90dc8d0eca97c231c7b4dceb21f",
+        "scripts/live_document_eval_support.py": "1e92b56871718ec9888033e11d18101aaa673620b9ff6d1eeff4c42e066fd1b4",
+        "scripts/live_patent_laws_eval.py": "18525ec76e86d6ca783575b48761e036bf0220eb683883d02cfa934516234cc4"
+      },
+      "scope": "Known-source processing acceptance, not source discovery or a newest-law guarantee.",
+      "recorded_wire_requests": 10,
+      "http_status_counts": {
+        "200": 10
+      },
+      "http_errors": [],
+      "transport_exception_count": 0,
+      "stopped_reason": "planner_errors",
+      "evidence_files": [
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-text/receipt.json",
+          "bytes": 8622,
+          "sha256": "ca6cb5ade5af05c9a7c0abe5077ec174e35bc0061f59e43524963f66fa231a46"
+        },
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-text/agent-state.json",
+          "bytes": 118121,
+          "sha256": "81b136d8b9510c256285507bf33fa765c45fc7c4b055d9e4dd962caa3765cdfe"
+        },
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-text/model-wire.jsonl",
+          "bytes": 533569,
+          "sha256": "9749a36852b3de62e0e354f62f9ca439388e4b4780c58b564c8a56563c08750f"
+        },
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-text/source-snapshot.zip",
+          "bytes": 212838,
+          "sha256": "1307a49f8fd30e281e551bf03aa53e66183086d537409ecc83f26a784be2c950"
+        },
+        {
+          "path": "deliveries/generic-documents/20260930-cockpit-text/validation.json",
+          "bytes": 8622,
+          "sha256": "ca6cb5ade5af05c9a7c0abe5077ec174e35bc0061f59e43524963f66fa231a46"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "name": "law_chat_single_action",
+      "tag": "20260930-cockpit-single-action",
+      "all_passed": false,
+      "agent_status": "incomplete",
+      "checks": {
+        "agent_completed": false,
+        "artifact_gate_passed": false,
+        "no_special_mcp_or_skill": true,
+        "source_code_unchanged": true,
+        "CN_exported": true,
+        "CN_has_articles": true,
+        "CN_all_text_hashes": true,
+        "CN_unique_record_ids": true,
+        "CN_source_tree_conserved": true,
+        "CN_all_article_boundaries": true,
+        "CN_each_heading_in_distinct_record": true,
+        "CN_all_continuation_paragraphs": true,
+        "CN_chapter_titles_not_body_paragraphs": true,
+        "CN_body_bound_to_own_article": true,
+        "US_exported": false,
+        "JP_exported": false
+      },
+      "counts": {
+        "CN": 82
+      },
+      "expected_counts": null,
+      "model_calls": 62,
+      "model_requests": null,
+      "model_costs": {
+        "planner": {
+          "requests": 60,
+          "failed_requests": 0,
+          "usage_known_requests": 60,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 733609,
+          "input_tokens_max": 15148,
+          "input_tokens_mean": 12226.8,
+          "elapsed_seconds_total": 410.575,
+          "elapsed_seconds_mean": 6.843
+        },
+        "review": {
+          "requests": 2,
+          "failed_requests": 0,
+          "usage_known_requests": 2,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 36381,
+          "input_tokens_max": 20331,
+          "input_tokens_mean": 18190.5,
+          "elapsed_seconds_total": 31.015,
+          "elapsed_seconds_mean": 15.508
+        }
+      },
+      "metrics": {
+        "model_calls": 48,
+        "model_seconds": 357.372,
+        "input_tokens": 594530,
+        "output_tokens": 10932,
+        "model_routes": {
+          "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c": {
+            "observed_chars_per_token": 2.5976947040498444,
+            "prompt_tokens": 12469
+          }
+        }
+      },
+      "source_sha256": {
+        "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+        "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+        "cdp_browser_agent/browser/agent.py": "f5e4e09c063898115f591e24cbe6829078f20dda9ace4d35d4a8776884d66d80",
+        "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+        "cdp_browser_agent/browser/controller.py": "da0a1e8f79eeb802dfd8a08e668fb6a290c0484b53aaff9f5665a3c8d656baed",
+        "cdp_browser_agent/browser/default_config.py": "81f00137731df05ab847c0cce7971a55a6adbb5ca60c7d977f53ff4634fc07c1",
+        "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+        "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+        "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+        "cdp_browser_agent/browser/planner.py": "196a7f8684451fa3441b833a21ca085ce4159fce979b7c2843fe1a121e0818ae",
+        "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+        "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+        "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+        "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+        "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+        "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+        "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+        "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+        "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+        "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+        "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+        "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+        "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+        "cdp_browser_agent/documents/context.py": "cf1de2ddf613130a7c25a3ed42a326e0d7fedb2577b32ce5951961129e16cb53",
+        "cdp_browser_agent/documents/engine.py": "de4a01c03e1c77431a3f4260297336df165efda27fc057d83fa09528996ad1ad",
+        "cdp_browser_agent/documents/labels.py": "9d738c3c9a245440404ff8d7727e6a50958c1b35eeb128bb9c649135d30df667",
+        "cdp_browser_agent/documents/recovery.py": "9cb1589f5ae2392e8b06d1d528ecf1f3ad1c4a29c6683d4cab1ecaaad4ea38aa",
+        "cdp_browser_agent/documents/review.py": "78eefe3415d4bda390d4a171474727c7aa909c6076f9dca9b7adf71d34fde0ad",
+        "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+        "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+        "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+        "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+        "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+        "cdp_browser_agent/harness/learning.py": "80a480b49970994550f2cbd1a995ab761a24dac10873842fee8993a875ca9e3c",
+        "cdp_browser_agent/harness/playbook.py": "463faca979c788a1db10bbe26ebe1a1dced62c0c036fa579c26d0b079db20593",
+        "cdp_browser_agent/harness/runtime.py": "a3b38f20804e99222d59b7fa95a7232122edf7b48a4a4e09ffb568ab0dbb33ba",
+        "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+        "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+        "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+        "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+        "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+        "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+        "cdp_browser_agent/model_client.py": "eb6af24bcc29d7728bc5f33842522aee5c0ed1d03e7f3a020ea6ea76f694ccff",
+        "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+        "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+        "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+        "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+        "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+        "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+        "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+        "cdp_browser_agent/web/extract.py": "c27d80667da4254e59814eea11784c9f53fd7f1e4dcbab3551ac303615d59a79",
+        "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+        "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+        "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+        "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+        "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+        "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+        "examples/documents-gpt-6-luna.json": "fc8b14b6ac67039f93a74db112502a257212a90dc8d0eca97c231c7b4dceb21f",
+        "scripts/live_document_eval_support.py": "1e92b56871718ec9888033e11d18101aaa673620b9ff6d1eeff4c42e066fd1b4",
+        "scripts/live_patent_laws_eval.py": "18525ec76e86d6ca783575b48761e036bf0220eb683883d02cfa934516234cc4"
+      },
+      "scope": "Known-source processing acceptance, not source discovery or a newest-law guarantee.",
+      "recorded_wire_requests": 62,
+      "http_status_counts": {
+        "200": 62
+      },
+      "http_errors": [],
+      "transport_exception_count": 0,
+      "stopped_reason": "done",
+      "evidence_files": [
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-single-action/receipt.json",
+          "bytes": 9723,
+          "sha256": "05c2935930d65c27afe44fb8184e8857829ede8e9a51191d887c0ed8c9131ab0"
+        },
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-single-action/agent-state.json",
+          "bytes": 1041123,
+          "sha256": "7cd683c6dc411800a23391d1eb0f08cf525d72b6984eef029a9c26c23b8351d0"
+        },
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-single-action/model-wire.jsonl",
+          "bytes": 3063341,
+          "sha256": "007a6248fe4337f98cb373a72652a9365a474a90676a1983e957a709fb585b7a"
+        },
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-single-action/source-snapshot.zip",
+          "bytes": 213188,
+          "sha256": "16b48e73d115d0a7b5b29e8a41cdc1db260bcadcecb35e1beaf51fc3c5946587"
+        },
+        {
+          "path": "deliveries/generic-documents/20260930-cockpit-single-action/validation.json",
+          "bytes": 9723,
+          "sha256": "05c2935930d65c27afe44fb8184e8857829ede8e9a51191d887c0ed8c9131ab0"
+        }
+      ],
+      "exports": [
+        {
+          "path": "deliveries/generic-documents/20260930-cockpit-single-action/CN.json",
+          "bytes": 358199,
+          "sha256": "7ae465e2a1da07b02ea4f59cc2f7e2c59c69512295dcc46728f82020cd8ecfef"
+        }
+      ]
+    },
+    {
+      "name": "transfer_chat_single_action",
+      "tag": "20260930-cockpit-single-action",
+      "all_passed": false,
+      "agent_status": "failed",
+      "checks": {
+        "agent_completed": false,
+        "artifact_gate_passed": false,
+        "source_code_unchanged": true,
+        "no_special_mcp_or_skill": true,
+        "pep_index_exported": false,
+        "nasa_feed_exported": false
+      },
+      "counts": {},
+      "expected_counts": {},
+      "model_calls": null,
+      "model_requests": 6,
+      "model_costs": {
+        "planner": {
+          "requests": 6,
+          "failed_requests": 0,
+          "usage_known_requests": 6,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 63954,
+          "input_tokens_max": 12789,
+          "input_tokens_mean": 10659.0,
+          "elapsed_seconds_total": 33.906,
+          "elapsed_seconds_mean": 5.651
+        },
+        "review": {
+          "requests": 0,
+          "failed_requests": 0,
+          "usage_known_requests": 0,
+          "usage_missing_requests": 0,
+          "input_tokens_total": null,
+          "input_tokens_max": null,
+          "input_tokens_mean": null,
+          "elapsed_seconds_total": 0,
+          "elapsed_seconds_mean": null
+        }
+      },
+      "metrics": {
+        "model_calls": 2,
+        "model_seconds": 18.094,
+        "input_tokens": 17443,
+        "output_tokens": 157,
+        "model_routes": {
+          "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c": {
+            "observed_chars_per_token": 4,
+            "prompt_tokens": 9254
+          }
+        }
+      },
+      "source_sha256": {
+        "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+        "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+        "cdp_browser_agent/browser/agent.py": "f5e4e09c063898115f591e24cbe6829078f20dda9ace4d35d4a8776884d66d80",
+        "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+        "cdp_browser_agent/browser/controller.py": "da0a1e8f79eeb802dfd8a08e668fb6a290c0484b53aaff9f5665a3c8d656baed",
+        "cdp_browser_agent/browser/default_config.py": "81f00137731df05ab847c0cce7971a55a6adbb5ca60c7d977f53ff4634fc07c1",
+        "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+        "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+        "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+        "cdp_browser_agent/browser/planner.py": "196a7f8684451fa3441b833a21ca085ce4159fce979b7c2843fe1a121e0818ae",
+        "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+        "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+        "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+        "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+        "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+        "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+        "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+        "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+        "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+        "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+        "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+        "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+        "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+        "cdp_browser_agent/documents/context.py": "cf1de2ddf613130a7c25a3ed42a326e0d7fedb2577b32ce5951961129e16cb53",
+        "cdp_browser_agent/documents/engine.py": "de4a01c03e1c77431a3f4260297336df165efda27fc057d83fa09528996ad1ad",
+        "cdp_browser_agent/documents/labels.py": "9d738c3c9a245440404ff8d7727e6a50958c1b35eeb128bb9c649135d30df667",
+        "cdp_browser_agent/documents/recovery.py": "9cb1589f5ae2392e8b06d1d528ecf1f3ad1c4a29c6683d4cab1ecaaad4ea38aa",
+        "cdp_browser_agent/documents/review.py": "78eefe3415d4bda390d4a171474727c7aa909c6076f9dca9b7adf71d34fde0ad",
+        "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+        "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+        "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+        "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+        "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+        "cdp_browser_agent/harness/learning.py": "80a480b49970994550f2cbd1a995ab761a24dac10873842fee8993a875ca9e3c",
+        "cdp_browser_agent/harness/playbook.py": "463faca979c788a1db10bbe26ebe1a1dced62c0c036fa579c26d0b079db20593",
+        "cdp_browser_agent/harness/runtime.py": "a3b38f20804e99222d59b7fa95a7232122edf7b48a4a4e09ffb568ab0dbb33ba",
+        "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+        "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+        "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+        "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+        "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+        "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+        "cdp_browser_agent/model_client.py": "eb6af24bcc29d7728bc5f33842522aee5c0ed1d03e7f3a020ea6ea76f694ccff",
+        "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+        "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+        "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+        "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+        "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+        "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+        "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+        "cdp_browser_agent/web/extract.py": "c27d80667da4254e59814eea11784c9f53fd7f1e4dcbab3551ac303615d59a79",
+        "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+        "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+        "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+        "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+        "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+        "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+        "examples/documents-gpt-6-luna.json": "fc8b14b6ac67039f93a74db112502a257212a90dc8d0eca97c231c7b4dceb21f",
+        "scripts/live_document_eval_support.py": "1e92b56871718ec9888033e11d18101aaa673620b9ff6d1eeff4c42e066fd1b4",
+        "scripts/live_document_transfer_eval.py": "e5f1150845e8fd23db9af9350165fde5459215e5410c181239844a159bc22679"
+      },
+      "scope": "Two new public documents, known-source processing only. No claim of general document reliability or source discovery.",
+      "recorded_wire_requests": 6,
+      "http_status_counts": {
+        "200": 6
+      },
+      "http_errors": [],
+      "transport_exception_count": 0,
+      "stopped_reason": "planner_errors",
+      "evidence_files": [
+        {
+          "path": "logs/live-document-transfer/20260930-cockpit-single-action/receipt.json",
+          "bytes": 8565,
+          "sha256": "93c9ffbd8295f3f5c16d80c48db4a7caf2543221dff77a26dae9d24756fd804b"
+        },
+        {
+          "path": "logs/live-document-transfer/20260930-cockpit-single-action/agent-state.json",
+          "bytes": 48972,
+          "sha256": "91b0271db3070c51b95005e3dc3a1c4534b3d7532220e255bd18c8bad5450d7c"
+        },
+        {
+          "path": "logs/live-document-transfer/20260930-cockpit-single-action/model-wire.jsonl",
+          "bytes": 266241,
+          "sha256": "e9aa1e04e991dce7aed0e5cbae00ced1b6879a714dcb883dd149d06876bd11d4"
+        },
+        {
+          "path": "logs/live-document-transfer/20260930-cockpit-single-action/source-snapshot.zip",
+          "bytes": 211381,
+          "sha256": "8dd72154dcba2d8f9a4ea7d09171e122009e1431ce3bc7e61e081d4e769c268f"
+        },
+        {
+          "path": "deliveries/document-transfer/20260930-cockpit-single-action/validation.json",
+          "bytes": 8565,
+          "sha256": "93c9ffbd8295f3f5c16d80c48db4a7caf2543221dff77a26dae9d24756fd804b"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "name": "law_responses",
+      "tag": "20260930-cockpit-responses",
+      "all_passed": false,
+      "agent_status": "incomplete",
+      "checks": {
+        "agent_completed": false,
+        "artifact_gate_passed": false,
+        "no_special_mcp_or_skill": true,
+        "source_code_unchanged": true,
+        "CN_exported": true,
+        "CN_has_articles": true,
+        "CN_all_text_hashes": true,
+        "CN_unique_record_ids": true,
+        "CN_source_tree_conserved": true,
+        "CN_all_article_boundaries": true,
+        "CN_each_heading_in_distinct_record": true,
+        "CN_all_continuation_paragraphs": true,
+        "CN_chapter_titles_not_body_paragraphs": true,
+        "CN_body_bound_to_own_article": true,
+        "US_exported": false,
+        "JP_exported": false
+      },
+      "counts": {
+        "CN": 82
+      },
+      "expected_counts": null,
+      "model_calls": 48,
+      "model_requests": null,
+      "model_costs": {
+        "planner": {
+          "requests": 45,
+          "failed_requests": 0,
+          "usage_known_requests": 45,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 547694,
+          "input_tokens_max": 15292,
+          "input_tokens_mean": 12171.0,
+          "elapsed_seconds_total": 353.606,
+          "elapsed_seconds_mean": 7.858
+        },
+        "review": {
+          "requests": 3,
+          "failed_requests": 0,
+          "usage_known_requests": 3,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 49186,
+          "input_tokens_max": 16730,
+          "input_tokens_mean": 16395.3,
+          "elapsed_seconds_total": 35.547,
+          "elapsed_seconds_mean": 11.849
+        }
+      },
+      "metrics": {
+        "model_calls": 48,
+        "model_seconds": 390.313,
+        "input_tokens": 596880,
+        "output_tokens": 9056,
+        "model_routes": {
+          "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c": {
+            "observed_chars_per_token": 2.6007280030124265,
+            "prompt_tokens": 12297
+          }
+        }
+      },
+      "source_sha256": {
+        "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+        "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+        "cdp_browser_agent/browser/agent.py": "f5e4e09c063898115f591e24cbe6829078f20dda9ace4d35d4a8776884d66d80",
+        "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+        "cdp_browser_agent/browser/controller.py": "da0a1e8f79eeb802dfd8a08e668fb6a290c0484b53aaff9f5665a3c8d656baed",
+        "cdp_browser_agent/browser/default_config.py": "46054202efc4f7e41931dcce778f100797b4baef3031bc6047169f834205b43d",
+        "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+        "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+        "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+        "cdp_browser_agent/browser/planner.py": "196a7f8684451fa3441b833a21ca085ce4159fce979b7c2843fe1a121e0818ae",
+        "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+        "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+        "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+        "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+        "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+        "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+        "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+        "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+        "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+        "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+        "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+        "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+        "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+        "cdp_browser_agent/documents/context.py": "cf1de2ddf613130a7c25a3ed42a326e0d7fedb2577b32ce5951961129e16cb53",
+        "cdp_browser_agent/documents/engine.py": "de4a01c03e1c77431a3f4260297336df165efda27fc057d83fa09528996ad1ad",
+        "cdp_browser_agent/documents/labels.py": "9d738c3c9a245440404ff8d7727e6a50958c1b35eeb128bb9c649135d30df667",
+        "cdp_browser_agent/documents/recovery.py": "9cb1589f5ae2392e8b06d1d528ecf1f3ad1c4a29c6683d4cab1ecaaad4ea38aa",
+        "cdp_browser_agent/documents/review.py": "78eefe3415d4bda390d4a171474727c7aa909c6076f9dca9b7adf71d34fde0ad",
+        "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+        "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+        "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+        "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+        "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+        "cdp_browser_agent/harness/learning.py": "80a480b49970994550f2cbd1a995ab761a24dac10873842fee8993a875ca9e3c",
+        "cdp_browser_agent/harness/playbook.py": "463faca979c788a1db10bbe26ebe1a1dced62c0c036fa579c26d0b079db20593",
+        "cdp_browser_agent/harness/runtime.py": "a3b38f20804e99222d59b7fa95a7232122edf7b48a4a4e09ffb568ab0dbb33ba",
+        "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+        "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+        "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+        "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+        "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+        "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+        "cdp_browser_agent/model_client.py": "6d8780db9d30df03941f2938fca53691ebb4c1df41bc898a893b73cbf1998c80",
+        "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+        "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+        "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+        "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+        "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+        "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+        "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+        "cdp_browser_agent/web/extract.py": "c27d80667da4254e59814eea11784c9f53fd7f1e4dcbab3551ac303615d59a79",
+        "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+        "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+        "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+        "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+        "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+        "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+        "examples/documents-gpt-6-luna.json": "855aa995972871ebf98455c594e5b223cb1e257f77d26923bd8f7b1c7c680cf8",
+        "scripts/live_document_eval_support.py": "cb044b5ebc76fc0de423a6f06541aaae49dd4a8b1b0e90faf15111a465dd2636",
+        "scripts/live_patent_laws_eval.py": "18525ec76e86d6ca783575b48761e036bf0220eb683883d02cfa934516234cc4"
+      },
+      "scope": "Known-source processing acceptance, not source discovery or a newest-law guarantee.",
+      "recorded_wire_requests": 48,
+      "http_status_counts": {
+        "200": 48
+      },
+      "http_errors": [],
+      "transport_exception_count": 0,
+      "stopped_reason": "done",
+      "evidence_files": [
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-responses/receipt.json",
+          "bytes": 9638,
+          "sha256": "443e3ce7c55e0cccf4d360ae08480133a7e7e96f2d90d15a9cbc6db0cdebd26a"
+        },
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-responses/agent-state.json",
+          "bytes": 981776,
+          "sha256": "437ce4759ecbea351c7519255873dfb1212ecfd58d7935c13101508e0db22037"
+        },
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-responses/model-wire.jsonl",
+          "bytes": 3243495,
+          "sha256": "dc1b269339d7595ada498a3265a8441d3f946b9798706e14fcfaf0486f2ea049"
+        },
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-responses/source-snapshot.zip",
+          "bytes": 214035,
+          "sha256": "f3ab7eee4321bbdfe8fa3b97d145c495ed88ad9570309e010d904a0c4b4c7d0d"
+        },
+        {
+          "path": "deliveries/generic-documents/20260930-cockpit-responses/validation.json",
+          "bytes": 9638,
+          "sha256": "443e3ce7c55e0cccf4d360ae08480133a7e7e96f2d90d15a9cbc6db0cdebd26a"
+        }
+      ],
+      "exports": [
+        {
+          "path": "deliveries/generic-documents/20260930-cockpit-responses/CN.json",
+          "bytes": 358013,
+          "sha256": "c4d5fbf8d29a92cbeee0ec7ed0ed542472b99e0fe041ebc3ba1142903daa4343"
+        }
+      ]
+    },
+    {
+      "name": "transfer_responses",
+      "tag": "20260930-cockpit-responses",
+      "all_passed": false,
+      "agent_status": "incomplete",
+      "checks": {
+        "agent_completed": false,
+        "artifact_gate_passed": false,
+        "source_code_unchanged": true,
+        "no_special_mcp_or_skill": true,
+        "pep_index_source_has_expected_units": true,
+        "pep_index_record_count_matches_source_units": true,
+        "pep_index_each_source_unit_has_one_record": true,
+        "pep_index_full_unit_text_in_own_record": true,
+        "pep_index_source_tree_conserved": true,
+        "pep_index_row_text_hashes": true,
+        "pep_index_exported": true,
+        "nasa_feed_exported": false
+      },
+      "counts": {
+        "pep_index": 745
+      },
+      "expected_counts": {
+        "pep_index": 745
+      },
+      "model_calls": null,
+      "model_requests": 33,
+      "model_costs": {
+        "planner": {
+          "requests": 32,
+          "failed_requests": 0,
+          "usage_known_requests": 32,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 456908,
+          "input_tokens_max": 15632,
+          "input_tokens_mean": 14278.4,
+          "elapsed_seconds_total": 264.232,
+          "elapsed_seconds_mean": 8.257
+        },
+        "review": {
+          "requests": 1,
+          "failed_requests": 0,
+          "usage_known_requests": 1,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 13446,
+          "input_tokens_max": 13446,
+          "input_tokens_mean": 13446.0,
+          "elapsed_seconds_total": 6.672,
+          "elapsed_seconds_mean": 6.672
+        }
+      },
+      "metrics": {
+        "model_calls": 33,
+        "model_seconds": 271.408,
+        "input_tokens": 470354,
+        "output_tokens": 6678,
+        "model_routes": {
+          "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c": {
+            "observed_chars_per_token": 3.4592443849471963,
+            "prompt_tokens": 15037
+          }
+        }
+      },
+      "source_sha256": {
+        "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+        "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+        "cdp_browser_agent/browser/agent.py": "f5e4e09c063898115f591e24cbe6829078f20dda9ace4d35d4a8776884d66d80",
+        "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+        "cdp_browser_agent/browser/controller.py": "da0a1e8f79eeb802dfd8a08e668fb6a290c0484b53aaff9f5665a3c8d656baed",
+        "cdp_browser_agent/browser/default_config.py": "46054202efc4f7e41931dcce778f100797b4baef3031bc6047169f834205b43d",
+        "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+        "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+        "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+        "cdp_browser_agent/browser/planner.py": "196a7f8684451fa3441b833a21ca085ce4159fce979b7c2843fe1a121e0818ae",
+        "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+        "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+        "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+        "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+        "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+        "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+        "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+        "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+        "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+        "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+        "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+        "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+        "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+        "cdp_browser_agent/documents/context.py": "cf1de2ddf613130a7c25a3ed42a326e0d7fedb2577b32ce5951961129e16cb53",
+        "cdp_browser_agent/documents/engine.py": "de4a01c03e1c77431a3f4260297336df165efda27fc057d83fa09528996ad1ad",
+        "cdp_browser_agent/documents/labels.py": "9d738c3c9a245440404ff8d7727e6a50958c1b35eeb128bb9c649135d30df667",
+        "cdp_browser_agent/documents/recovery.py": "9cb1589f5ae2392e8b06d1d528ecf1f3ad1c4a29c6683d4cab1ecaaad4ea38aa",
+        "cdp_browser_agent/documents/review.py": "78eefe3415d4bda390d4a171474727c7aa909c6076f9dca9b7adf71d34fde0ad",
+        "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+        "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+        "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+        "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+        "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+        "cdp_browser_agent/harness/learning.py": "80a480b49970994550f2cbd1a995ab761a24dac10873842fee8993a875ca9e3c",
+        "cdp_browser_agent/harness/playbook.py": "463faca979c788a1db10bbe26ebe1a1dced62c0c036fa579c26d0b079db20593",
+        "cdp_browser_agent/harness/runtime.py": "a3b38f20804e99222d59b7fa95a7232122edf7b48a4a4e09ffb568ab0dbb33ba",
+        "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+        "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+        "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+        "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+        "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+        "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+        "cdp_browser_agent/model_client.py": "6d8780db9d30df03941f2938fca53691ebb4c1df41bc898a893b73cbf1998c80",
+        "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+        "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+        "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+        "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+        "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+        "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+        "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+        "cdp_browser_agent/web/extract.py": "c27d80667da4254e59814eea11784c9f53fd7f1e4dcbab3551ac303615d59a79",
+        "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+        "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+        "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+        "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+        "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+        "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+        "examples/documents-gpt-6-luna.json": "855aa995972871ebf98455c594e5b223cb1e257f77d26923bd8f7b1c7c680cf8",
+        "scripts/live_document_eval_support.py": "cb044b5ebc76fc0de423a6f06541aaae49dd4a8b1b0e90faf15111a465dd2636",
+        "scripts/live_document_transfer_eval.py": "e5f1150845e8fd23db9af9350165fde5459215e5410c181239844a159bc22679"
+      },
+      "scope": "Two new public documents, known-source processing only. No claim of general document reliability or source discovery.",
+      "recorded_wire_requests": 33,
+      "http_status_counts": {
+        "200": 33
+      },
+      "http_errors": [],
+      "transport_exception_count": 0,
+      "stopped_reason": "done",
+      "evidence_files": [
+        {
+          "path": "logs/live-document-transfer/20260930-cockpit-responses/receipt.json",
+          "bytes": 8960,
+          "sha256": "8e4a0a8d7ce1e419d42383045d037442a0e7e6e5cf3df698e0581a6ef2089d73"
+        },
+        {
+          "path": "logs/live-document-transfer/20260930-cockpit-responses/agent-state.json",
+          "bytes": 668173,
+          "sha256": "270695ec77e5cc292101ae0ad3f9bba638d3d2f23d49c1aa81c71e7fe44c30bc"
+        },
+        {
+          "path": "logs/live-document-transfer/20260930-cockpit-responses/model-wire.jsonl",
+          "bytes": 2446110,
+          "sha256": "4720e66e0762997ba0d02f2b737c5692212237a092c0d3d359bc540b72299e05"
+        },
+        {
+          "path": "logs/live-document-transfer/20260930-cockpit-responses/source-snapshot.zip",
+          "bytes": 212228,
+          "sha256": "79cd9068d52547e541f92a6b57f1943a5f18687796fbe00b12f95ba6064ca528"
+        },
+        {
+          "path": "deliveries/document-transfer/20260930-cockpit-responses/validation.json",
+          "bytes": 8960,
+          "sha256": "8e4a0a8d7ce1e419d42383045d037442a0e7e6e5cf3df698e0581a6ef2089d73"
+        }
+      ],
+      "exports": [
+        {
+          "path": "deliveries/document-transfer/20260930-cockpit-responses/pep_index.json",
+          "bytes": 4991367,
+          "sha256": "55f650a928c83cc966a6ec62a021b1f18f31fd81f6e4999a17c45e148e51602c"
+        }
+      ]
+    },
+    {
+      "name": "transfer_final",
+      "tag": "20260930-cockpit-final",
+      "all_passed": true,
+      "agent_status": "completed",
+      "checks": {
+        "agent_completed": true,
+        "artifact_gate_passed": true,
+        "source_code_unchanged": true,
+        "no_special_mcp_or_skill": true,
+        "pep_index_source_has_expected_units": true,
+        "pep_index_record_count_matches_source_units": true,
+        "pep_index_each_source_unit_has_one_record": true,
+        "pep_index_full_unit_text_in_own_record": true,
+        "pep_index_source_tree_conserved": true,
+        "pep_index_row_text_hashes": true,
+        "nasa_feed_source_has_expected_units": true,
+        "nasa_feed_record_count_matches_source_units": true,
+        "nasa_feed_each_source_unit_has_one_record": true,
+        "nasa_feed_full_unit_text_in_own_record": true,
+        "nasa_feed_source_tree_conserved": true,
+        "nasa_feed_row_text_hashes": true,
+        "pep_index_exported": true,
+        "nasa_feed_exported": true
+      },
+      "counts": {
+        "pep_index": 745,
+        "nasa_feed": 10
+      },
+      "expected_counts": {
+        "pep_index": 745,
+        "nasa_feed": 10
+      },
+      "model_calls": null,
+      "model_requests": 17,
+      "model_costs": {
+        "planner": {
+          "requests": 14,
+          "failed_requests": 0,
+          "usage_known_requests": 14,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 187118,
+          "input_tokens_max": 15040,
+          "input_tokens_mean": 13365.6,
+          "elapsed_seconds_total": 88.017,
+          "elapsed_seconds_mean": 6.287
+        },
+        "review": {
+          "requests": 3,
+          "failed_requests": 0,
+          "usage_known_requests": 3,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 36517,
+          "input_tokens_max": 13661,
+          "input_tokens_mean": 12172.3,
+          "elapsed_seconds_total": 36.766,
+          "elapsed_seconds_mean": 12.255
+        }
+      },
+      "metrics": {
+        "model_calls": 17,
+        "model_seconds": 125.765,
+        "input_tokens": 223635,
+        "output_tokens": 3215,
+        "model_routes": {
+          "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c": {
+            "observed_chars_per_token": 3.466876509772345,
+            "prompt_tokens": 14726
+          }
+        }
+      },
+      "source_sha256": {
+        "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+        "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+        "cdp_browser_agent/browser/agent.py": "f5e4e09c063898115f591e24cbe6829078f20dda9ace4d35d4a8776884d66d80",
+        "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+        "cdp_browser_agent/browser/controller.py": "da0a1e8f79eeb802dfd8a08e668fb6a290c0484b53aaff9f5665a3c8d656baed",
+        "cdp_browser_agent/browser/default_config.py": "46054202efc4f7e41931dcce778f100797b4baef3031bc6047169f834205b43d",
+        "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+        "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+        "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+        "cdp_browser_agent/browser/planner.py": "196a7f8684451fa3441b833a21ca085ce4159fce979b7c2843fe1a121e0818ae",
+        "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+        "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+        "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+        "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+        "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+        "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+        "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+        "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+        "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+        "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+        "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+        "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+        "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+        "cdp_browser_agent/documents/context.py": "cf1de2ddf613130a7c25a3ed42a326e0d7fedb2577b32ce5951961129e16cb53",
+        "cdp_browser_agent/documents/engine.py": "de4a01c03e1c77431a3f4260297336df165efda27fc057d83fa09528996ad1ad",
+        "cdp_browser_agent/documents/labels.py": "9d738c3c9a245440404ff8d7727e6a50958c1b35eeb128bb9c649135d30df667",
+        "cdp_browser_agent/documents/recovery.py": "9cb1589f5ae2392e8b06d1d528ecf1f3ad1c4a29c6683d4cab1ecaaad4ea38aa",
+        "cdp_browser_agent/documents/review.py": "d1a9c7b96a910476a64fb07f0667836b0ed0dcee6d8d8a67052f63c06e7f1255",
+        "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+        "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+        "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+        "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+        "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+        "cdp_browser_agent/harness/learning.py": "80a480b49970994550f2cbd1a995ab761a24dac10873842fee8993a875ca9e3c",
+        "cdp_browser_agent/harness/playbook.py": "463faca979c788a1db10bbe26ebe1a1dced62c0c036fa579c26d0b079db20593",
+        "cdp_browser_agent/harness/runtime.py": "a3b38f20804e99222d59b7fa95a7232122edf7b48a4a4e09ffb568ab0dbb33ba",
+        "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+        "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+        "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+        "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+        "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+        "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+        "cdp_browser_agent/model_client.py": "6d8780db9d30df03941f2938fca53691ebb4c1df41bc898a893b73cbf1998c80",
+        "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+        "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+        "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+        "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+        "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+        "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+        "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+        "cdp_browser_agent/web/extract.py": "c27d80667da4254e59814eea11784c9f53fd7f1e4dcbab3551ac303615d59a79",
+        "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+        "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+        "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+        "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+        "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+        "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+        "examples/documents-gpt-6-luna.json": "855aa995972871ebf98455c594e5b223cb1e257f77d26923bd8f7b1c7c680cf8",
+        "scripts/live_document_eval_support.py": "cb044b5ebc76fc0de423a6f06541aaae49dd4a8b1b0e90faf15111a465dd2636",
+        "scripts/live_document_transfer_eval.py": "e5f1150845e8fd23db9af9350165fde5459215e5410c181239844a159bc22679"
+      },
+      "scope": "Two new public documents, known-source processing only. No claim of general document reliability or source discovery.",
+      "recorded_wire_requests": 17,
+      "http_status_counts": {
+        "200": 17
+      },
+      "http_errors": [],
+      "transport_exception_count": 0,
+      "stopped_reason": "done",
+      "evidence_files": [
+        {
+          "path": "logs/live-document-transfer/20260930-cockpit-final/receipt.json",
+          "bytes": 9302,
+          "sha256": "9ae008c6f0882b2319db276235eac776095b3f54eb786ffb45ac0323c6b0bd1d"
+        },
+        {
+          "path": "logs/live-document-transfer/20260930-cockpit-final/agent-state.json",
+          "bytes": 340153,
+          "sha256": "e52dc954df5aeeda1acbabd26d473d196646e6099d4d9eca94ae1e13afc38998"
+        },
+        {
+          "path": "logs/live-document-transfer/20260930-cockpit-final/model-wire.jsonl",
+          "bytes": 1149999,
+          "sha256": "24120964ca02f687530f98fe617b3f92de6b086e3de99da356a1a029b07c4fb2"
+        },
+        {
+          "path": "logs/live-document-transfer/20260930-cockpit-final/source-snapshot.zip",
+          "bytes": 212620,
+          "sha256": "e867ecce9c4f2875337d19ea6a36dc8220095289c1a970f29c58b39280020b74"
+        },
+        {
+          "path": "deliveries/document-transfer/20260930-cockpit-final/validation.json",
+          "bytes": 9302,
+          "sha256": "9ae008c6f0882b2319db276235eac776095b3f54eb786ffb45ac0323c6b0bd1d"
+        }
+      ],
+      "exports": [
+        {
+          "path": "deliveries/document-transfer/20260930-cockpit-final/pep_index.json",
+          "bytes": 4991367,
+          "sha256": "bd1f2db464995bc7eae489966299564f2abdf0fcb081999ef4bce04a0cec3555"
+        },
+        {
+          "path": "deliveries/document-transfer/20260930-cockpit-final/nasa_feed.json",
+          "bytes": 869308,
+          "sha256": "b9304092299bf5e256fd1986672e2b2faafcaeef8d868943ccd549783dd03fa3"
+        }
+      ]
+    },
+    {
+      "name": "law_final",
+      "tag": "20260930-cockpit-final",
+      "all_passed": false,
+      "agent_status": "max_steps",
+      "checks": {
+        "agent_completed": false,
+        "artifact_gate_passed": false,
+        "no_special_mcp_or_skill": true,
+        "source_code_unchanged": true,
+        "CN_exported": true,
+        "CN_has_articles": true,
+        "CN_all_text_hashes": true,
+        "CN_unique_record_ids": true,
+        "CN_source_tree_conserved": true,
+        "CN_all_article_boundaries": true,
+        "CN_each_heading_in_distinct_record": true,
+        "CN_all_continuation_paragraphs": true,
+        "CN_chapter_titles_not_body_paragraphs": true,
+        "CN_body_bound_to_own_article": true,
+        "US_exported": false,
+        "JP_exported": false
+      },
+      "counts": {
+        "CN": 82
+      },
+      "expected_counts": null,
+      "model_calls": 67,
+      "model_requests": null,
+      "model_costs": {
+        "planner": {
+          "requests": 60,
+          "failed_requests": 0,
+          "usage_known_requests": 60,
+          "usage_missing_requests": 0,
+          "input_tokens_total": 774640,
+          "input_tokens_max": 15405,
+          "input_tokens_mean": 12910.7,
+          "elapsed_seconds_total": 461.878,
+          "elapsed_seconds_mean": 7.698
+        },
+        "review": {
+          "requests": 7,
+          "failed_requests": 0,
+          "usage_known_requests": 6,
+          "usage_missing_requests": 1,
+          "input_tokens_total": 107924,
+          "input_tokens_max": 19176,
+          "input_tokens_mean": 17987.3,
+          "elapsed_seconds_total": 66.235,
+          "elapsed_seconds_mean": 9.462
+        }
+      },
+      "metrics": {
+        "model_calls": 66,
+        "model_seconds": 520.232,
+        "input_tokens": 882564,
+        "output_tokens": 16040,
+        "model_routes": {
+          "4c6f3ac1000926a0f4e66e85b34d5b2dffaa87313b27c4dc171512af7acf0f6c": {
+            "observed_chars_per_token": 2.6140285767303766,
+            "prompt_tokens": 12400
+          }
+        }
+      },
+      "source_sha256": {
+        "cdp_browser_agent/__init__.py": "e321678b77b58bb081b5390a8cc76a0ca9f02ea0ca02362da85e17f4f3f0d5fb",
+        "cdp_browser_agent/browser/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/browser/__main__.py": "87542982f474f2d3ba4df407bb248a2a04224155d522841128b131e6c561b7f3",
+        "cdp_browser_agent/browser/agent.py": "f5e4e09c063898115f591e24cbe6829078f20dda9ace4d35d4a8776884d66d80",
+        "cdp_browser_agent/browser/cli.py": "a0161007c193b29528eb8decc7072219eb965e6c57e4c75e30ca78875585815d",
+        "cdp_browser_agent/browser/controller.py": "da0a1e8f79eeb802dfd8a08e668fb6a290c0484b53aaff9f5665a3c8d656baed",
+        "cdp_browser_agent/browser/default_config.py": "46054202efc4f7e41931dcce778f100797b4baef3031bc6047169f834205b43d",
+        "cdp_browser_agent/browser/dom.py": "74dee7476fba0a27b75fb544fcd6d52a71d9a77a692433cba70f90a45831f518",
+        "cdp_browser_agent/browser/dom_observation.py": "74e518c02901b1b18f8cd2f0fd235744f585de14dbd5acbf1360beb59c622120",
+        "cdp_browser_agent/browser/memory.py": "5c7d34e6b53e77c76ab8866fc1e27b97f559ced87942fc6361351e2bf1d6583e",
+        "cdp_browser_agent/browser/planner.py": "196a7f8684451fa3441b833a21ca085ce4159fce979b7c2843fe1a121e0818ae",
+        "cdp_browser_agent/browser/policy.py": "90594ff7ed2ae88e50c165430285ed365753bb800f125a11a8b61e27544ae7e8",
+        "cdp_browser_agent/browser/resource_analyzer.py": "5d102ad2c74af9791b18c0ba0a6061d701403fe6bbee9f3df83d246e33804914",
+        "cdp_browser_agent/browser/runner.py": "56bcb1835525ab4ea7f9fea9b0390d2e8c794de3337e0a60a827c7e7e6b25cb7",
+        "cdp_browser_agent/browser/site_memory.py": "17fb0c5a0eb2c0b84996159a70033a0a7f9c81415ea0ae6ff9b6d5b15bea1809",
+        "cdp_browser_agent/browser/strategy_evaluator.py": "b6da857cbc8e22999c3f658b5cf9540d4bcb5b6553029d95733c97bb9b8c389f",
+        "cdp_browser_agent/common/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "cdp_browser_agent/common/json_utils.py": "2904143cbe02a2fe756b1ab4d1dfe1dff00def90a136e517187667b7b0c9b2a3",
+        "cdp_browser_agent/configuration.py": "5be943e2d8a4fdc745f50c1bc73e7bd810dcd3c50c12afd25ec101f0b11543ff",
+        "cdp_browser_agent/context_budget.py": "27468153efb5ce887427b89499549ea22f58d5a02d96101a863975ece2daa36a",
+        "cdp_browser_agent/crawler/__init__.py": "fce7f048fa194e226ba8bf3143ed986d40dad0efcb5b570b61eb2fb21828a295",
+        "cdp_browser_agent/crawler/engine.py": "0c045371a06e4d2e8c7705e8adabe52f0f57e69cc1a0873cfd1d121f8341d382",
+        "cdp_browser_agent/crawler/spec.py": "984dce4788e19170863d4e00757a31a0345e5af804e04d44e5b73d1a1d8c37b3",
+        "cdp_browser_agent/crawler/store.py": "f7d4ad39aeca95c1577f82068d6c87ab01fb42f8592574fd24c5f578a6972536",
+        "cdp_browser_agent/documents/__init__.py": "82ffb25791ee5dc49ad9645b14f1247b8bf8d6c43ef111e5a293a1f8ee1bebed",
+        "cdp_browser_agent/documents/context.py": "cf1de2ddf613130a7c25a3ed42a326e0d7fedb2577b32ce5951961129e16cb53",
+        "cdp_browser_agent/documents/engine.py": "de4a01c03e1c77431a3f4260297336df165efda27fc057d83fa09528996ad1ad",
+        "cdp_browser_agent/documents/labels.py": "9d738c3c9a245440404ff8d7727e6a50958c1b35eeb128bb9c649135d30df667",
+        "cdp_browser_agent/documents/recovery.py": "9cb1589f5ae2392e8b06d1d528ecf1f3ad1c4a29c6683d4cab1ecaaad4ea38aa",
+        "cdp_browser_agent/documents/review.py": "d1a9c7b96a910476a64fb07f0667836b0ed0dcee6d8d8a67052f63c06e7f1255",
+        "cdp_browser_agent/harness/__init__.py": "24cfcabf0e387cd179b3d9762be530d9bb3b253899a760bf64e5da1c1d3139b5",
+        "cdp_browser_agent/harness/artifacts.py": "a311938eec20b1dae8e8d77bb34c48430c1f4e65740a8207cfa2f86249d075d3",
+        "cdp_browser_agent/harness/compaction.py": "524bfd696c7e0da725806cde016568060931416ea5420de5814581ffd0715e77",
+        "cdp_browser_agent/harness/experience.py": "1713925b5dae435b3b302c12d60546582083e27eae2c07794b1ae932780c2dbf",
+        "cdp_browser_agent/harness/intervention.py": "291c622936e8e9c54ca08dea3fe78702bcc8d3099492d1b7b40cfac90bdd5f28",
+        "cdp_browser_agent/harness/learning.py": "80a480b49970994550f2cbd1a995ab761a24dac10873842fee8993a875ca9e3c",
+        "cdp_browser_agent/harness/playbook.py": "463faca979c788a1db10bbe26ebe1a1dced62c0c036fa579c26d0b079db20593",
+        "cdp_browser_agent/harness/runtime.py": "a3b38f20804e99222d59b7fa95a7232122edf7b48a4a4e09ffb568ab0dbb33ba",
+        "cdp_browser_agent/harness/session.py": "2e5e37b25cd350486b71d41be70720416e453940339dd96786142ba618f34552",
+        "cdp_browser_agent/harness/skills.py": "b4c1bb1584e41b4d534e04052bbe1971a4e7d6d0ea28da01701d6f3c1de60dfa",
+        "cdp_browser_agent/harness/task_store.py": "dc73bfe138cff4c8b09f94157ea9cb9e1432cc69fe2f7af5b4da2d9fee5d685c",
+        "cdp_browser_agent/harness/tools.py": "d09894a9ed75510564bdbb613bb5f30a406e600b192fa57920ac6f83f7aa8ac4",
+        "cdp_browser_agent/harness/verification.py": "bbd26d19ee616525608b8d2df33afae26b2f4fd31746c86283bd80b570514b45",
+        "cdp_browser_agent/mcp_server.py": "30595adb6512c9299b681a1598c27c8107ee2cece3351fb7cc3333ec5d19293f",
+        "cdp_browser_agent/model_client.py": "6d8780db9d30df03941f2938fca53691ebb4c1df41bc898a893b73cbf1998c80",
+        "cdp_browser_agent/processing/__init__.py": "6c633978922e4cff3b4ce4c4160720980c04116f1d8dffb1c088c51278d0820d",
+        "cdp_browser_agent/processing/catalog.py": "5883ef73880d4888b301321164e504cfb542834899dc2c5f4dbd56b09ea5fef4",
+        "cdp_browser_agent/processing/engine.py": "6656b67353556a3cc8f0d5966909076f7fdf5a5ff7b476166b821012e11ee640",
+        "cdp_browser_agent/processing/learning.py": "ceb731502ad906b40193f8ca0216b1915400e9b0218220753532c29cd79ef037",
+        "cdp_browser_agent/processing/sessions.py": "455962b12ff2eb266f8df91744cc000ce1f74e15d98e312cb3b0c0af10e46bc7",
+        "cdp_browser_agent/processing/verification.py": "ff4b349d5d6af7c4b5c62ec53cea8a4c4fae349706f9126c6c7b1da255451fba",
+        "cdp_browser_agent/web/__init__.py": "7eef24e661db47e53169d97c7ae342f9c0b7965c3feca38cdf7ca74a3654eba3",
+        "cdp_browser_agent/web/extract.py": "c27d80667da4254e59814eea11784c9f53fd7f1e4dcbab3551ac303615d59a79",
+        "cdp_browser_agent/web/network.py": "74cf99fa0c1f0b12380089e05ae56940ed3a76489ed9ef3a11bcfd3422f179fe",
+        "cdp_browser_agent/web/tools.py": "98a36db02099ce4f68f2c737417e442820a785ee0822e9270f1962a6d29d6e7a",
+        "cdp_browser_agent/workflows/__init__.py": "52945942b00a2f0be75dd2d3e70dcf4523e5349ef25516959727a3e9abe35284",
+        "cdp_browser_agent/workflows/runner.py": "88e1ce7579e1deaff7289b5c03a35c67ba78e66f12fa9893afc64030bcff3a44",
+        "cdp_browser_agent/workflows/spec.py": "921b9825b9f505ff2fa476eb1a548ca5741e259b66c7517f1ddb0a6895985752",
+        "cdp_browser_agent/workflows/store.py": "d61db293557d430045efb373125dd69ad1ddd1a5b579640ee19d7c4fe751f77e",
+        "examples/documents-gpt-6-luna.json": "855aa995972871ebf98455c594e5b223cb1e257f77d26923bd8f7b1c7c680cf8",
+        "scripts/live_document_eval_support.py": "cb044b5ebc76fc0de423a6f06541aaae49dd4a8b1b0e90faf15111a465dd2636",
+        "scripts/live_patent_laws_eval.py": "18525ec76e86d6ca783575b48761e036bf0220eb683883d02cfa934516234cc4"
+      },
+      "scope": "Known-source processing acceptance, not source discovery or a newest-law guarantee.",
+      "recorded_wire_requests": 67,
+      "http_status_counts": {
+        "200": 66,
+        "408": 1
+      },
+      "http_errors": [
+        {
+          "index": 62,
+          "role": "review",
+          "status_code": 408,
+          "error": {
+            "code": "request_failed",
+            "message": "stream error: stream disconnected before completion: stream closed before response.completed",
+            "type": "invalid_request_error"
+          },
+          "usage_unknown": true
+        }
+      ],
+      "transport_exception_count": 0,
+      "stopped_reason": "max_steps",
+      "evidence_files": [
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-final/receipt.json",
+          "bytes": 9625,
+          "sha256": "864d0ff57851b25494c886b289175ebf12a9f85a9f7916787f2771922043132c"
+        },
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-final/agent-state.json",
+          "bytes": 1557950,
+          "sha256": "9b0ae1a1de534ad47de354d395e2752bf04c6b1c54d512744a0564689a812e73"
+        },
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-final/model-wire.jsonl",
+          "bytes": 4742640,
+          "sha256": "4da51d122cc5ff04969851ff653f105d08b2021e57e260b2e156ce777947d69c"
+        },
+        {
+          "path": "logs/live-generic-documents/20260930-cockpit-final/source-snapshot.zip",
+          "bytes": 214427,
+          "sha256": "5e60467e5faecfdbd5e1cb487d0b75d4bfca8456e552ac9b0c7d81eb8758b95d"
+        },
+        {
+          "path": "deliveries/generic-documents/20260930-cockpit-final/validation.json",
+          "bytes": 9625,
+          "sha256": "864d0ff57851b25494c886b289175ebf12a9f85a9f7916787f2771922043132c"
+        }
+      ],
+      "exports": [
+        {
+          "path": "deliveries/generic-documents/20260930-cockpit-final/CN.json",
+          "bytes": 358000,
+          "sha256": "c76789c97e33603d12810769fec67bd749c7bfc48a65b431e15100cc4bf27878"
+        }
+      ],
+      "recovery_summary": {
+        "4287c3f1e2e23bf6e93332ec756af8c9c5d759ace8062c186c15655e0395d2ae": {
+          "stage": "completed",
+          "revisions": 1,
+          "inspections": 7,
+          "effective_revisions": 1,
+          "unproductive_actions": 0,
+          "diagnostic_actions_used": 0,
+          "latest_job_id": "f396ed18046254fa3a243cd848d42fe6b57083a9b810e5cf2e0683a9566809e0",
+          "issues": [],
+          "required_changes": [],
+          "limitation": null
+        },
+        "6a64a0dafb60daf12c4e9a3e215a7d35cf7909feef9d54db9fb5132e5a3e0acb": {
+          "stage": "blocked",
+          "revisions": 6,
+          "inspections": 10,
+          "effective_revisions": 5,
+          "unproductive_actions": 7,
+          "diagnostic_actions_used": 3,
+          "latest_job_id": "45001dafb47e9e081d02b413c8750414856e89ef0b224abea1500ef1a7ccc896",
+          "issues": [
+            {
+              "kind": "record_unit",
+              "evidence_id": "record_61",
+              "quote": "[§§155, 155A. Repealed.",
+              "problem": "One article row combines sections 155 and 155A, although each must have an independent object."
+            }
+          ],
+          "required_changes": [
+            "Split the grouped §§155, 155A heading into separate article objects for §155 and §155A, preserving their shared source and repeal information."
+          ],
+          "limitation": "Bounded diagnosis produced no effective candidate change."
+        },
+        "5cf05d74fbedae9ad562c613a7617f5f71f2048a76b1bf2dea9969a6e22d3082": {
+          "stage": "derived",
+          "revisions": 0,
+          "inspections": 1,
+          "effective_revisions": 0,
+          "unproductive_actions": 0,
+          "diagnostic_actions_used": 0,
+          "latest_job_id": null,
+          "issues": [],
+          "required_changes": null,
+          "limitation": null
+        },
+        "1e03b794fbc30b81b2f2202d383c4de581986387094d55f11ff103a2c7f3507c": {
+          "stage": "review",
+          "revisions": 1,
+          "inspections": 12,
+          "effective_revisions": 1,
+          "unproductive_actions": 2,
+          "diagnostic_actions_used": 0,
+          "latest_job_id": "cf21939dd08a13095172bd827ba2c8ad09fe2c068e72e1b676335afe6597694f",
+          "issues": [],
+          "required_changes": null,
+          "limitation": null
+        }
+      },
+      "pending_JP_candidate": {
+        "job_id": "cf21939dd08a13095172bd827ba2c8ad09fe2c068e72e1b676335afe6597694f",
+        "record_count": 464,
+        "review_accepted": false,
+        "exported": false,
+        "source_assertions_applied": false,
+        "reason": "Reviewer HTTP 408: upstream stream closed before response.completed. Repeated candidate reads did not obtain a review verdict."
+      }
+    }
+  ],
+  "cost_reporting_limits": [
+    "The historical failed_requests counter counts transport exceptions only. HTTP error counts are listed separately.",
+    "Token totals and means summarize requests with reported usage only; missing usage is unknown cost, not zero.",
+    "Runtime metrics can omit unsuccessful HTTP requests; recorded_wire_requests is the attempted request count.",
+    "Final law and transfer trials ran concurrently; elapsed values are not a causal performance comparison."
+  ],
+  "remaining_limits": [
+    "US final candidate retained a grouped 155/155A heading. Bounded recovery stopped without an effective revision.",
+    "JP reviewer returned HTTP 408 and no acceptance verdict; the 464-record candidate remains unexported and was not accepted by source-specific output assertions.",
+    "Transient inconclusive review currently remains cached for the same job and policy; reading candidate slices does not retry the review.",
+    "Known-source HTML/XML processing evidence does not establish open-ended discovery, universal document reliability, current-law correctness or PDF/OCR capability."
+  ]
+}

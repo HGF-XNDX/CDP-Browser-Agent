@@ -137,6 +137,31 @@ def representative_indexes(rows, tree, limit=7, priority=()):
     return sorted(indexes)
 
 
+def _mapping_view(mapping, mapping_index, sample_indexes):
+    indexes = [i for i, record_index in enumerate(mapping['record_indexes']) if record_index in sample_indexes]
+    steps = []
+    for step in mapping.get('steps', []):
+        view = {'operation': step['operation']}
+        for field in ('input', 'output'):
+            if field not in step:
+                continue
+            values = step[field]
+            view[field] = [value[:240] for value in values[:16]]
+            view[field + '_count'] = len(values)
+            view[field + '_preview_truncated'] = len(values) > 16 or any(len(value) > 240 for value in values[:16])
+        steps.append(view)
+    return {'source_path': mapping['source_path'], 'attribute': mapping.get('attribute'),
+        'record_start_path': mapping['record_start_path'],
+        'input': mapping['input'][:1000], 'input_chars': len(mapping['input']),
+        'input_preview_truncated': len(mapping['input']) > 1000, 'steps': steps,
+        'output_labels': [mapping['output_labels'][i][:240] for i in indexes],
+        'output_label_count': len(mapping['output_labels']),
+        'record_indexes': [mapping['record_indexes'][i] for i in indexes],
+        'record_ids': [mapping['record_ids'][i] for i in indexes],
+        'record_count': len(mapping['record_ids']), 'values_are_previews': True,
+        'full_mapping_reference': {'field': 'source_unit_mapping', 'index': mapping_index}}
+
+
 def build_evidence(service, receipt, candidate):
     """Project schema, scope and negative space, not just three happy-path rows."""
     spec = receipt['spec']
@@ -248,8 +273,8 @@ def build_evidence(service, receipt, candidate):
     return {'output_shape': shape, 'record_scopes': dict(scopes), 'label_sample_indexes': label_indexes,
         'labels_total': len(rows), 'labels_are_previews': True, 'label_preview_chars': 180,
         'samples': samples, 'key_diagnostics': key_diagnostics,
-        'source_unit_mapping': {'total': len(mappings), 'samples': [m for m in mappings if any(i in indexes for i in m['record_indexes'])],
-            'meaning': 'Each source start has observed label inputs, declared transformation steps and exact output record references. No expected labels are inferred from memory.'},
+        'source_unit_mapping': {'total': len(mappings), 'samples': [_mapping_view(m, n, indexes) for n, m in enumerate(mappings) if any(i in indexes for i in m['record_indexes'])],
+            'meaning': 'Observed label values and step lists are bounded previews; record references identify sampled rows exactly. Full values and all references remain in the saved candidate at full_mapping_reference. No expected labels are inferred from memory.'},
         'diagnostic_evidence_ids': diagnostic_ids,
         'filtered_heading_count': len(filtered), 'unselected_peer_group_count': len(peers), 'evidence': evidence,
         'coverage_evidence_ids': [e['id'] for e in evidence if e['id'].startswith(('filtered_heading_', 'unselected_peer_', 'unselected_body_'))]}
@@ -337,7 +362,7 @@ def validate_decision(response, evidence):
 
 
 def review_policy_id(config):
-    return digest({'protocol_version': 3, 'system': SYSTEM, 'model': config.get('model', {}),
+    return digest({'protocol_version': 4, 'system': SYSTEM, 'model': config.get('model', {}),
                    'contract': config.get('agent', {}).get('completion_documents', {})})
 
 

@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from cdp_browser_agent.configuration import load_config
-from cdp_browser_agent.browser.planner import fit_payload
+from cdp_browser_agent.browser.planner import decode_planner_action, fit_payload
 
 
 def test_config_paths_are_relative_to_config_file(tmp_path, monkeypatch):
@@ -27,3 +27,22 @@ def test_budget_preserves_task_and_active_skills():
     assert payload["recent_history"]
     with pytest.raises(ValueError, match="exceeds prompt budget"):
         fit_payload({"task": "X" * 9000}, 1000)
+
+
+def test_single_action_protocol_retains_first_complete_object_and_audits_later_actions():
+    first = {"action": "tool", "name": "document_inspect", "arguments": {
+        "source_id": "source", "selector": 'p[data-label="{unit}"]'}}
+    raw = json.dumps(first) + '\nDBG\n' + json.dumps({"action": "done", "outcome": "completed", "answer": "invented result"})
+    selected, receipt = decode_planner_action(raw)
+    assert selected == first
+    assert receipt['mode'] == 'first_object' and receipt['ignored_suffix_chars'] > 0
+    # Nested braces and quoted selector text must not truncate the real action.
+    assert selected['arguments']['selector'] == 'p[data-label="{unit}"]'
+
+
+def test_single_action_protocol_does_not_repair_broken_json_or_skip_to_later_action():
+    raw = '{"action":"tool","arguments":{"value":broken}}\n{"action":"done"}'
+    with pytest.raises(json.JSONDecodeError):
+        decode_planner_action(raw)
+    with pytest.raises(ValueError, match='first JSON object'):
+        decode_planner_action('{}\n{"action":"done"}')

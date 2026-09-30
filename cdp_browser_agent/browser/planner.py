@@ -288,6 +288,23 @@ def extract_json_object(text: str) -> dict:
         return json.loads(match.group(0))
 
 
+def decode_planner_action(text: str) -> tuple[dict, dict]:
+    try:
+        return extract_json_object(text), {"mode": "single_object", "ignored_suffix_chars": 0}
+    except json.JSONDecodeError:
+        value = (text or "").strip()
+        start = value.find("{")
+        if start < 0:
+            raise
+        action, end = json.JSONDecoder().raw_decode(value, start)
+        if not isinstance(action, dict) or not isinstance(action.get("action"), str):
+            raise ValueError("The first JSON object must contain a planner action")
+        # This is a single-action host protocol. Later text cannot provide real
+        # execution results, so retain it for audit instead of dispatching it.
+        return action, {"mode": "first_object", "ignored_prefix_chars": start,
+                        "ignored_suffix_chars": len(value[end:].strip())}
+
+
 async def plan_next_action(request: dict) -> dict:
     model_settings = await prepare_model_options(request.get("model_settings", {}))
     model_settings["_agent_context"] = request.get("agent_settings", {})
@@ -327,6 +344,11 @@ async def plan_next_action(request: dict) -> dict:
             "allow_password_input": bool(model_settings.get("allowPasswordInput", False)),
         },
         "observation": compact_observation(request.get("observation", {})),
+        "turn_contract": {
+            "reply": "Return exactly ONE action as a single JSON object, then end this response.",
+            "execution": "The host executes that action AFTER this response ends and supplies its actual result in the next request.",
+            "forbidden": "Do not simulate tool execution, tool results, further actions or a final answer before receiving that result.",
+        },
     }
     settings = request.get("agent_settings", {})
     budget = ContextBudget.from_settings(model_settings, settings, RUN_METRICS.get())
@@ -364,7 +386,8 @@ async def plan_next_action(request: dict) -> dict:
             raise
         raw = await chat_completion(messages(smaller), model_settings)
         receipt = recovery
-    return {"action": extract_json_object(raw), "raw_model_output": raw,
+    action, selection = decode_planner_action(raw)
+    return {"action": action, "raw_model_output": raw, "output_selection": selection,
             "context_budget": budget.as_dict(), "compaction": receipt, "projection": projection}
 
 

@@ -112,6 +112,42 @@ async def test_capture_split_diagnostic_must_be_assessed_before_acceptance(confi
         validate_decision(json.dumps(decision), evidence['evidence'])
 
 
+async def test_review_mapping_views_bound_long_source_values_without_truncating_candidate(config):
+    from cdp_browser_agent.context_budget import ContextBudget
+    from cdp_browser_agent.documents.review import SYSTEM
+    service = DocumentTools(config)
+    body = 'Full original entry and supporting details. ' * 4000
+    identity = source(service, '<Catalog>' + ''.join(f'<Unit>{i}: {body}</Unit>' for i in range(4)) + '</Catalog>')
+    preview = await service.preview(identity, {'mode': 'elements', 'selector': './/Unit'})
+    _, receipt, candidate = service._job(preview['job_id'])
+    original = digest(candidate)
+    projection = build_evidence(service, receipt, candidate)
+    mapping = projection['source_unit_mapping']['samples'][0]
+    assert mapping['input_preview_truncated'] and mapping['input_chars'] > 100000
+    assert len(mapping['input']) <= 1000 and mapping['full_mapping_reference']['index'] == 0
+    payload = {'source_overview': await service.inspect(identity), 'recipe': receipt['spec'],
+        'coverage': candidate['coverage'], **projection}
+    ContextBudget.from_settings(config['model'], config['agent']).check([
+        {'role': 'system', 'content': SYSTEM}, {'role': 'user', 'content': json.dumps(payload)}])
+    assert digest(candidate) == original and candidate['records'][0]['text'] == '0: ' + body.strip()
+    assert len(candidate['source_unit_mapping'][0]['input']) > 100000
+
+
+async def test_review_mapping_samples_keep_correct_labels_and_record_ids_for_large_group(config):
+    service = DocumentTools(config)
+    identity = source(service, '<Catalog><Unit Code="1:1000">Original grouped marker</Unit></Catalog>')
+    preview = await service.preview(identity, {'mode': 'elements', 'selector': './/Unit',
+        'key_source': {'attribute': 'Code'}, 'key_transforms': [{'operation': 'integer_range', 'delimiter': ':', 'max_values': 1000}]})
+    _, receipt, candidate = service._job(preview['job_id'])
+    projection = build_evidence(service, receipt, candidate)
+    mapping = projection['source_unit_mapping']['samples'][0]
+    assert mapping['output_label_count'] == mapping['record_count'] == 1000
+    assert len(mapping['record_indexes']) == len(mapping['output_labels']) == len(mapping['record_ids']) <= 8
+    assert mapping['steps'][0]['output_count'] == 1000 and mapping['steps'][0]['output_preview_truncated']
+    for i, label, record_id in zip(mapping['record_indexes'], mapping['output_labels'], mapping['record_ids']):
+        assert candidate['records'][i]['key'] == label and candidate['records'][i]['id'] == record_id
+
+
 async def test_repair_guard_persists_counts_ignores_metadata_and_allows_other_source(config, monkeypatch):
     from cdp_browser_agent.documents import review
     calls = AsyncMock(return_value=json.dumps({'accepted': False, 'record_unit': 'product',

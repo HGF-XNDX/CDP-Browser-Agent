@@ -203,8 +203,12 @@ async def run_agent(task: str, config: dict, runtime: ExtensionRuntime | None = 
                 planned = await plan_next_action(request)
                 previous_plan_seconds = time.monotonic() - plan_started
                 state.setdefault('planning_costs', []).append({'step': step, 'elapsed_seconds': round(previous_plan_seconds, 3),
-                    'context': planned.get('projection'), 'execution_budget': request['execution_budget']})
+                    'context': planned.get('projection'), 'execution_budget': request['execution_budget'],
+                    'output_selection': planned.get('output_selection')})
                 recorder.write('planning_cost', state['planning_costs'][-1])
+                if (planned.get('output_selection') or {}).get('mode') == 'first_object':
+                    recorder.write('planner_output_selection', {'step': step, **planned['output_selection'],
+                        'raw_model_output': planned['raw_model_output']})
                 if planned.get("compaction"):
                     state["context_view"] = planned["compaction"]
                     if planned["compaction"].get("status") == "committed":

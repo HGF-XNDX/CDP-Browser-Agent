@@ -19,6 +19,11 @@ _RETRYABLE_STATUS = {500, 502, 503, 504, 408, 429}
 
 
 def extract_assistant_content(data: dict) -> str:
+    if isinstance(data.get("output"), list):
+        return "".join(part.get("text", "") for item in data["output"]
+                      if item.get("type") == "message" and item.get("role", "assistant") == "assistant"
+                      for part in item.get("content", [])
+                      if part.get("type") == "output_text" and isinstance(part.get("text"), str))
     choice = (data.get("choices") or [{}])[0] or {}
     message = choice.get("message") or {}
     for value in (message.get("content"), message.get("reasoning_content"), choice.get("text")):
@@ -34,6 +39,43 @@ def _positive_int(value):
     return value if isinstance(value, int) and not isinstance(value, bool) and value > 0 else None
 
 
+def _request_headers(options: dict) -> httpx.Headers:
+    extra = options.get("extraHeaders") or {}
+    if not isinstance(extra, dict) or any(not isinstance(k, str) or not isinstance(v, str) for k, v in extra.items()):
+        raise ValueError("model.extraHeaders must map header names to string values")
+    headers = httpx.Headers({"Content-Type": "application/json"})
+    headers.update(extra)
+    if options.get("apiKey"):
+        headers["Authorization"] = f"Bearer {options['apiKey']}"
+    return headers
+
+
+def _responses_input(messages: list[dict]) -> tuple[str, list[dict]]:
+    instructions, items = [], []
+    for message in messages:
+        role, content = message.get("role"), message.get("content")
+        if role in {"system", "developer"} and isinstance(content, str):
+            instructions.append(content)
+            continue
+        if role not in {"user", "assistant"}:
+            raise ValueError("Responses supports text system/developer instructions and user/assistant messages")
+        if isinstance(content, str):
+            content = [{"type": "text", "text": content}]
+        if not isinstance(content, list):
+            raise ValueError("Responses message content must be text or a supported content list")
+        parts = []
+        for part in content:
+            if part.get("type") == "text":
+                parts.append({"type": "output_text" if role == "assistant" else "input_text", "text": part["text"]})
+            elif part.get("type") == "image_url" and role == "user":
+                image = part["image_url"]
+                parts.append({"type": "input_image", "image_url": image["url"], "detail": image.get("detail", "auto")})
+            else:
+                raise ValueError("Unsupported Responses message content type")
+        items.append({"type": "message", "role": role, "content": parts})
+    return "\n\n".join(instructions), items
+
+
 async def prepare_model_options(options: dict) -> dict:
     """Discover active capacity, not training capacity. Failures have a short TTL."""
     result = dict(options)
@@ -47,7 +89,7 @@ async def prepare_model_options(options: dict) -> dict:
         provider = options.get("provider") or "llama.cpp"
         capability = {"model": requested or ("deepseek-chat" if provider == "deepseek" else options.get("fallbackModel", "local-model")),
                       "context_window_tokens": None, "source": "fallback_32768"}
-        headers = {"Authorization": f"Bearer {options['apiKey']}"} if options.get("apiKey") else {}
+        headers = _request_headers(options)
         seconds = max(.1, float(options.get("modelDiscoveryTimeout", 5)))
         async with httpx.AsyncClient(timeout=seconds, trust_env=bool(options.get("trustEnv", False))) as client:
             # Only llama.cpp has the /props contract. It is responsive even while
@@ -115,21 +157,33 @@ async def chat_completion(messages: list[dict], options: dict | None = None) -> 
     provider = options.get("provider") or "llama.cpp"
     enable_thinking = bool(options.get("enableThinking", False))
     base_url = (options.get("baseUrl") or DEFAULT_BASE_URL).rstrip("/")
-    headers = {"Content-Type": "application/json"}
-    if options.get("apiKey"):
-        headers["Authorization"] = f"Bearer {options['apiKey']}"
+    headers = _request_headers(options)
+    endpoint = "/" + str(options.get("apiEndpoint") or "chat/completions").strip("/")
+    if endpoint not in {"/chat/completions", "/responses"}:
+        raise ValueError("model.apiEndpoint must be /chat/completions or /responses")
     payload = {
         "model": options["model"],
         "messages": messages,
-        "temperature": options.get("temperature", 0.1),
         "max_tokens": options.get("maxTokens", 2048),
         "stream": False,
     }
+    if options.get("temperature", 0.1) is not None:
+        payload["temperature"] = options.get("temperature", 0.1)
     ContextBudget.from_settings(options, options.get("_agent_context"), RUN_METRICS.get()).check(messages)
-    if not enable_thinking:
-        payload["response_format"] = {"type": "json_object"}
-    if provider == "llama.cpp":
-        payload["chat_template_kwargs"] = {"enable_thinking": enable_thinking}
+    if endpoint == "/responses":
+        instructions, items = _responses_input(messages)
+        payload = {"model": options["model"], "instructions": instructions, "input": items,
+                   "max_output_tokens": options.get("maxTokens", 2048), "stream": False,
+                   "store": False, "tool_choice": "none"}
+        if options.get("temperature", 0.1) is not None:
+            payload["temperature"] = options.get("temperature", 0.1)
+        if not enable_thinking:
+            payload["text"] = {"format": {"type": "json_object"}}
+    else:
+        if not enable_thinking:
+            payload["response_format"] = {"type": "json_object"}
+        if provider == "llama.cpp":
+            payload["chat_template_kwargs"] = {"enable_thinking": enable_thinking}
     seconds = max(10.0, float(options.get("apiTimeout", 180)))
     timeout = httpx.Timeout(seconds, connect=min(20, seconds), read=seconds, write=seconds, pool=20)
     max_retries = max(0, int(options.get("maxRetries", 3)))
@@ -139,11 +193,14 @@ async def chat_completion(messages: list[dict], options: dict | None = None) -> 
     async with httpx.AsyncClient(timeout=timeout, trust_env=bool(options.get("trustEnv", False))) as client:
         for attempt in range(max_retries + 1):
             try:
-                response = await client.post(f"{base_url}/chat/completions", headers=headers, json=payload)
+                response = await client.post(f"{base_url}{endpoint}", headers=headers, json=payload)
                 _raise_context_overflow(response)
                 if response.status_code in {400, 422} and "response_format" in payload:
                     payload.pop("response_format", None)
-                    response = await client.post(f"{base_url}/chat/completions", headers=headers, json=payload)
+                    response = await client.post(f"{base_url}{endpoint}", headers=headers, json=payload)
+                elif response.status_code in {400, 422} and endpoint == "/responses" and "text" in payload:
+                    payload.pop("text")
+                    response = await client.post(f"{base_url}{endpoint}", headers=headers, json=payload)
                 _raise_context_overflow(response)
                 if response.status_code in _RETRYABLE_STATUS and attempt < max_retries:
                     await asyncio.sleep(base_backoff * (2 ** attempt))
@@ -167,15 +224,18 @@ async def chat_completion(messages: list[dict], options: dict | None = None) -> 
         usage = data.get("usage") or {}
         metrics["model_calls"] = metrics.get("model_calls", 0) + 1
         metrics["model_seconds"] = round(metrics.get("model_seconds", 0) + time.monotonic()-started, 3)
-        for target, source in (("input_tokens", "prompt_tokens"), ("output_tokens", "completion_tokens")):
+        input_key, output_key = ("input_tokens", "output_tokens") if endpoint == "/responses" else ("prompt_tokens", "completion_tokens")
+        for target, source in (("input_tokens", input_key), ("output_tokens", output_key)):
             metrics[target] = metrics.get(target, 0) + int(usage.get(source) or 0)
         if not usage:
             metrics["usage_missing_calls"] = metrics.get("usage_missing_calls", 0) + 1
-        if usage.get("prompt_tokens") and all(isinstance(m.get("content"), str) for m in messages):
+        if usage.get(input_key) and all(isinstance(m.get("content"), str) for m in messages):
             route = metrics.setdefault("model_routes", {}).setdefault(route_key(options), {})
-            ratio = max(1, min(4, len(json.dumps(messages, ensure_ascii=False)) / usage["prompt_tokens"]))
+            ratio = max(1, min(4, len(json.dumps(messages, ensure_ascii=False)) / usage[input_key]))
             route["observed_chars_per_token"] = min(route.get("observed_chars_per_token", 4), ratio)
-            route["prompt_tokens"] = int(usage["prompt_tokens"])
+            route["prompt_tokens"] = int(usage[input_key])
+    if endpoint == "/responses" and data.get("status") in {"failed", "incomplete", "cancelled"}:
+        raise RuntimeError("Responses generation did not complete: " + data["status"])
     content = extract_assistant_content(data)
     if not content:
         choice = (data.get("choices") or [{}])[0] or {}

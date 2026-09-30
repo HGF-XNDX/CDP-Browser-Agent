@@ -6,6 +6,8 @@
 `http://localhost:15536/v1`，密钥从 `CDP_BROWSER_AGENT_API_KEY` 环境变量读取。
 本轮通用修复、组件检查、真实工具访问和任务完成状态分别记录在
 [恢复修复验收](docs/DOCUMENT_RECOVERY_VALIDATION.md)。
+Cockpit 的请求级图片工具关闭、单步规划响应及后续实测见
+[Cockpit 接口兼容记录](docs/COCKPIT_API_COMPATIBILITY.md)。
 
 通用浏览器智能体。使用 Playwright 启动 Chromium 或连接 Chrome/Edge CDP，
 使用 OpenAI-compatible Chat Completions 接口规划动作。支持内部加载 Agent Skills、
